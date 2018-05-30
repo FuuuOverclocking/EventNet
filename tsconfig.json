@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "allowJs": true,
+        "noEmitOnError": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        "pretty": true,
+        "preserveConstEnums": true,
+        "stripInternal": true,
+        "newLine": "lf",
+        "outDir": "./lib"
+    },
+    "include": [
+        "./src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "**/*.js"
+    ]
+}

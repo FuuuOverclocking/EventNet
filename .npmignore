@@ -1,0 +1,15 @@
+docs
+gulpfile.js
+scripts
+src
+tests
+tslint.json
+.gitattributes
+.gitmodules
+.settings/
+.travis.yml
+.circleci
+.vscode/
+test.config
+package-lock.json
+yarn.lock

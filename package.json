@@ -1,0 +1,54 @@
+{
+  "name": "eventnet",
+  "version": "0.0.1",
+  "description": "Not just about flow design.",
+  "main": "lib/eventnet.min.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xyzingh/EventNet.git"
+  },
+  "keywords": [
+    "eventnet",
+    "flow",
+    "visual",
+    "debug",
+    "typescript",
+    "javascript-tools"
+  ],
+  "author": "X.Y.Z.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xyzingh/EventNet/issues"
+  },
+  "homepage": "http://justlog.xyz/eventnet",
+  "dependencies": {
+    "ws": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^22.2.3",
+    "@types/node": "^10.1.2",
+    "gulp": "^3.9.1",
+    "gulp-typescript": "^4.0.2",
+    "jest": "^23.0.1",
+    "ts-jest": "^22.4.6",
+    "typescript": "^2.8.3"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "tsconfig.json"
+      }
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$"
+  }
+}
