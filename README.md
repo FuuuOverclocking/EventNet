@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://eventnet.justlog.xyz">
-    <h1 align="center">EventNet</h1>
+    <img src="http://justlog.xyz/eventnet/images/logo.png" alt="" width=72 height=72>
   </a>
   <p align="center">
     Not just about flow design.
