@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://eventnet.justlog.xyz">
-    <img src="http://justlog.xyz/eventnet/images/logo.png" alt="" width="120" height="120">
+    <img src="http://justlog.xyz/eventnet/images/logo-dark.png" alt="" width="120" height="120">
   </a>
   <p align="center">
     Not just about flow design.
@@ -22,6 +22,12 @@ EventNet正在用TypeScript重构，EN Viewer将基于Koa, Socket.IO, Esprima等
 `npm i eventnet`
 
 项目于3月刚刚起步，我将尽快构建它，如果你看了下面几节觉得这个主意很有趣，欢迎提Issue和PR，以及加入成为Contributor。 [直接Get started >>](#get-started)
+
+
+[![GitHub issues](https://img.shields.io/github/issues/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/issues)
+[![npm](https://img.shields.io/npm/v/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
+[![npm](https://img.shields.io/npm/dm/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
+[![GitHub license](https://img.shields.io/github/license/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/blob/dev-xyz/LICENSE)
 
 ## 初步概念
 
