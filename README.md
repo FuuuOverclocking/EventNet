@@ -36,7 +36,7 @@ EventNet正在用TypeScript重构，EN Viewer将基于Koa, Socket.IO, Esprima等
 依照模块化的思想，一系列相互耦合度较高的 功能点 应当被组织起来，抽象成更高层次的一项功能。相应地，EventNet提供对一群节点构成的网络的折叠和打包功能。
 
 下面的图例粗糙地说明了一个后端如何初始化，同时也展示了可视化工具提供的福利中的“**实时运行情况**”，“**自动计时**”。
-![EventNet 图示](http://justlog.xyz/eventnet/docs/images/eventnet_graphic.gif)
+![EventNet 图示](http://justlog.xyz/eventnet/images/eventnet_graphic.gif)
 
 ### 节点
 
@@ -46,9 +46,9 @@ EventNet正在用TypeScript重构，EN Viewer将基于Koa, Socket.IO, Esprima等
 
 按形状分为：
 
-* ![one-way arrow](http://justlog.xyz/eventnet/docs/images/owarrow.png) 单向箭头(one-way arrow)&nbsp;&nbsp;&nbsp;触发指向的节点
-* ![one-way pipe](http://justlog.xyz/eventnet/docs/images/owpipe.png) 单向管道(one-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;触发指向的节点，数据同时通过管道流入
-* ![two-way pipe](http://justlog.xyz/eventnet/docs/images/twpipe.png) 双向管道(two-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以触发两头的节点，数据双向流动
+* ![one-way arrow](http://justlog.xyz/eventnet/images/owarrow.png) 单向箭头(one-way arrow)&nbsp;&nbsp;&nbsp;触发指向的节点
+* ![one-way pipe](http://justlog.xyz/eventnet/images/owpipe.png) 单向管道(one-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;触发指向的节点，数据同时通过管道流入
+* ![two-way pipe](http://justlog.xyz/eventnet/images/twpipe.png) 双向管道(two-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以触发两头的节点，数据双向流动
 
 按智商分为：
 
