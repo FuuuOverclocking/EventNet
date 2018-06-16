@@ -18,9 +18,6 @@ EventNet是一个轻量级流程设计和类响应式编程库，它将你的程
 
 EventNet正在用TypeScript重构，EN Viewer将基于Koa, Socket.IO, Esprima等构建。
 
-安装（未完成版本，API将有breaking changes）：
-`npm i eventnet`
-
 项目于3月刚刚起步，我将尽快构建它，如果你看了下面几节觉得这个主意很有趣，欢迎提Issue和PR，以及加入成为Contributor。 [直接Get started >>](#get-started)
 
 
