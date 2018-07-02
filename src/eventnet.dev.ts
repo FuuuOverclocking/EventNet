@@ -11,11 +11,14 @@ import { IAttrStore, IDictionary, INodeCode, INormalAttr, INormalAttrFunc } from
  * @param states - add initial state to Node.
  * @param code - set the code that is executed when the Node runs.
  */
-function en(attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
-function en(attrs: IDictionary, code: INodeCode): Node;
-function en(codes: INodeCode): Node;
+interface IEventNet {
+    (attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
+    (attrs: IDictionary, code: INodeCode): Node;
+    (codes: INodeCode): Node;
+    [index: string]: any;
+}
 
-function en(attrs: any, states?: any, code?: any) {
+const en: IEventNet = (attrs: any, states?: any, code?: any) => {
     if (typeof attrs === "object" && typeof states === "object" && typeof code === "function") {
         return new Node(attrs, states, code);
     } else if (typeof attrs === "object" && typeof states === "function") {
@@ -23,14 +26,7 @@ function en(attrs: any, states?: any, code?: any) {
     } else {
         return new Node({}, {}, code);
     }
-}
-
-/*
-The end of the file has the following two lines:
-    Object.assign(en, eventnet);
-    export default en;
-*/
-const eventnet: any = {};
+};
 
 // The store of attributes
 const attrStore: IAttrStore = {
@@ -40,7 +36,7 @@ const attrStore: IAttrStore = {
 
 function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;
 function installAttr(name: string, attr: INormalAttr): void;
-function installAttr(name: any, value: any) {
+function installAttr(name: any, value: any): void {
     // Parameter checking, remove in min&mon version
     if (typeof name !== "string") {
         throw new Error("EventNet.installAttr: name should be a string");
@@ -58,9 +54,10 @@ function installAttr(name: any, value: any) {
         attrStore.normalAttr[name] = value;
     }
 }
-eventnet.installAttr = installAttr;
 
-eventnet.getAttr = (name: string) =>
+en.installAttr = installAttr;
+
+en.getAttr = (name: string) =>
     attrStore.typedAttr[name] ||
         (!attrStore.normalAttr[name].before && !attrStore.normalAttr[name].after) ?
         false :
@@ -69,7 +66,7 @@ eventnet.getAttr = (name: string) =>
 // The default state of each new Node that already exists.
 // The states of Node created by calling en() is the result
 // of assigning parameter `states` to default state.
-eventnet.defaultState = {
+en.defaultState = {
     data: {},
     error: null,
     runTimes: 0,
@@ -113,6 +110,3 @@ installAttr("timelimit", {
     },
     afterPriority: 100,
 });
-
-Object.assign(en, eventnet);
-export default en;

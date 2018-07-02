@@ -8,7 +8,8 @@ interface INodeCodeDWS {
     (data: any): void;
     [index: number]: IDownStreamLike;
     all: (data: any) => void;
-    get: (id: string|number, data?: any) => IDownStreamLike;
+    get: (id: string, data?: any) => IDownStreamLike;
+    dispense: (keyValue: {[key: string]: any}) => void;
 }
 interface INodeCodeUPS {}
 interface INodeCodeThisExec {}
@@ -28,7 +29,6 @@ export interface INormalAttr {
     afterPriority?: number;
 }
 export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any) => void;
-
 interface IAttrFuncCondition {
     data: any;
     attrValue: any;
@@ -36,5 +36,6 @@ interface IAttrFuncCondition {
 }
 
 interface IDownStreamLike {
-    
+    (data: any): void;
+    [index: string]: any;
 }
