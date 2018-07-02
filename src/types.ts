@@ -2,6 +2,10 @@ export interface IDictionary {
     [index: string]: any;
 }
 
+export interface INode {
+    //////////////////////////
+}
+
 export type INodeCode = (downstream?: INodeCodeDWS, upstream?: INodeCodeUPS, thisExec?: INodeCodeThisExec) => any;
 
 interface INodeCodeDWS {
@@ -11,8 +15,12 @@ interface INodeCodeDWS {
     get: (id: string, data?: any) => IDownStreamLike;
     dispense: (keyValue: {[key: string]: any}) => void;
 }
-interface INodeCodeUPS {}
-interface INodeCodeThisExec {}
+interface INodeCodeUPS {
+    caller: INode|undefined;
+}
+interface INodeCodeThisExec {
+    node: INode;
+}
 
 export interface IAttrStore {
     normalAttr: {
@@ -29,13 +37,18 @@ export interface INormalAttr {
     afterPriority?: number;
 }
 export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any) => void;
-interface IAttrFuncCondition {
+export interface IAttrFuncCondition {
     data: any;
     attrValue: any;
     shut: boolean;
 }
 
-interface IDownStreamLike {
+export interface IDownStreamLike {//////////////////
+    (data: any): void;
+    [index: string]: any;
+}
+
+export interface IUpStreamLike {///////////////////
     (data: any): void;
     [index: string]: any;
 }
