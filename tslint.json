@@ -5,11 +5,28 @@
     ],
     "jsRules": {},
     "rules": {
-        "no-console": [false, "log", "error"],
+        "no-console": [
+            false,
+            "log",
+            "error"
+        ],
         "object-literal-sort-keys": false,
         "unified-signatures": false,
-        "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore"],
-        "trailing-comma": [true, {"multiline": "ignore", "singleline": "never"}]
+        "variable-name": [
+            true,
+            "ban-keywords",
+            "check-format",
+            "allow-leading-underscore"
+        ],
+        "trailing-comma": [
+            true,
+            {
+                "multiline": "ignore",
+                "singleline": "never"
+            }
+        ],
+        "member-ordering": false,
+        "no-empty": false
     },
     "rulesDirectory": []
 }

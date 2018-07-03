@@ -3,8 +3,8 @@
  * @version 0.0.2
  */
 
-import { IAttrFuncCondition, IAttrStore, IDictionary, IDownStreamLike, INode,
-     INodeCode, INormalAttr, INormalAttrFunc, IUpStreamLike } from "./types";
+import { IAttrFuncCondition, IAttrStore, IDictionary, IDownstreamLike, INode,
+     INodeCode, INormalAttr, INormalAttrFunc, IStreamLike, IStreamOfElement, IUpstreamLike } from "./types";
 
 /**
  * Create a EventNet Node
@@ -16,12 +16,12 @@ interface IEventNet {
     (attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
     (attrs: IDictionary, code: INodeCode): Node;
     (codes: INodeCode): Node;
-    installAttr?: typeof installAttr;
-    getAttrDefinition?: (name: string) => string|[INormalAttrFunc|undefined, INormalAttrFunc|undefined]|false;
-    defaultState?: any;
+    installAttr: typeof installAttr;
+    getAttrDefinition: (name: string) => string|[INormalAttrFunc|undefined, INormalAttrFunc|undefined]|false;
+    defaultState: any;
 }
 
-const en: IEventNet = (attrs: any, states?: any, code?: any) => {
+const en: IEventNet = ((attrs: any, states?: any, code?: any) => {
     if (typeof attrs === "object" && typeof states === "object" && typeof code === "function") {
         return new Node(attrs, states, code);
     } else if (typeof attrs === "object" && typeof states === "function") {
@@ -29,7 +29,7 @@ const en: IEventNet = (attrs: any, states?: any, code?: any) => {
     } else {
         return new Node({}, {}, code);
     }
-};
+}) as IEventNet;
 
 export default en;
 
@@ -65,8 +65,8 @@ en.installAttr = installAttr;
 en.getAttrDefinition = (name: string) =>
     attrStore.typedAttr[name] ||
         (!attrStore.normalAttr[name].before && !attrStore.normalAttr[name].after) ?
-        false :
-        [(attrStore.normalAttr[name].before || void 0), (attrStore.normalAttr[name].after || void 0)];
+            false :
+            [(attrStore.normalAttr[name].before || void 0), (attrStore.normalAttr[name].after || void 0)];
 
 // The default state of each new Node that already exists.
 // The states of Node created by calling en() is the result
@@ -78,24 +78,84 @@ en.defaultState = {
     running: 0,
 };
 
+const upsWaitingLink: IDownstreamLike[] = [];
+
 export class Node implements INode {
-    public state: IDictionary;
-    public readonly code?: INodeCode;
     public parentNode: INode|undefined = void 0;
-
-    private upstream: IUpStreamLike[];
-    private downstream: IDownStreamLike[];
-    private attrBeforeSequence: Array<{name: string, value: any, priority: number}>;
-    private attrAfterSequence: Array<{name: string, value: any, priority: number}>;
-
-    private _watchers: IDictionary;
+    public upstream: IStreamOfElement = {
+        add(ups: IUpstreamLike) {
+            this._upstream.push(ups);
+        },
+        get(index?: number) {
+            return typeof index === "undefined" ? this._upstream : this._upstream[index];
+        },
+        _upstream: [] as IUpstreamLike[],
+    };
+    public downstream: IStreamOfElement = {
+        add(ups: IDownstreamLike) {
+            this._downstream.push(ups);
+        },
+        get(index?: number) {
+            return typeof index === "undefined" ? this._downstream : this._downstream[index];
+        },
+        _downstream: [] as IDownstreamLike[],
+    };
+    private _watchers: IDictionary = []; ////////////////////////////////
     public get watchers() {
         return this._watchers;
     }
 
+    public state: IDictionary;
+    public readonly code?: INodeCode;
+    private attrBeforeSequence: Array<{name: string, value: any, priority: number}>;
+    private attrAfterSequence: Array<{name: string, value: any, priority: number}>;
+
     private _attr: IDictionary;
+    private _inheritAttr: IDictionary;
     public get attr(): IDictionary {
-        return this._attr;
+        return Object.assign({}, this._attr, this._inheritAttr);
+    }
+    public setAttr(attrs: Array<{name: string, value: any}>) {
+        // Coding suggestion, remove in min&mon version
+        console.warn("EventNet.Node.setAttr: Modify attribute after the Node was created is not recommended.");
+        for (const attr of attrs) {
+            this._attr[attr.name] = attr.value;
+        }
+        this.sortAttr();
+    }
+    public setInheritAttr(attrs: Array<{name: string, value: any}>) {
+        for (const attr of attrs) {
+            if (typeof this._attr[attr.name] !== "undefined") { continue; }
+            this._inheritAttr[attr.name] = attr.value;
+        }
+        this.sortAttr();
+    }
+
+    private sortAttr() {
+        this.attrBeforeSequence.length = 0;
+        this.attrAfterSequence.length = 0;
+        const attr = this.attr;
+        for (const name of Object.keys(attr)) {
+            if (typeof attr[name] === "undefined") { continue; }
+            if (attrStore.normalAttr[name].before) {
+                this.attrBeforeSequence.push({
+                    name,
+                    value: attr[name],
+                    priority: attrStore.normalAttr[name].beforePriority!
+                });
+            }
+            if (attrStore.normalAttr[name].after) {
+                this.attrAfterSequence.push({
+                    name,
+                    value: attr[name],
+                    priority: attrStore.normalAttr[name].afterPriority!
+                });
+            }
+        }
+
+        // Sort attributes based on priority.
+        this.attrBeforeSequence.sort((a, b) => a.priority - b.priority);
+        this.attrAfterSequence.sort((a, b) => b.priority - a.priority);
     }
 
     constructor(attr: IDictionary, state: IDictionary, code: INodeCode) {
@@ -118,28 +178,19 @@ export class Node implements INode {
         this._attr = attr;
         this.state = Object.assign(en.defaultState, state);
 
-        // Sort attributes based on priority.
-        for (const name of Object.keys(this._attr)) {
-            if (typeof this._attr[name] === "undefined") { continue; }
-            if (attrStore.normalAttr[name].before) {
-                this.attrBeforeSequence.push({
-                    name,
-                    value: this._attr[name],
-                    priority: attrStore.normalAttr[name].beforePriority!
-                });
-            }
-            if (attrStore.normalAttr[name].after) {
-                this.attrAfterSequence.push({
-                    name,
-                    value: this._attr[name],
-                    priority: attrStore.normalAttr[name].afterPriority!
-                });
-            }
+        this.sortAttr();
+
+        for (const ups of upsWaitingLink) {
+            ups.downstream.add(this);
+            this.upstream.add(ups);
         }
-        this.attrBeforeSequence.sort((a, b) => a.priority - b.priority);
-        this.attrAfterSequence.sort((a, b) => b.priority - a.priority);
+        upsWaitingLink.length = 0;
+
     }
-    private async _code(data: any, caller: IUpStreamLike) {
+    public async run() {
+
+    }
+    private async _code(data: any, caller: IUpstreamLike) {
         this.state.running++;
 
         const condition: IAttrFuncCondition = {
