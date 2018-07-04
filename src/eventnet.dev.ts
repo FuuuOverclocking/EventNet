@@ -176,8 +176,8 @@ class Node implements INode {
         }
 
         this.code = code;
-        this._attr = attr;
-        this.state = Object.assign(en.defaultState, state);
+        this._attr = Object.assign({}, attr};
+        this.state = Object.assign({}, en.defaultState, state);
 
         this.sortAttr();
 
