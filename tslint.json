@@ -26,7 +26,8 @@
             }
         ],
         "member-ordering": false,
-        "no-empty": false
+        "no-empty": false,
+        "max-classes-per-file": [true, 3]
     },
     "rulesDirectory": []
 }

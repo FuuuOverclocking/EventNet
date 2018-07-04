@@ -2,41 +2,39 @@ export interface IDictionary {
     [index: string]: any;
 }
 
-export interface IStreamLike {
-    run: (data: any, caller?: IUpstreamLike) => any;
+export interface ITypedDictionary<T> {
+    [index: string]: T;
+}
+
+export interface IElementLike {
+    run: (data: any, caller?: IElementLike) => any;
     upstream: IStreamOfElement;
     downstream: IStreamOfElement;
 }
 
-export interface IDownstreamLike extends IStreamLike {
-    /////////////////////////////////////////////////////////
-}
-
-export interface IUpstreamLike extends IStreamLike {
-    /////////////////////////////////////////////////////////
-}
-
 export interface IStreamOfElement {
-    add: (stream: IStreamLike) => void;
-    get: (index?: number) => IStreamLike[]|IStreamLike;
-    [index: string]: any;
+    add: (stream: IElementLike) => void;
+    get: (index?: number) => IElementLike[]|IElementLike;
 }
 
-export interface INode extends IDownstreamLike, IUpstreamLike {
+export interface INode extends IElementLike {
     parentNode?: INode;
     watchers: IDictionary;
 }
 
+export interface ILine extends IElementLike {
+    id?: string;
+}
+
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
-interface INodeCodeDWS {
-    (data: any): void;
-    [index: number]: IDownstreamLike;
+export interface INodeCodeDWS {
+    [index: number]: IElementLike;
     all: (data: any) => void;
-    get: (id: string, data?: any) => IDownstreamLike;
+    get: (id: string, data?: any) => ILine|undefined;
     dispense: (keyValue: {[key: string]: any}) => void;
 }
-interface INodeCodeUPS {
+export interface INodeCodeUPS {
     caller: INode|undefined;
 }
 interface INodeCodeThisExec {
