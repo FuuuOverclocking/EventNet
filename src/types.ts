@@ -3,7 +3,7 @@ export interface IDictionary {
 }
 
 export interface IStreamLike {
-    run: (data: void) => any;
+    run: (data: any, caller?: IUpstreamLike) => any;
     upstream: IStreamOfElement;
     downstream: IStreamOfElement;
 }
@@ -27,7 +27,7 @@ export interface INode extends IDownstreamLike, IUpstreamLike {
     watchers: IDictionary;
 }
 
-export type INodeCode = (downstream?: INodeCodeDWS, upstream?: INodeCodeUPS, thisExec?: INodeCodeThisExec) => any;
+export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
 interface INodeCodeDWS {
     (data: any): void;

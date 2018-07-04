@@ -31,7 +31,7 @@ const en: IEventNet = ((attrs: any, states?: any, code?: any) => {
     }
 }) as IEventNet;
 
-export default en;
+export = en;
 
 // The store of attributes
 const attrStore: IAttrStore = {
@@ -80,8 +80,7 @@ en.defaultState = {
 
 const upsWaitingLink: IDownstreamLike[] = [];
 
-export class Node implements INode {
-    public parentNode: INode|undefined = void 0;
+class Node implements INode {
     public upstream: IStreamOfElement = {
         add(ups: IUpstreamLike) {
             this._upstream.push(ups);
@@ -100,18 +99,20 @@ export class Node implements INode {
         },
         _downstream: [] as IDownstreamLike[],
     };
+    public parentNode: INode|undefined = void 0;
     private _watchers: IDictionary = []; ////////////////////////////////
     public get watchers() {
         return this._watchers;
     }
 
+    public readonly code: INodeCode;
+
     public state: IDictionary;
-    public readonly code?: INodeCode;
-    private attrBeforeSequence: Array<{name: string, value: any, priority: number}>;
-    private attrAfterSequence: Array<{name: string, value: any, priority: number}>;
 
     private _attr: IDictionary;
     private _inheritAttr: IDictionary;
+    private attrBeforeSequence: Array<{name: string, value: any, priority: number}>;
+    private attrAfterSequence: Array<{name: string, value: any, priority: number}>;
     public get attr(): IDictionary {
         return Object.assign({}, this._attr, this._inheritAttr);
     }
@@ -187,10 +188,21 @@ export class Node implements INode {
         upsWaitingLink.length = 0;
 
     }
-    public async run() {
-
+    public async run(data: any, caller?: IUpstreamLike) {
+        //////////////////////////////
+        try {
+            await this._code(data, caller);
+        } catch (error) {
+            if (error === Node.shutByAttrBefore) {
+                //////////////////////////////////////////////////////
+            } else if (error === Node.shutByAttrAfter) {
+                //////////////////////////////////////////////////////
+            }
+        }
     }
-    private async _code(data: any, caller: IUpstreamLike) {
+    private static shutByAttrBefore = Symbol();
+    private static shutByAttrAfter = Symbol();
+    private async _code(data: any, caller?: IUpstreamLike) {
         this.state.running++;
 
         const condition: IAttrFuncCondition = {
@@ -204,9 +216,18 @@ export class Node implements INode {
         }
         if (condition.shut) {
             this.state.running--;
-            return;
+            throw Node.shutByAttrBefore;
         }
 
+        data = condition.data;
+
+        try {
+            if (this._attr.sync === true) {
+                this.code();
+            }
+        } catch (error) {
+
+        }
     }
 
 }
