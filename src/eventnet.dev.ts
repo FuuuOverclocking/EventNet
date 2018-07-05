@@ -4,9 +4,9 @@
  */
 
 import {
-    IAttrFuncCondition, IAttrStore, IDictionary, ITypedDictionary, IElementLike, ILine, INode,
-    INodeCode, INodeCodeDWS, INodeCodeUPS, INormalAttr, INormalAttrFunc,
-    IStreamOfElement
+    IAttrFuncCondition, IAttrStore, IDictionary, IElementLike, ILine, INode,
+    INodeCode, INodeCodeDWS, INodeCodeThisExec, INodeCodeUPS, INormalAttr, INormalAttrFunc,
+    IStreamOfElement, ITypedDictionary
 } from "./types";
 
 /**
@@ -96,11 +96,11 @@ class StreamOfNode implements IStreamOfElement {
     public get(index?: number) {
         return typeof index === "undefined" ? this.content : this.content[index];
     }
-    public getById(id?: string) {
+    public getById(id?: string): ILine | ITypedDictionary<ILine> | undefined {
         return typeof id === "undefined" ? this.contentById : this.contentById[id];
     }
-    private content: IElementLike[];
-    private contentById: ITypedDictionary<IElementLike>;
+    private content: ILine[];
+    private contentById: ITypedDictionary<ILine>;
 }
 
 abstract class Element implements IElementLike {
@@ -115,8 +115,6 @@ class Node extends Element implements INode {
     public get watchers() {
         return this._watchers;
     }
-
-    public readonly code: INodeCode;
 
     public state: IDictionary;
 
@@ -209,7 +207,7 @@ class Node extends Element implements INode {
     public run(data: any, caller?: IElementLike) {
         if (this._attr.sync) {
             try {
-                // return this._codeSync(data, caller);/////////////////////////
+                return this._codeSync(data, caller); /////////////////////////
             } catch (error) {
                 if (error === Node.shutByAttrBefore) {
                     //////////////////////////////////////////////////////
@@ -229,9 +227,11 @@ class Node extends Element implements INode {
         //////////////////////////////
         // try-catch will Copy all the variables in the current scope.
     }
+
+    public readonly code: INodeCode;
     private static shutByAttrBefore = Symbol();
     private static shutByAttrAfter = Symbol();
-    private async _codeAsync(data: any, caller?: IElementLike) {
+    private async _codeAsync(data: any, caller?: ILine): Promise<any> {
         this.state.running++;
 
         const condition: IAttrFuncCondition = {
@@ -250,43 +250,125 @@ class Node extends Element implements INode {
 
         data = condition.data;
 
-        let result: any;
-        try {
-            if (this._attr.sync === true) {
-                result = this.code(this.codeParam.dws, this.codeParam.ups, this.codeParam.thisExec);
-            } else {
-                result = await this.code(this.codeParam.dws, this.codeParam.ups, this.codeParam.thisExec);
-            }
-        } catch (error) {
+        const result = await this.code(this.codeParam.dws, { data, caller }, { node: this });
 
-        }
+        this.state.running--;
+
+        return result;
     }
-    private dwsAsParamMethod: INodeCodeDWS = {
-        all: (data: any) => {
+    private _codeSync(data: any, caller?: ILine): any {
+        this.state.running++;
+
+        const condition: IAttrFuncCondition = {
+            data,
+            attrValue: null,
+            shut: false,
+            node: this,
+            sync: this._attr.sync,
+        };
+        for (const attrObj of this.attrBeforeSequence) {
+            condition.attrValue = attrObj.value;
+            attrStore.normalAttr[attrObj.name].before!(condition, this);
+        }
+        if (condition.shut) {
+            this.state.running--;
+            throw Node.shutByAttrBefore;
+        }
+
+        data = condition.data;
+
+        const result = this.code(this.codeParam.dws, { data, caller }, { node: this });
+
+        this.state.running--;
+
+        return result;
+    }
+    private codeParam = {
+        dws: {
+            all: Node.codeParamDws.all.bind(this),
+            get: Node.codeParamDws.get.bind(this),
+            dispense: Node.codeParamDws.dispense.bind(this),
+        }
+    };
+    private codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
+        // Speed up the operation of the function.
+        if (this.attrAfterSequence.length === 0) {
+            return data;
+        }
+
+        const condition: IAttrFuncCondition = {
+            data,
+            attrValue: null,
+            shut: false,
+            collection,
+        };
+        for (const attrObj of this.attrAfterSequence) {
+            condition.attrValue = attrObj.value;
+            attrStore.normalAttr[attrObj.name].after!(condition, this);
+        }
+        if (condition.shut) {
+            this.state.running--;
+            throw Node.shutByAttrAfter;
+        }
+        return condition.data;
+    }
+    private static codeParamDws = {
+        all(this: Node, data: any) {
+            if (typeof data !== "undefined") {
+                data = this.codeDwsDataAttrAfterProcess(data, false);
+            }
             for (const dws of (this.downstream.get() as IElementLike[])) {
                 dws.run(data, this);
             }
         },
-        get: (id: string, data?: any) => {
-            const downstreams = this.downstream.get() as ILine[];
-            for (const dws of downstreams) {
-                if (dws.id === id) {
-                    // tslint:disable-next-line:no-unused-expression
-                    typeof data !== "undefined" && dws.run(data);
-                    return dws;
+        get(this: Node, id: string, data?: any) {
+            const downstream = this.downstream.getById(id);
+
+            // Downstream presence checking, remove in min&mon version.
+            if (typeof downstream === "undefined") {
+                console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                return void 0;
+            }
+
+            if (typeof data !== "undefined") {
+                data = this.codeDwsDataAttrAfterProcess(data, false);
+                (downstream as ILine).run(data, this);
+            }
+            return downstream;
+        },
+        // tslint:disable-next-line:variable-name
+        dispense(this: Node, IdValue_or_IndexValue: IDictionary) {
+            IdValue_or_IndexValue = this.codeDwsDataAttrAfterProcess(IdValue_or_IndexValue, true);
+            let downstream: ILine|undefined;
+            if (isNaN(Number(Object.keys(IdValue_or_IndexValue)[0]))) {
+                // Identify 'keyValue' with ID-value type.
+                for (const id of Object.keys(IdValue_or_IndexValue)) {
+                    downstream = this.downstream.getById(id) as ILine|undefined;
+
+                    // Downstream presence checking, remove in min&mon version.
+                    if (typeof downstream !== "undefined") {
+                        downstream.run(IdValue_or_IndexValue[id], this);
+                    } else {
+                        console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                    }
+                }
+            } else {
+                // Identify 'keyValue' with index-value type.
+                // tslint:disable-next-line:forin
+                for (const index in IdValue_or_IndexValue) {
+                    downstream = this.downstream.get(Number(index)) as ILine|undefined;
+
+                    // Downstream presence checking, remove in min&mon version.
+                    if (typeof downstream !== "undefined") {
+                        downstream.run(IdValue_or_IndexValue[index], this);
+                    } else {
+                        console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
+                    }
                 }
             }
-            return undefined;
-        },
-        dispense(keyValue: { [key: string]: any }) {
-
         },
     };
-    get dwsAsParam(): INodeCodeDWS {
-        return Object.assign({}, this.downstream.get(), );
-    }
 }
-
 installAttr("fold", "number");
 installAttr("sync", "boolean");
 installAttr("runPlan", {

@@ -35,9 +35,10 @@ export interface INodeCodeDWS {
     dispense: (keyValue: {[key: string]: any}) => void;
 }
 export interface INodeCodeUPS {
-    caller: INode|undefined;
+    data: any;
+    caller: ILine|undefined;
 }
-interface INodeCodeThisExec {
+export interface INodeCodeThisExec {
     node: INode;
 }
 
@@ -60,4 +61,7 @@ export interface IAttrFuncCondition {
     data: any;
     attrValue: any;
     shut: boolean;
+    collection?: boolean;
+    node: INode;
+    sync: boolean;
 }
