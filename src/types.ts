@@ -14,7 +14,8 @@ export interface IElementLike {
 
 export interface IStreamOfElement {
     add: (stream: IElementLike) => void;
-    get: (index?: number) => IElementLike[]|IElementLike;
+    get: (index?: number) => IElementLike[]|IElementLike | undefined;
+    getById(id?: string): IElementLike | ITypedDictionary<IElementLike> | undefined;
 }
 
 export interface INode extends IElementLike {
@@ -26,6 +27,14 @@ export interface ILine extends IElementLike {
     id?: string;
 }
 
+export enum INodeRunningStage {
+    before,
+    code,
+    after,
+    finish,
+    over,
+}
+
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
 export interface INodeCodeDWS {
@@ -33,6 +42,7 @@ export interface INodeCodeDWS {
     all: (data: any) => void;
     get: (id: string, data?: any) => ILine|undefined;
     dispense: (keyValue: {[key: string]: any}) => void;
+    length: number;
 }
 export interface INodeCodeUPS {
     data: any;
@@ -53,15 +63,14 @@ export interface IAttrStore {
 export interface INormalAttr {
     before?: INormalAttrFunc;
     beforePriority?: number;
-    after?: undefined|INormalAttrFunc;
+    after?: INormalAttrFunc;
     afterPriority?: number;
+    finish?: INormalAttrFunc;
 }
-export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any) => void;
+export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any, isSync: boolean) => void;
 export interface IAttrFuncCondition {
-    data: any;
+    data?: any;
     attrValue: any;
-    shut: boolean;
-    collection?: boolean;
-    node: INode;
-    sync: boolean;
+    shut: (error?: any) => void;
+    readonly collection?: boolean;
 }

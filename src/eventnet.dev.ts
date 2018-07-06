@@ -5,7 +5,7 @@
 
 import {
     IAttrFuncCondition, IAttrStore, IDictionary, IElementLike, ILine, INode,
-    INodeCode, INodeCodeDWS, INodeCodeThisExec, INodeCodeUPS, INormalAttr, INormalAttrFunc,
+    INodeCode, INodeCodeDWS, INodeCodeThisExec, INodeCodeUPS, INodeRunningStage, INormalAttr, INormalAttrFunc,
     IStreamOfElement, ITypedDictionary
 } from "./types";
 
@@ -20,7 +20,10 @@ interface IEventNet {
     (attrs: IDictionary, code: INodeCode): Node;
     (codes: INodeCode): Node;
     installAttr: typeof installAttr;
-    getAttrDefinition: (name: string) => string | [INormalAttrFunc | undefined, INormalAttrFunc | undefined] | false;
+    getAttrDefinition:
+    (name: string) => string
+        | [INormalAttrFunc | undefined, INormalAttrFunc | undefined]
+        | false;
     defaultState: any;
 }
 
@@ -30,7 +33,7 @@ const en = ((attrs: any, states?: any, code?: any) => {
     } else if (typeof attrs === "object" && typeof states === "function") {
         return new Node(attrs, {}, states);
     } else {
-        return new Node({}, {}, code);
+        return new Node({}, {}, attrs);
     }
 }) as IEventNet;
 
@@ -93,7 +96,7 @@ class StreamOfNode implements IStreamOfElement {
             this.contentById[stream.id] = stream;
         }
     }
-    public get(index?: number) {
+    public get(index?: number): ILine | ILine[] | undefined {
         return typeof index === "undefined" ? this.content : this.content[index];
     }
     public getById(id?: string): ILine | ITypedDictionary<ILine> | undefined {
@@ -229,65 +232,139 @@ class Node extends Element implements INode {
     }
 
     public readonly code: INodeCode;
-    private static shutByAttrBefore = Symbol();
-    private static shutByAttrAfter = Symbol();
+    private errorHandler(...arg: any[]) {
+        //////////////////////////////////////////////////////////////////////////////////
+    }
     private async _codeAsync(data: any, caller?: ILine): Promise<any> {
+        let runningStage: INodeRunningStage = INodeRunningStage.before;
+
         this.state.running++;
 
-        const condition: IAttrFuncCondition = {
+        let shutByAttrBefore = false;
+        let errorInAttrBefore: any;
+        const conditionBefore: IAttrFuncCondition = {
             data,
             attrValue: null,
-            shut: false,
+            shut: (error?: any) => {
+                shutByAttrBefore = true;
+                if (typeof error === "undefined") { return; }
+                if (runningStage === INodeRunningStage.before) {
+                    errorInAttrBefore = error;
+                } else {
+                    // Does not report in which operation and which attribute the error occurred for higher performance.
+                    this.errorHandler(INodeRunningStage.before, error);
+                }
+            },
         };
         for (const attrObj of this.attrBeforeSequence) {
-            condition.attrValue = attrObj.value;
-            await attrStore.normalAttr[attrObj.name].before!(condition, this);
+            conditionBefore.attrValue = attrObj.value;
+            await attrStore.normalAttr[attrObj.name].before!(conditionBefore, this, this._attr.sync);
+            if (shutByAttrBefore) {
+                this.state.running--;
+                throw { subject: INodeRunningStage.before, errorInAttrBefore };
+            }
         }
-        if (condition.shut) {
-            this.state.running--;
-            throw Node.shutByAttrBefore;
-        }
-
-        data = condition.data;
+        runningStage = INodeRunningStage.code;
+        data = conditionBefore.data;
 
         const result = await this.code(this.codeParam.dws, { data, caller }, { node: this });
 
+        if (this.attrFinishSequence.length !== 0) {
+            runningStage = INodeRunningStage.finish;
+
+            let shutByAttrFinish = false;
+            let errorInAttrFinish: any;
+            const conditionFinish: IAttrFuncCondition = {
+                attrValue: null,
+                shut: (error?: any) => {
+                    shutByAttrFinish = true;
+                    if (typeof error === "undefined") { return; }
+                    errorInAttrFinish = error;
+                },
+            };
+            for (const attrObj of this.attrFinishSequence) {
+                conditionBefore.attrValue = attrObj.value;
+                await attrStore.normalAttr[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
+                if (shutByAttrFinish) {
+                    this.state.running--;
+                    throw { subject: INodeRunningStage.finish, errorInAttrFinish };
+                }
+            }
+        }
+
+        runningStage = INodeRunningStage.over;
         this.state.running--;
 
         return result;
     }
     private _codeSync(data: any, caller?: ILine): any {
+        let runningStage: INodeRunningStage = INodeRunningStage.before;
+
         this.state.running++;
 
-        const condition: IAttrFuncCondition = {
+        let shutByAttrBefore = false;
+        let errorInAttrBefore: any;
+        const conditionBefore: IAttrFuncCondition = {
             data,
             attrValue: null,
-            shut: false,
-            node: this,
-            sync: this._attr.sync,
+            shut: (error?: any) => {
+                shutByAttrBefore = true;
+                if (typeof error === "undefined") { return; }
+                if (runningStage === INodeRunningStage.before) {
+                    errorInAttrBefore = error;
+                } else {
+                    // Does not report in which operation and which attribute the error occurred for higher performance.
+                    this.errorHandler(INodeRunningStage.before, error);
+                }
+            },
         };
         for (const attrObj of this.attrBeforeSequence) {
-            condition.attrValue = attrObj.value;
-            attrStore.normalAttr[attrObj.name].before!(condition, this);
+            conditionBefore.attrValue = attrObj.value;
+            attrStore.normalAttr[attrObj.name].before!(conditionBefore, this, this._attr.sync);
+            if (shutByAttrBefore) {
+                this.state.running--;
+                throw { subject: INodeRunningStage.before, errorInAttrBefore };
+            }
         }
-        if (condition.shut) {
-            this.state.running--;
-            throw Node.shutByAttrBefore;
-        }
-
-        data = condition.data;
+        runningStage = INodeRunningStage.code;
+        data = conditionBefore.data;
 
         const result = this.code(this.codeParam.dws, { data, caller }, { node: this });
 
+        if (this.attrFinishSequence.length !== 0) {
+            runningStage = INodeRunningStage.finish;
+
+            let shutByAttrFinish = false;
+            let errorInAttrFinish: any;
+            const conditionFinish: IAttrFuncCondition = {
+                attrValue: null,
+                shut: (error?: any) => {
+                    shutByAttrFinish = true;
+                    if (typeof error === "undefined") { return; }
+                    errorInAttrFinish = error;
+                },
+            };
+            for (const attrObj of this.attrFinishSequence) {
+                conditionBefore.attrValue = attrObj.value;
+                attrStore.normalAttr[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
+                if (shutByAttrFinish) {
+                    this.state.running--;
+                    throw { subject: INodeRunningStage.finish, errorInAttrFinish };
+                }
+            }
+        }
+
+        runningStage = INodeRunningStage.over;
         this.state.running--;
 
         return result;
     }
-    private codeParam = {
+    private codeParam: { dws: INodeCodeDWS } = {
         dws: {
             all: Node.codeParamDws.all.bind(this),
             get: Node.codeParamDws.get.bind(this),
             dispense: Node.codeParamDws.dispense.bind(this),
+            length: 0,
         }
     };
     private codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
@@ -296,19 +373,26 @@ class Node extends Element implements INode {
             return data;
         }
 
+        let shutByAttrAfter = false;
+        let errorInAttrAfter: any;
+
         const condition: IAttrFuncCondition = {
             data,
             attrValue: null,
-            shut: false,
+            shut: (error?: any) => {
+                shutByAttrAfter = true;
+                if (typeof error === "undefined") { return; }
+                errorInAttrAfter = error;
+            },
             collection,
         };
         for (const attrObj of this.attrAfterSequence) {
             condition.attrValue = attrObj.value;
-            attrStore.normalAttr[attrObj.name].after!(condition, this);
+            attrStore.normalAttr[attrObj.name].after!(condition, this, this._attr.sync);
+            if (shutByAttrAfter) {
+                this.state.running--;
+                throw { subject: INodeRunningStage.after, errorInAttrAfter };
         }
-        if (condition.shut) {
-            this.state.running--;
-            throw Node.shutByAttrAfter;
         }
         return condition.data;
     }
@@ -339,11 +423,11 @@ class Node extends Element implements INode {
         // tslint:disable-next-line:variable-name
         dispense(this: Node, IdValue_or_IndexValue: IDictionary) {
             IdValue_or_IndexValue = this.codeDwsDataAttrAfterProcess(IdValue_or_IndexValue, true);
-            let downstream: ILine|undefined;
+            let downstream: ILine | undefined;
             if (isNaN(Number(Object.keys(IdValue_or_IndexValue)[0]))) {
                 // Identify 'keyValue' with ID-value type.
                 for (const id of Object.keys(IdValue_or_IndexValue)) {
-                    downstream = this.downstream.getById(id) as ILine|undefined;
+                    downstream = this.downstream.getById(id) as ILine | undefined;
 
                     // Downstream presence checking, remove in min&mon version.
                     if (typeof downstream !== "undefined") {
@@ -356,7 +440,7 @@ class Node extends Element implements INode {
                 // Identify 'keyValue' with index-value type.
                 // tslint:disable-next-line:forin
                 for (const index in IdValue_or_IndexValue) {
-                    downstream = this.downstream.get(Number(index)) as ILine|undefined;
+                    downstream = this.downstream.get(Number(index)) as ILine | undefined;
 
                     // Downstream presence checking, remove in min&mon version.
                     if (typeof downstream !== "undefined") {
