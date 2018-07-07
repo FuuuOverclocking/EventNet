@@ -22,8 +22,8 @@ interface IEventNet {
     installAttr: typeof installAttr;
     getAttrDefinition: (name: string) =>
         string
-        | [INormalAttrFunc | undefined, INormalAttrFunc | undefined]
-        | false;
+        | [INormalAttrFunc | undefined, INormalAttrFunc | undefined, INormalAttrFunc | undefined]
+        | undefined;
     defaultState: any;
 }
 
@@ -77,9 +77,13 @@ en.installAttr = installAttr;
 
 en.getAttrDefinition = (name: string) =>
     attrStore.typedAttr[name] ||
-        (!attrStore.normalAttr[name].before && !attrStore.normalAttr[name].after) ?
-        false :
-        [(attrStore.normalAttr[name].before || void 0), (attrStore.normalAttr[name].after || void 0)];
+        (!attrStore.normalAttr[name].before
+        && !attrStore.normalAttr[name].after
+        && !attrStore.normalAttr[name].finish) ?
+            void 0 :
+            [(attrStore.normalAttr[name].before || void 0),
+            (attrStore.normalAttr[name].after || void 0),
+            (attrStore.normalAttr[name].finish || void 0)];
 
 // The default state of each new Node that already exists.
 // The states of Node created by calling en() is the result
@@ -217,7 +221,6 @@ class Node implements INode {
         }
 
         this.code = code;
-
         Object.assign(this.downstream.wrappedContent, {
             all: Node.codeParamDws.all.bind(this),
             get: Node.codeParamDws.get.bind(this),
