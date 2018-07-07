@@ -6,6 +6,11 @@ export interface ITypedDictionary<T> {
     [index: string]: T;
 }
 
+export interface ICallableElementLike {
+    (data?: any, caller?: IElementLike): void;
+    origin: IElementLike;
+}
+
 export interface IElementLike {
     run: (data: any, caller?: IElementLike) => any;
     upstream: IStreamOfElement;
@@ -49,7 +54,7 @@ export interface INodeCodeUPS {
     caller: ILine|undefined;
 }
 export interface INodeCodeThisExec {
-    node: INode;
+    origin: INode;
 }
 
 export interface IAttrStore {
@@ -61,11 +66,13 @@ export interface IAttrStore {
     };
 }
 export interface INormalAttr {
+    priority?: number;
     before?: INormalAttrFunc;
     beforePriority?: number;
     after?: INormalAttrFunc;
     afterPriority?: number;
     finish?: INormalAttrFunc;
+    finishPriority?: number;
 }
 export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any, isSync: boolean) => void;
 export interface IAttrFuncCondition {

@@ -4,8 +4,8 @@
  */
 
 import {
-    IAttrFuncCondition, IAttrStore, IDictionary, IElementLike, ILine, INode,
-    INodeCode, INodeCodeDWS, INodeCodeThisExec, INodeCodeUPS, INodeRunningStage, INormalAttr, INormalAttrFunc,
+    IAttrFuncCondition, IAttrStore, ICallableElementLike, IDictionary, IElementLike, ILine,
+    INode, INodeCode, INodeCodeDWS, INodeRunningStage, INormalAttr, INormalAttrFunc,
     IStreamOfElement, ITypedDictionary
 } from "./types";
 
@@ -20,8 +20,8 @@ interface IEventNet {
     (attrs: IDictionary, code: INodeCode): Node;
     (codes: INodeCode): Node;
     installAttr: typeof installAttr;
-    getAttrDefinition:
-    (name: string) => string
+    getAttrDefinition: (name: string) =>
+        string
         | [INormalAttrFunc | undefined, INormalAttrFunc | undefined]
         | false;
     defaultState: any;
@@ -56,12 +56,19 @@ function installAttr(name: any, value: any): void {
     if (typeof value === "string") {
         attrStore.typedAttr[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
     } else {
+        if (typeof value.priority === "undefined") {
+            value.priority = 9999;
+        }
         if (value.before && typeof value.beforePriority === "undefined") {
-            value.beforePriority = value.afterPriority || 0;
+            value.beforePriority = value.priority;
         }
         if (value.after && typeof value.afterPriority === "undefined") {
-            value.afterPriority = value.beforePriority || 0;
+            value.afterPriority = value.priority;
         }
+        if (value.finish && typeof value.finishPriority === "undefined") {
+            value.finishPriority = value.priority;
+        }
+        value.priority = void 0;
         attrStore.normalAttr[name] = value;
     }
 }
@@ -88,6 +95,7 @@ const upsWaitingLink: ILine[] = [];
 class StreamOfNode implements IStreamOfElement {
     public add(stream: ILine) {
         this.content.push(stream);
+        this.wrappedContent.push(this.wrapper(stream));
         if (typeof stream.id !== "undefined") {
             // Parameter checking, remove in min&mon version.
             if (typeof this.contentById[stream.id] !== "undefined") {
@@ -102,17 +110,25 @@ class StreamOfNode implements IStreamOfElement {
     public getById(id?: string): ILine | ITypedDictionary<ILine> | undefined {
         return typeof id === "undefined" ? this.contentById : this.contentById[id];
     }
-    private content: ILine[];
-    private contentById: ITypedDictionary<ILine>;
+    private content: ILine[] = [];
+    private contentById: ITypedDictionary<ILine> = {};
+    public wrappedContent: any = [];
+    private wrapper: (line: ILine) => any;
+    constructor(wrapper?: (line: ILine) => any) {
+        this.wrapper = wrapper || ((line) => { });
+    }
 }
 
-abstract class Element implements IElementLike {
+class Node implements INode {
     public upstream = new StreamOfNode();
-    public downstream = new StreamOfNode();
-    public abstract run(data: any, caller?: IElementLike): any;
-}
-
-class Node extends Element implements INode {
+    public downstream = new StreamOfNode((line) => {
+        const func: ICallableElementLike = ((data?: any) => {
+            data = this.codeDwsDataAttrAfterProcess(data, false);
+            line.run(data, this);
+        }) as ICallableElementLike;
+        func.origin = line;
+        return func;
+    });
     public parentNode: INode | undefined = void 0;
     private _watchers: IDictionary = []; ////////////////////////////////
     public get watchers() {
@@ -125,12 +141,13 @@ class Node extends Element implements INode {
     private _inheritAttr: IDictionary;
     private attrBeforeSequence: Array<{ name: string, value: any, priority: number }>;
     private attrAfterSequence: Array<{ name: string, value: any, priority: number }>;
+    private attrFinishSequence: Array<{ name: string, value: any, priority: number }>;
     public get attr(): IDictionary {
         return Object.assign({}, this._inheritAttr, this._attr);
     }
     public setAttr(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        console.warn("EventNet.Node.setAttr: Modify attribute after the Node was created is not recommended.");
+        console.warn("EventNet.Node.setAttr: Modify attribute after the Node was created may cause an unknown error.");
         for (const attr of attrs) {
             this._attr[attr.name] = attr.value;
         }
@@ -146,6 +163,7 @@ class Node extends Element implements INode {
     private sortAttr() {
         this.attrBeforeSequence.length = 0;
         this.attrAfterSequence.length = 0;
+        this.attrFinishSequence.length = 0;
         const attr = this.attr;
         for (const name of Object.keys(attr)) {
             if (typeof attr[name] === "undefined") { continue; }
@@ -163,16 +181,22 @@ class Node extends Element implements INode {
                     priority: attrStore.normalAttr[name].afterPriority!
                 });
             }
+            if (attrStore.normalAttr[name].finish) {
+                this.attrFinishSequence.push({
+                    name,
+                    value: attr[name],
+                    priority: attrStore.normalAttr[name].finishPriority!
+                });
+            }
         }
 
         // Sort attributes based on priority.
         this.attrBeforeSequence.sort((a, b) => a.priority - b.priority);
         this.attrAfterSequence.sort((a, b) => b.priority - a.priority);
+        this.attrFinishSequence.sort((a, b) => b.priority - a.priority);
     }
 
     constructor(attr: IDictionary, state: IDictionary, code: INodeCode) {
-        super();
-
         // Parameter checking, remove in min&mon version.
         if (typeof attr.sync !== "undefined" && typeof attr.sync !== "boolean") {
             throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
@@ -180,7 +204,8 @@ class Node extends Element implements INode {
         for (const name of Object.keys(attr)) {
             if (!attrStore.typedAttr[name] &&
                 !attrStore.normalAttr[name].before &&
-                !attrStore.normalAttr[name].after) {
+                !attrStore.normalAttr[name].after &&
+                !attrStore.normalAttr[name].finish) {
                 console.warn(`EventNet.Node: Attribution '${name}' has not been installed.`);
             }
             if (attrStore.typedAttr[name] &&
@@ -192,6 +217,15 @@ class Node extends Element implements INode {
         }
 
         this.code = code;
+
+        Object.assign(this.downstream.wrappedContent, {
+            all: Node.codeParamDws.all.bind(this),
+            get: Node.codeParamDws.get.bind(this),
+            dispense: Node.codeParamDws.dispense.bind(this),
+        });
+        this.codeParam = {
+            dws: this.downstream.wrappedContent,
+        };
 
         this._attr = Object.assign({}, attr);
         if (typeof this._attr.sync === "undefined") {
@@ -212,23 +246,15 @@ class Node extends Element implements INode {
             try {
                 return this._codeSync(data, caller); /////////////////////////
             } catch (error) {
-                if (error === Node.shutByAttrBefore) {
-                    //////////////////////////////////////////////////////
-                } else if (error === Node.shutByAttrAfter) {
-                    //////////////////////////////////////////////////////
-                }
+                ////////////////////////////////////////////////////////////////
             }
         } else {
             return this._codeAsync(data, caller).catch((error) => {
-                if (error === Node.shutByAttrBefore) {
-                    //////////////////////////////////////////////////////
-                } else if (error === Node.shutByAttrAfter) {
-                    //////////////////////////////////////////////////////
-                }
+                ////////////////////////////////////////////////////////////////
             });
         }
         //////////////////////////////
-        // try-catch will Copy all the variables in the current scope.
+        // Try-catch will copy all the variables in the current scope.
     }
 
     public readonly code: INodeCode;
@@ -267,7 +293,7 @@ class Node extends Element implements INode {
         runningStage = INodeRunningStage.code;
         data = conditionBefore.data;
 
-        const result = await this.code(this.codeParam.dws, { data, caller }, { node: this });
+        const result = await this.code(this.codeParam.dws, { data, caller }, { origin: this });
 
         if (this.attrFinishSequence.length !== 0) {
             runningStage = INodeRunningStage.finish;
@@ -329,7 +355,7 @@ class Node extends Element implements INode {
         runningStage = INodeRunningStage.code;
         data = conditionBefore.data;
 
-        const result = this.code(this.codeParam.dws, { data, caller }, { node: this });
+        const result = this.code(this.codeParam.dws, { data, caller }, { origin: this });
 
         if (this.attrFinishSequence.length !== 0) {
             runningStage = INodeRunningStage.finish;
@@ -359,43 +385,7 @@ class Node extends Element implements INode {
 
         return result;
     }
-    private codeParam: { dws: INodeCodeDWS } = {
-        dws: {
-            all: Node.codeParamDws.all.bind(this),
-            get: Node.codeParamDws.get.bind(this),
-            dispense: Node.codeParamDws.dispense.bind(this),
-            length: 0,
-        }
-    };
-    private codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
-        // Speed up the operation of the function.
-        if (this.attrAfterSequence.length === 0) {
-            return data;
-        }
-
-        let shutByAttrAfter = false;
-        let errorInAttrAfter: any;
-
-        const condition: IAttrFuncCondition = {
-            data,
-            attrValue: null,
-            shut: (error?: any) => {
-                shutByAttrAfter = true;
-                if (typeof error === "undefined") { return; }
-                errorInAttrAfter = error;
-            },
-            collection,
-        };
-        for (const attrObj of this.attrAfterSequence) {
-            condition.attrValue = attrObj.value;
-            attrStore.normalAttr[attrObj.name].after!(condition, this, this._attr.sync);
-            if (shutByAttrAfter) {
-                this.state.running--;
-                throw { subject: INodeRunningStage.after, errorInAttrAfter };
-        }
-        }
-        return condition.data;
-    }
+    private codeParam: { dws: INodeCodeDWS };
     private static codeParamDws = {
         all(this: Node, data: any) {
             if (typeof data !== "undefined") {
@@ -452,25 +442,54 @@ class Node extends Element implements INode {
             }
         },
     };
+    private codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
+        // Speed up the operation of the function.
+        if (this.attrAfterSequence.length === 0) {
+            return data;
+        }
+
+        let shutByAttrAfter = false;
+        let errorInAttrAfter: any;
+
+        const condition: IAttrFuncCondition = {
+            data,
+            attrValue: null,
+            shut: (error?: any) => {
+                shutByAttrAfter = true;
+                if (typeof error === "undefined") { return; }
+                errorInAttrAfter = error;
+            },
+            collection,
+        };
+        for (const attrObj of this.attrAfterSequence) {
+            condition.attrValue = attrObj.value;
+            attrStore.normalAttr[attrObj.name].after!(condition, this, this._attr.sync);
+            if (shutByAttrAfter) {
+                this.state.running--;
+                throw { subject: INodeRunningStage.after, errorInAttrAfter };
+            }
+        }
+        return condition.data;
+    }
 }
 installAttr("fold", "number");
 installAttr("sync", "boolean");
 installAttr("runPlan", {
-    before(condition, currentNode) {
+    before(condition, currentNode, isSync) {
         // TODO
     },
     beforePriority: 100,
-    after(condition, currentNode) {
+    after(condition, currentNode, isSync) {
         // TODO
     },
     afterPriority: 100,
 });
 installAttr("timelimit", {
-    before(condition, currentNode) {
+    before(condition, currentNode, isSync) {
         // TODO
     },
     beforePriority: 100,
-    after(condition, currentNode) {
+    after(condition, currentNode, isSync) {
         // TODO
     },
     afterPriority: 100,
