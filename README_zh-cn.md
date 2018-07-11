@@ -1,3 +1,5 @@
+[English](README.md)
+
 <p align="center">
   <a href="https://eventnet.justlog.xyz">
     <img src="http://justlog.xyz/eventnet/images/logo.png" alt="" width="120" height="120">

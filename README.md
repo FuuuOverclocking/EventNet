@@ -20,7 +20,7 @@ EventNet is a lightweight programming library for flow design, which describes y
 
 EventNet is currently rewriting with TypeScript. EN Viewer will be built based on Koa, Socket.IO, TypeScript Parser, etc.
 
-The project is just starting in March and I'll build it as soon as possible. If you look at the following sections and find the idea interesting, welcome Issues and PRs, and join as a contributor.
+The project is just starting in March and I'll build it as soon as possible. If you read the following sections and find the idea interesting, welcome Issues and PRs, and join as a contributor.
 
 [Dash to getting started >>](#get-started)
 
