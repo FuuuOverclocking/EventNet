@@ -1,39 +1,53 @@
 export interface IDictionary {
     [index: string]: any;
 }
-export interface IStreamLike {
-    run: (data: void) => any;
+export interface ITypedDictionary<T> {
+    [index: string]: T;
+}
+export interface ICallableElementLike {
+    (data?: any, caller?: IElementLike): void;
+    origin: IElementLike;
+}
+export interface IElementLike {
+    run: (data: any, caller?: IElementLike) => any;
     upstream: IStreamOfElement;
     downstream: IStreamOfElement;
 }
-export interface IDownstreamLike extends IStreamLike {
-}
-export interface IUpstreamLike extends IStreamLike {
-}
 export interface IStreamOfElement {
-    add: (stream: IStreamLike) => void;
-    get: (index?: number) => IStreamLike[] | IStreamLike;
-    [index: string]: any;
+    add: (stream: IElementLike) => void;
+    get: (index?: number) => IElementLike[] | IElementLike | undefined;
+    getById(id?: string): IElementLike | ITypedDictionary<IElementLike> | undefined;
 }
-export interface INode extends IDownstreamLike, IUpstreamLike {
+export interface INode extends IElementLike {
     parentNode?: INode;
     watchers: IDictionary;
 }
-export declare type INodeCode = (downstream?: INodeCodeDWS, upstream?: INodeCodeUPS, thisExec?: INodeCodeThisExec) => any;
-interface INodeCodeDWS {
-    (data: any): void;
-    [index: number]: IDownstreamLike;
+export interface ILine extends IElementLike {
+    id?: string;
+}
+export declare enum INodeRunningStage {
+    before = 0,
+    code = 1,
+    after = 2,
+    finish = 3,
+    over = 4
+}
+export declare type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
+export interface INodeCodeDWS {
+    [index: number]: IElementLike;
     all: (data: any) => void;
-    get: (id: string, data?: any) => IDownstreamLike;
+    get: (id: string, data?: any) => ILine | undefined;
     dispense: (keyValue: {
         [key: string]: any;
     }) => void;
+    length: number;
 }
-interface INodeCodeUPS {
-    caller: INode | undefined;
+export interface INodeCodeUPS {
+    data: any;
+    caller: ILine | undefined;
 }
-interface INodeCodeThisExec {
-    node: INode;
+export interface INodeCodeThisExec {
+    origin: INode;
 }
 export interface IAttrStore {
     normalAttr: {
@@ -44,15 +58,18 @@ export interface IAttrStore {
     };
 }
 export interface INormalAttr {
+    priority?: number;
     before?: INormalAttrFunc;
     beforePriority?: number;
-    after?: undefined | INormalAttrFunc;
+    after?: INormalAttrFunc;
     afterPriority?: number;
+    finish?: INormalAttrFunc;
+    finishPriority?: number;
 }
-export declare type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any) => void;
+export declare type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any, isSync: boolean) => void;
 export interface IAttrFuncCondition {
-    data: any;
+    data?: any;
     attrValue: any;
-    shut: boolean;
+    shut: (error?: any) => void;
+    readonly collection?: boolean;
 }
-export {};

@@ -18,7 +18,7 @@ import {
 interface IEventNet {
     (attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
     (attrs: IDictionary, code: INodeCode): Node;
-    (codes: INodeCode): Node;
+    (code: INodeCode): Node;
     installAttr: typeof installAttr;
     getAttrDefinition: (name: string) =>
         string
@@ -147,11 +147,14 @@ class Node implements INode {
     private attrAfterSequence: Array<{ name: string, value: any, priority: number }>;
     private attrFinishSequence: Array<{ name: string, value: any, priority: number }>;
     public get attr(): IDictionary {
-        return Object.assign({}, this._inheritAttr, this._attr);
+        // Only the clone with its own property is exposed,
+        // so modifying `attr` is invalid.
+        // The inherited property is not exposed.
+        return Object.assign({}, this._attr);
     }
     public setAttr(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        console.warn("EventNet.Node.setAttr: Modify attribute after the Node was created may cause an unknown error.");
+        console.warn("EventNet.Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
         for (const attr of attrs) {
             this._attr[attr.name] = attr.value;
         }
@@ -159,7 +162,6 @@ class Node implements INode {
     }
     public setInheritAttr(attrs: Array<{ name: string, value: any }>) {
         for (const attr of attrs) {
-            if (typeof this._attr[attr.name] !== "undefined") { continue; }
             this._inheritAttr[attr.name] = attr.value;
         }
         this.sortAttr();
@@ -168,8 +170,8 @@ class Node implements INode {
         this.attrBeforeSequence.length = 0;
         this.attrAfterSequence.length = 0;
         this.attrFinishSequence.length = 0;
-        const attr = this.attr;
-        for (const name of Object.keys(attr)) {
+        const attr = this._attr;
+        for (const name in attr) {
             if (typeof attr[name] === "undefined") { continue; }
             if (attrStore.normalAttr[name].before) {
                 this.attrBeforeSequence.push({
@@ -201,6 +203,7 @@ class Node implements INode {
     }
 
     constructor(attr: IDictionary, state: IDictionary, code: INodeCode) {
+
         // Parameter checking, remove in min&mon version.
         if (typeof attr.sync !== "undefined" && typeof attr.sync !== "boolean") {
             throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
@@ -230,7 +233,8 @@ class Node implements INode {
             dws: this.downstream.wrappedContent,
         };
 
-        this._attr = Object.assign({}, attr);
+        this._inheritAttr = {};
+        this._attr = Object.assign(Object.create(this._inheritAttr), attr);
         if (typeof this._attr.sync === "undefined") {
             this._attr.sync = false;
         }
@@ -247,7 +251,7 @@ class Node implements INode {
     public run(data: any, caller?: IElementLike) {
         if (this._attr.sync) {
             try {
-                return this._codeSync(data, caller); /////////////////////////
+                return this._codeSync(data, caller);
             } catch (error) {
                 ////////////////////////////////////////////////////////////////
             }
@@ -261,7 +265,7 @@ class Node implements INode {
     }
 
     public readonly code: INodeCode;
-    private errorHandler(...arg: any[]) {
+    private errorHandler(when: INodeRunningStage, what?: any) {
         //////////////////////////////////////////////////////////////////////////////////
     }
     private async _codeAsync(data: any, caller?: ILine): Promise<any> {
