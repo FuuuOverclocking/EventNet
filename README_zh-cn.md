@@ -1,5 +1,3 @@
-[简体中文](README_zh-cn.md)
-
 <p align="center">
   <a href="https://eventnet.justlog.xyz">
     <img src="http://justlog.xyz/eventnet/images/logo.png" alt="" width="120" height="120">
@@ -16,20 +14,18 @@
 
 <br>
 
-EventNet is a lightweight programming library for flow design, which describes your program process as a network consists of nodes and lines. And on this basis, an additional, less light visualization tool EN Viewer is provided to help developers - facilitates the reading, debugging, refactoring, and extension of projects.
+EventNet是一个轻量级流程设计和类响应式编程库，它将你的程序流程描述成由节点和连线构成的网络，并在此基础上利用附加的，不太轻的可视化工具EN Viewer，提供大量项目阅读、调试、重构、扩展等方面的面向开发者的福利。
 
-EventNet is currently rewriting with TypeScript. EN Viewer will be built based on Koa, Socket.IO, TypeScript Parser, etc.
+EventNet正在用 TypeScript 重构，EN Viewer 将基于 Koa, Socket.IO, TypeScript Parser 等构建。
 
-The project is just starting in March and I'll build it as soon as possible. If you look at the following sections and find the idea interesting, welcome Issues and PRs, and join as a contributor.
-
-[Dash to getting started >>](#get-started)
+项目于3月刚刚起步，我将尽快构建它，如果你看了下面几节觉得这个主意很有趣，欢迎提Issue和PR，以及加入成为Contributor。 [直接Get started >>](#get-started)
 
 [![GitHub issues](https://img.shields.io/github/issues/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/issues)
 [![npm](https://img.shields.io/npm/v/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
 [![npm](https://img.shields.io/npm/dm/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
 [![GitHub license](https://img.shields.io/github/license/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/blob/dev-xyz/LICENSE)
 
-## Initial concept
+## 初步概念
 
 不同于传统的响应式编程，EventNet 用**节点**和它们之间的**连线**表示程序流程。**节点**包装着一系列操作，逻辑上对应于程序的一步流程，或实现一个功能点，或起一些辅助作用；**连线**体现了节点间的关系，表示调用关系，并能传递数据。不仅于此，由于可视化工具的存在，**节点**还相当于设置在程序中的监控单元，EventNet的API的一举一动，都会通过可视化工具的界面，以人类友好的方式，反馈在屏幕上。
 
