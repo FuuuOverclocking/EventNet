@@ -1,22 +1,19 @@
-/** EventNet
+/**
+ * EventNet
  * Created by X.Y.Z. at March 3rd, 2018.
  * @version 0.0.2
  */
 
+import _debug = require("debug");
+const debug = _debug("EventNet");
 import {
-    IAttrFuncCondition, IAttrStore, ICallableElementLike, IDictionary, IElementLike, ILine,
+    IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
     INode, INodeCode, INodeCodeDWS, INodeRunningStage, INormalAttr, INormalAttrFunc,
     IStreamOfElement, ITypedDictionary
 } from "./types";
 
-/**
- * Create a EventNet Node
- * @param attrs - add attributes to Node.
- * @param states - add initial state to Node.
- * @param code - set the code that is executed when the Node runs.
- */
 interface IEventNet {
-    (attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
+    (attrs: IDictionary, state: IDictionary, code: INodeCode): Node;
     (attrs: IDictionary, code: INodeCode): Node;
     (code: INodeCode): Node;
     installAttr: typeof installAttr;
@@ -27,11 +24,18 @@ interface IEventNet {
     defaultState: any;
 }
 
-const en = ((attrs: any, states?: any, code?: any) => {
-    if (typeof attrs === "object" && typeof states === "object" && typeof code === "function") {
-        return new Node(attrs, states, code);
-    } else if (typeof attrs === "object" && typeof states === "function") {
-        return new Node(attrs, {}, states);
+/**
+ * Create a EventNet Node.
+ * @param {Object} [attrs] set the attributes of Node
+ * @param {Object} [states] set the initial state of Node, the `attrs` must be set firstly to set this item
+ * @param {Function} code - set the code that is executed when the Node runs
+ * @return {Node} a new normal EventNet Node
+ */
+const en = ((attrs: any, state?: any, code?: any) => {
+    if (typeof attrs === "object" && typeof state === "object" && typeof code === "function") {
+        return new Node(attrs, state, code);
+    } else if (typeof attrs === "object" && typeof state === "function") {
+        return new Node(attrs, {}, state);
     } else {
         return new Node({}, {}, attrs);
     }
@@ -40,9 +44,9 @@ const en = ((attrs: any, states?: any, code?: any) => {
 export = en;
 
 // The store of attributes.
-const attrStore: IAttrStore = {
-    normalAttr: {},
-    typedAttr: {},
+const attrsStore: IAttrsStore = {
+    normalAttrs: {},
+    typedAttrs: {},
 };
 
 function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;
@@ -54,7 +58,7 @@ function installAttr(name: any, value: any): void {
     }
 
     if (typeof value === "string") {
-        attrStore.typedAttr[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
+        attrsStore.typedAttrs[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
     } else {
         if (typeof value.priority === "undefined") {
             value.priority = 9999;
@@ -69,25 +73,25 @@ function installAttr(name: any, value: any): void {
             value.finishPriority = value.priority;
         }
         value.priority = void 0;
-        attrStore.normalAttr[name] = value;
+        attrsStore.normalAttrs[name] = value;
     }
 }
 
 en.installAttr = installAttr;
 
 en.getAttrDefinition = (name: string) =>
-    attrStore.typedAttr[name] ||
-        (!attrStore.normalAttr[name].before
-        && !attrStore.normalAttr[name].after
-        && !attrStore.normalAttr[name].finish) ?
-            void 0 :
-            [(attrStore.normalAttr[name].before || void 0),
-            (attrStore.normalAttr[name].after || void 0),
-            (attrStore.normalAttr[name].finish || void 0)];
+    attrsStore.typedAttrs[name] ||
+        (!attrsStore.normalAttrs[name].before
+            && !attrsStore.normalAttrs[name].after
+            && !attrsStore.normalAttrs[name].finish) ?
+        void 0 :
+        [(attrsStore.normalAttrs[name].before || void 0),
+        (attrsStore.normalAttrs[name].after || void 0),
+        (attrsStore.normalAttrs[name].finish || void 0)];
 
-// The default state of each new Node that already exists.
+// The default state of each new Node.
 // The states of Node created by calling en() is the result
-// of assigning parameter `states` to default state.
+// of assigning parameter `states` to the default state.
 en.defaultState = {
     data: {},
     error: null,
@@ -95,17 +99,21 @@ en.defaultState = {
     running: 0,
 };
 
-const upsWaitingLink: ILine[] = [];
+const linesWaitingLink: ILine[] = [];
 class StreamOfNode implements IStreamOfElement {
-    public add(stream: ILine) {
-        this.content.push(stream);
-        this.wrappedContent.push(this.wrapper(stream));
-        if (typeof stream.id !== "undefined") {
+    public add(line: ILine) {
+        this.content.push(line);
+
+        // tslint:disable-next-line:no-unused-expression
+        this.wrappedContent && this.wrappedContent.push(this.wrapper(line));
+
+        if (typeof line.id !== "undefined") {
             // Parameter checking, remove in min&mon version.
-            if (typeof this.contentById[stream.id] !== "undefined") {
+            if (typeof this.contentById[line.id] !== "undefined") {
                 throw new Error("EventNet.StreamOfNode.add: The stream of the same id already exists.");
             }
-            this.contentById[stream.id] = stream;
+
+            this.contentById[line.id] = line;
         }
     }
     public get(index?: number): ILine | ILine[] | undefined {
@@ -116,10 +124,11 @@ class StreamOfNode implements IStreamOfElement {
     }
     private content: ILine[] = [];
     private contentById: ITypedDictionary<ILine> = {};
-    public wrappedContent: any = [];
+    public wrappedContent: any;
     private wrapper: (line: ILine) => any;
     constructor(wrapper?: (line: ILine) => any) {
-        this.wrapper = wrapper || ((line) => { });
+        // tslint:disable-next-line:no-unused-expression
+        wrapper && (this.wrappedContent = []) && (this.wrapper = wrapper);
     }
 }
 
@@ -134,91 +143,101 @@ class Node implements INode {
         return func;
     });
     public parentNode: INode | undefined = void 0;
+
+
+    public state: IDictionary;
     private _watchers: IDictionary = []; ////////////////////////////////
     public get watchers() {
         return this._watchers;
     }
 
-    public state: IDictionary;
 
-    private _attr: IDictionary;
-    private _inheritAttr: IDictionary;
-    private attrBeforeSequence: Array<{ name: string, value: any, priority: number }>;
-    private attrAfterSequence: Array<{ name: string, value: any, priority: number }>;
-    private attrFinishSequence: Array<{ name: string, value: any, priority: number }>;
-    public get attr(): IDictionary {
+    private _attrs: {
+        own: IDictionary;
+        inherited: IDictionary; // own = Obejct.create(inherited)
+        beforeSequence: Array<{ name: string, value: any, priority: number }>;
+        afterSequence: Array<{ name: string, value: any, priority: number }>;
+        finishSequence: Array<{ name: string, value: any, priority: number }>;
+    };
+    public get attrs(): IDictionary {
         // Only the clone with its own property is exposed,
         // so modifying `attr` is invalid.
         // The inherited property is not exposed.
-        return Object.assign({}, this._attr);
+        return Object.assign({}, this._attrs.own);
     }
-    public setAttr(attrs: Array<{ name: string, value: any }>) {
+    public get allAttrs(): IDictionary {
+        return Object.assign({}, this._attrs.inherited, this._attrs.own);
+    }
+    public setAttrs(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        console.warn("EventNet.Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
+        debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
         for (const attr of attrs) {
-            this._attr[attr.name] = attr.value;
+            this._attrs.own[attr.name] = attr.value;
         }
-        this.sortAttr();
+        this.sortAttrs();
     }
-    public setInheritAttr(attrs: Array<{ name: string, value: any }>) {
+    public setInheritAttrs(attrs: Array<{ name: string, value: any }>) {
         for (const attr of attrs) {
-            this._inheritAttr[attr.name] = attr.value;
+            this._attrs.inherited[attr.name] = attr.value;
         }
-        this.sortAttr();
+        this.sortAttrs();
     }
-    private sortAttr() {
-        this.attrBeforeSequence.length = 0;
-        this.attrAfterSequence.length = 0;
-        this.attrFinishSequence.length = 0;
-        const attr = this._attr;
+    private sortAttrs() {
+        this._attrs.beforeSequence.length = 0;
+        this._attrs.afterSequence.length = 0;
+        this._attrs.finishSequence.length = 0;
+
+        const attr = this._attrs.own;
+
+        // For-in will traverse all the attributes of Node, including its own and inherited.
         for (const name in attr) {
             if (typeof attr[name] === "undefined") { continue; }
-            if (attrStore.normalAttr[name].before) {
-                this.attrBeforeSequence.push({
+            if (attrsStore.normalAttrs[name].before) {
+                this._attrs.beforeSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrStore.normalAttr[name].beforePriority!
+                    priority: attrsStore.normalAttrs[name].beforePriority!
                 });
             }
-            if (attrStore.normalAttr[name].after) {
-                this.attrAfterSequence.push({
+            if (attrsStore.normalAttrs[name].after) {
+                this._attrs.afterSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrStore.normalAttr[name].afterPriority!
+                    priority: attrsStore.normalAttrs[name].afterPriority!
                 });
             }
-            if (attrStore.normalAttr[name].finish) {
-                this.attrFinishSequence.push({
+            if (attrsStore.normalAttrs[name].finish) {
+                this._attrs.finishSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrStore.normalAttr[name].finishPriority!
+                    priority: attrsStore.normalAttrs[name].finishPriority!
                 });
             }
         }
 
         // Sort attributes based on priority.
-        this.attrBeforeSequence.sort((a, b) => a.priority - b.priority);
-        this.attrAfterSequence.sort((a, b) => b.priority - a.priority);
-        this.attrFinishSequence.sort((a, b) => b.priority - a.priority);
+        this._attrs.beforeSequence.sort((a, b) => a.priority - b.priority);
+        this._attrs.afterSequence.sort((a, b) => b.priority - a.priority);
+        this._attrs.finishSequence.sort((a, b) => b.priority - a.priority);
     }
 
-    constructor(attr: IDictionary, state: IDictionary, code: INodeCode) {
+    constructor(attrs: IDictionary, state: IDictionary, code: INodeCode) {
 
         // Parameter checking, remove in min&mon version.
-        if (typeof attr.sync !== "undefined" && typeof attr.sync !== "boolean") {
+        if (typeof attrs.sync !== "undefined" && typeof attrs.sync !== "boolean") {
             throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
         }
-        for (const name of Object.keys(attr)) {
-            if (!attrStore.typedAttr[name] &&
-                !attrStore.normalAttr[name].before &&
-                !attrStore.normalAttr[name].after &&
-                !attrStore.normalAttr[name].finish) {
-                console.warn(`EventNet.Node: Attribution '${name}' has not been installed.`);
+        for (const name of Object.keys(attrs)) {
+            if (!attrsStore.typedAttrs[name] &&
+                !attrsStore.normalAttrs[name].before &&
+                !attrsStore.normalAttrs[name].after &&
+                !attrsStore.normalAttrs[name].finish) {
+                debug(`Node: Attribution '${name}' has not been installed.`);
             }
-            if (attrStore.typedAttr[name] &&
-                typeof attr[name] !== attrStore.typedAttr[name]) {
+            if (attrsStore.typedAttrs[name] &&
+                typeof attrs[name] !== attrsStore.typedAttrs[name]) {
                 throw new Error(
-                    `EventNet.Node: The type of attribution '${name}' must be ${attrStore.typedAttr[name]}.`
+                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typedAttrs[name]}.`
                 );
             }
         }
@@ -233,23 +252,24 @@ class Node implements INode {
             dws: this.downstream.wrappedContent,
         };
 
-        this._inheritAttr = {};
-        this._attr = Object.assign(Object.create(this._inheritAttr), attr);
-        if (typeof this._attr.sync === "undefined") {
-            this._attr.sync = false;
+        this._attrs = {} as any;
+        this._attrs.inherited = {};
+        this._attrs.own = Object.assign(Object.create(this._attrs.inherited), attrs);
+        if (typeof this._attrs.own.sync === "undefined") {
+            this._attrs.own.sync = false;
         }
-        this.sortAttr();
+        this.sortAttrs();
 
         this.state = Object.assign({}, en.defaultState, state);
 
-        for (const ups of upsWaitingLink) {
+        for (const ups of linesWaitingLink) {
             ups.downstream.add(this);
             this.upstream.add(ups);
         }
-        upsWaitingLink.length = 0;
+        linesWaitingLink.length = 0;
     }
     public run(data: any, caller?: IElementLike) {
-        if (this._attr.sync) {
+        if (this._attrs.own.sync) {
             try {
                 return this._codeSync(data, caller);
             } catch (error) {
@@ -265,19 +285,28 @@ class Node implements INode {
     }
 
     public readonly code: INodeCode;
+
+    private _errorReceiver = void 0;
+    public set errorReceiver( ILine) {
+
+    }
     private errorHandler(when: INodeRunningStage, what?: any) {
         //////////////////////////////////////////////////////////////////////////////////
     }
     private async _codeAsync(data: any, caller?: ILine): Promise<any> {
+        ++this.state.runTimes;
+
         let runningStage: INodeRunningStage = INodeRunningStage.before;
 
-        this.state.running++;
+        ++this.state.running;
 
         let shutByAttrBefore = false;
         let errorInAttrBefore: any;
         const conditionBefore: IAttrFuncCondition = {
             data,
-            attrValue: null,
+            attrs: this.allAttrs,
+            state: this.state,
+            node: this,
             shut: (error?: any) => {
                 shutByAttrBefore = true;
                 if (typeof error === "undefined") { return; }
@@ -289,11 +318,10 @@ class Node implements INode {
                 }
             },
         };
-        for (const attrObj of this.attrBeforeSequence) {
-            conditionBefore.attrValue = attrObj.value;
-            await attrStore.normalAttr[attrObj.name].before!(conditionBefore, this, this._attr.sync);
+        for (const attrObj of this._attrs.beforeSequence) {
+            await attrsStore.normalAttrs[attrObj.name].before!(attrObj.value, conditionBefore);
             if (shutByAttrBefore) {
-                this.state.running--;
+                --this.state.running;
                 throw { subject: INodeRunningStage.before, errorInAttrBefore };
             }
         }
@@ -317,16 +345,16 @@ class Node implements INode {
             };
             for (const attrObj of this.attrFinishSequence) {
                 conditionBefore.attrValue = attrObj.value;
-                await attrStore.normalAttr[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
+                await attrsStore.normalAttrs[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
                 if (shutByAttrFinish) {
-                    this.state.running--;
+                    --this.state.running;
                     throw { subject: INodeRunningStage.finish, errorInAttrFinish };
                 }
             }
         }
 
         runningStage = INodeRunningStage.over;
-        this.state.running--;
+        --this.state.running;
 
         return result;
     }
@@ -353,7 +381,7 @@ class Node implements INode {
         };
         for (const attrObj of this.attrBeforeSequence) {
             conditionBefore.attrValue = attrObj.value;
-            attrStore.normalAttr[attrObj.name].before!(conditionBefore, this, this._attr.sync);
+            attrsStore.normalAttrs[attrObj.name].before!(conditionBefore, this, this._attr.sync);
             if (shutByAttrBefore) {
                 this.state.running--;
                 throw { subject: INodeRunningStage.before, errorInAttrBefore };
@@ -379,7 +407,7 @@ class Node implements INode {
             };
             for (const attrObj of this.attrFinishSequence) {
                 conditionBefore.attrValue = attrObj.value;
-                attrStore.normalAttr[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
+                attrsStore.normalAttrs[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
                 if (shutByAttrFinish) {
                     this.state.running--;
                     throw { subject: INodeRunningStage.finish, errorInAttrFinish };
@@ -407,7 +435,7 @@ class Node implements INode {
 
             // Downstream presence checking, remove in min&mon version.
             if (typeof downstream === "undefined") {
-                console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                 return void 0;
             }
 
@@ -430,7 +458,7 @@ class Node implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[id], this);
                     } else {
-                        console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                        debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                     }
                 }
             } else {
@@ -443,7 +471,7 @@ class Node implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[index], this);
                     } else {
-                        console.warn(`EventNet.Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
+                        debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
                     }
                 }
             }
@@ -470,7 +498,7 @@ class Node implements INode {
         };
         for (const attrObj of this.attrAfterSequence) {
             condition.attrValue = attrObj.value;
-            attrStore.normalAttr[attrObj.name].after!(condition, this, this._attr.sync);
+            attrsStore.normalAttrs[attrObj.name].after!(condition, this, this._attr.sync);
             if (shutByAttrAfter) {
                 this.state.running--;
                 throw { subject: INodeRunningStage.after, errorInAttrAfter };

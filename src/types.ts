@@ -20,12 +20,11 @@ export interface IElementLike {
 export interface IStreamOfElement {
     add: (stream: IElementLike) => void;
     get: (index?: number) => IElementLike[]|IElementLike | undefined;
-    getById(id?: string): IElementLike | ITypedDictionary<IElementLike> | undefined;
 }
 
 export interface INode extends IElementLike {
     parentNode?: INode;
-    watchers: IDictionary;
+    readonly code: INodeCode;
 }
 
 export interface ILine extends IElementLike {
@@ -42,12 +41,10 @@ export enum INodeRunningStage {
 
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
-export interface INodeCodeDWS {
-    [index: number]: IElementLike;
+export interface INodeCodeDWS extends Array<IElementLike> {
     all: (data: any) => void;
     get: (id: string, data?: any) => ILine|undefined;
     dispense: (keyValue: {[key: string]: any}) => void;
-    length: number;
 }
 export interface INodeCodeUPS {
     data: any;
@@ -57,11 +54,11 @@ export interface INodeCodeThisExec {
     origin: INode;
 }
 
-export interface IAttrStore {
-    normalAttr: {
+export interface IAttrsStore {
+    normalAttrs: {
         [index: string]: INormalAttr;
     };
-    typedAttr: {
+    typedAttrs: {
         [index: string]: "number"|"string"|"object"|"symbol"|"boolean"|"function";
     };
 }
@@ -74,10 +71,12 @@ export interface INormalAttr {
     finish?: INormalAttrFunc;
     finishPriority?: number;
 }
-export type INormalAttrFunc = (condition: IAttrFuncCondition, currentNode: any, isSync: boolean) => void;
+export type INormalAttrFunc = (value: any, condition: IAttrFuncCondition) => void;
 export interface IAttrFuncCondition {
     data?: any;
-    attrValue: any;
+    attrs: IDictionary;
+    state: IDictionary;
+    node: INode;
     shut: (error?: any) => void;
     readonly collection?: boolean;
 }

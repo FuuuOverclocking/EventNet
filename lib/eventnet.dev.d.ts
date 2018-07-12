@@ -1,14 +1,9 @@
-/** EventNet
+/**
+ * EventNet
  * Created by X.Y.Z. at March 3rd, 2018.
  * @version 0.0.2
  */
 import { IDictionary, IElementLike, ILine, INode, INodeCode, INormalAttr, INormalAttrFunc, IStreamOfElement, ITypedDictionary } from "./types";
-/**
- * Create a EventNet Node
- * @param attrs - add attributes to Node.
- * @param states - add initial state to Node.
- * @param code - set the code that is executed when the Node runs.
- */
 interface IEventNet {
     (attrs: IDictionary, states: IDictionary, code: INodeCode): Node;
     (attrs: IDictionary, code: INodeCode): Node;
@@ -17,6 +12,13 @@ interface IEventNet {
     getAttrDefinition: (name: string) => string | [INormalAttrFunc | undefined, INormalAttrFunc | undefined, INormalAttrFunc | undefined] | undefined;
     defaultState: any;
 }
+/**
+ * Create a EventNet Node.
+ * @param {Object} [attrs] set the attributes of Node
+ * @param {Object} [states] set the initial state of Node, the `attrs` must be set firstly to set this item
+ * @param {Function} code - set the code that is executed when the Node runs
+ * @return {Node} a new normal EventNet Node
+ */
 declare const en: IEventNet;
 export = en;
 declare function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;

@@ -22,6 +22,7 @@
   },
   "homepage": "http://justlog.xyz/eventnet",
   "dependencies": {
+    "@types/debug": "0.0.30",
     "debug": "^3.1.0",
     "socket.io-client": "^2.1.1"
   },

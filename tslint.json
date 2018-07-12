@@ -27,7 +27,11 @@
         ],
         "member-ordering": false,
         "no-empty": false,
-        "max-classes-per-file": false
+        "max-classes-per-file": false,
+        "no-consecutive-blank-lines": [
+            true,
+            2
+        ]
     },
     "rulesDirectory": []
 }
