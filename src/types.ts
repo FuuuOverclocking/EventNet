@@ -11,8 +11,22 @@ export interface ICallableElementLike {
     origin: IElementLike;
 }
 
+export enum ElementType {
+    Node,
+    RawNode,
+    Line,
+    SmartLine,
+}
+
+export enum LineType {
+    arrow,
+    pipe,
+    twpipe,
+}
+
 export interface IElementLike {
     run: (data: any, caller?: IElementLike) => any;
+    type: ElementType;
     upstream: IStreamOfElement;
     downstream: IStreamOfElement;
 }
@@ -31,7 +45,7 @@ export interface ILine extends IElementLike {
     id?: string;
 }
 
-export enum INodeRunningStage {
+export enum NodeRunningStage {
     before,
     code,
     after,

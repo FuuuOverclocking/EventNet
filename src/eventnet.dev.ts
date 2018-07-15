@@ -7,9 +7,9 @@
 import _debug = require("debug");
 const debug = _debug("EventNet");
 import {
-    IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
-    INode, INodeCode, INodeCodeDWS, INodeRunningStage, INormalAttr, INormalAttrFunc,
-    IStreamOfElement, ITypedDictionary
+    ElementType, IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
+    INode, INodeCode, INodeCodeDWS, INormalAttr, INormalAttrFunc,
+    IStreamOfElement, ITypedDictionary, LineType, NodeRunningStage
 } from "./types";
 
 interface IEventNet {
@@ -133,6 +133,7 @@ class StreamOfNode implements IStreamOfElement {
 }
 
 class Node implements INode {
+    type: ElementType.Node;
     public upstream = new StreamOfNode();
     public downstream = new StreamOfNode((line) => {
         const func: ICallableElementLike = ((data?: any) => {
@@ -154,7 +155,7 @@ class Node implements INode {
 
     private _attrs: {
         own: IDictionary;
-        inherited: IDictionary; // own = Obejct.create(inherited)
+        inherited: IDictionary; // own = Obejct.create(inherited) in constructor
         beforeSequence: Array<{ name: string, value: any, priority: number }>;
         afterSequence: Array<{ name: string, value: any, priority: number }>;
         finishSequence: Array<{ name: string, value: any, priority: number }>;
@@ -286,17 +287,21 @@ class Node implements INode {
 
     public readonly code: INodeCode;
 
-    private _errorReceiver = void 0;
-    public set errorReceiver( ILine) {
+    private _errorReceiver: ILine|undefined = void 0;
+    public set errorReceiver(element: ILine|INode) {
+        if (element.type === ElementType.Node) {
+            this._errorReceiver = this.createPipe(element as INode, {id: "error_pipe_" + Math.round(Math.random()*10000)});
 
+        } else { this._errorReceiver = element; }
     }
-    private errorHandler(when: INodeRunningStage, what?: any) {
+    public createPipe(node: INode, options?: {}): ILine{}
+    private errorHandler(when: NodeRunningStage, what?: any) {
         //////////////////////////////////////////////////////////////////////////////////
     }
     private async _codeAsync(data: any, caller?: ILine): Promise<any> {
         ++this.state.runTimes;
 
-        let runningStage: INodeRunningStage = INodeRunningStage.before;
+        let runningStage: NodeRunningStage = NodeRunningStage.before;
 
         ++this.state.running;
 
@@ -310,11 +315,11 @@ class Node implements INode {
             shut: (error?: any) => {
                 shutByAttrBefore = true;
                 if (typeof error === "undefined") { return; }
-                if (runningStage === INodeRunningStage.before) {
+                if (runningStage === NodeRunningStage.before) {
                     errorInAttrBefore = error;
                 } else {
                     // Does not report in which operation and which attribute the error occurred for higher performance.
-                    this.errorHandler(INodeRunningStage.before, error);
+                    this.errorHandler(NodeRunningStage.before, error);
                 }
             },
         };
@@ -322,16 +327,16 @@ class Node implements INode {
             await attrsStore.normalAttrs[attrObj.name].before!(attrObj.value, conditionBefore);
             if (shutByAttrBefore) {
                 --this.state.running;
-                throw { subject: INodeRunningStage.before, errorInAttrBefore };
+                throw { subject: NodeRunningStage.before, errorInAttrBefore };
             }
         }
-        runningStage = INodeRunningStage.code;
+        runningStage = NodeRunningStage.code;
         data = conditionBefore.data;
 
         const result = await this.code(this.codeParam.dws, { data, caller }, { origin: this });
 
         if (this.attrFinishSequence.length !== 0) {
-            runningStage = INodeRunningStage.finish;
+            runningStage = NodeRunningStage.finish;
 
             let shutByAttrFinish = false;
             let errorInAttrFinish: any;
@@ -348,18 +353,18 @@ class Node implements INode {
                 await attrsStore.normalAttrs[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
                 if (shutByAttrFinish) {
                     --this.state.running;
-                    throw { subject: INodeRunningStage.finish, errorInAttrFinish };
+                    throw { subject: NodeRunningStage.finish, errorInAttrFinish };
                 }
             }
         }
 
-        runningStage = INodeRunningStage.over;
+        runningStage = NodeRunningStage.over;
         --this.state.running;
 
         return result;
     }
     private _codeSync(data: any, caller?: ILine): any {
-        let runningStage: INodeRunningStage = INodeRunningStage.before;
+        let runningStage: NodeRunningStage = NodeRunningStage.before;
 
         this.state.running++;
 
@@ -371,11 +376,11 @@ class Node implements INode {
             shut: (error?: any) => {
                 shutByAttrBefore = true;
                 if (typeof error === "undefined") { return; }
-                if (runningStage === INodeRunningStage.before) {
+                if (runningStage === NodeRunningStage.before) {
                     errorInAttrBefore = error;
                 } else {
                     // Does not report in which operation and which attribute the error occurred for higher performance.
-                    this.errorHandler(INodeRunningStage.before, error);
+                    this.errorHandler(NodeRunningStage.before, error);
                 }
             },
         };
@@ -384,16 +389,16 @@ class Node implements INode {
             attrsStore.normalAttrs[attrObj.name].before!(conditionBefore, this, this._attr.sync);
             if (shutByAttrBefore) {
                 this.state.running--;
-                throw { subject: INodeRunningStage.before, errorInAttrBefore };
+                throw { subject: NodeRunningStage.before, errorInAttrBefore };
             }
         }
-        runningStage = INodeRunningStage.code;
+        runningStage = NodeRunningStage.code;
         data = conditionBefore.data;
 
         const result = this.code(this.codeParam.dws, { data, caller }, { origin: this });
 
         if (this.attrFinishSequence.length !== 0) {
-            runningStage = INodeRunningStage.finish;
+            runningStage = NodeRunningStage.finish;
 
             let shutByAttrFinish = false;
             let errorInAttrFinish: any;
@@ -410,12 +415,12 @@ class Node implements INode {
                 attrsStore.normalAttrs[attrObj.name].finish!(conditionFinish, this, this._attr.sync);
                 if (shutByAttrFinish) {
                     this.state.running--;
-                    throw { subject: INodeRunningStage.finish, errorInAttrFinish };
+                    throw { subject: NodeRunningStage.finish, errorInAttrFinish };
                 }
             }
         }
 
-        runningStage = INodeRunningStage.over;
+        runningStage = NodeRunningStage.over;
         this.state.running--;
 
         return result;
@@ -501,7 +506,7 @@ class Node implements INode {
             attrsStore.normalAttrs[attrObj.name].after!(condition, this, this._attr.sync);
             if (shutByAttrAfter) {
                 this.state.running--;
-                throw { subject: INodeRunningStage.after, errorInAttrAfter };
+                throw { subject: NodeRunningStage.after, errorInAttrAfter };
             }
         }
         return condition.data;
