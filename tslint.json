@@ -5,29 +5,21 @@
     ],
     "jsRules": {},
     "rules": {
-        "object-literal-sort-keys": false,
-        "unified-signatures": false,
         "variable-name": [
             true,
             "ban-keywords",
             "check-format",
             "allow-leading-underscore"
         ],
-        "trailing-comma": [
-            true,
-            {
-                "multiline": "ignore",
-                "singleline": "never"
-            }
-        ],
-        "member-ordering": false,
         "no-empty": false,
         "max-classes-per-file": false,
+        "member-ordering": false,
         "no-consecutive-blank-lines": [
             true,
             2
         ],
         "no-bitwise": false,
+        "object-literal-sort-keys": false
     },
     "rulesDirectory": []
 }

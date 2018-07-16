@@ -4,12 +4,13 @@
  * @version 0.0.2
  */
 
+import { _attrsStore, getAttrDefinition, installAttr } from "./internal/dev/attr_manager";
+import { NormalNode } from "./internal/dev/normal_node";
 import {
     ElementType, IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
     INode, INodeCode, INodeCodeDWS, INormalAttr, INormalAttrFunc,
-    IStreamOfElement, ITypedDictionary, NodeRunningStage
+    IStreamOfElement, ITypedDictionary, NodeRunningStage,
 } from "./types";
-import {NormalNode} from "./internal/dev/normal_node";
 
 import debug = require("debug");
 export const _debug = debug("EventNet");
@@ -21,15 +22,15 @@ interface IEventNet {
     installAttr: typeof installAttr;
     getAttrDefinition: typeof getAttrDefinition;
     defaultState: any;
-    _attrsStore: IAttrsStore;
+    _attrsStore: typeof _attrsStore;
 }
 
 /**
- * Create a EventNet Node.
+ * Create a EventNet NormalNode.
  * @param {Object} [attrs] set the attributes of Node
  * @param {Object} [states] set the initial state of Node, the `attrs` must be set firstly to set this item
  * @param {Function} code - set the code that is executed when the Node runs
- * @return {NormalNode} a new normal EventNet Node
+ * @return {NormalNode} a new EventNet NormalNode
  */
 export const en = ((attrs: any, state?: any, code?: any) => {
     if (typeof attrs === "object" && typeof state === "object" && typeof code === "function") {
@@ -41,54 +42,9 @@ export const en = ((attrs: any, state?: any, code?: any) => {
     }
 }) as IEventNet;
 
-// The store of attributes.
-export const _attrsStore: IAttrsStore = {
-    normal: {},
-    typed: {},
-};
-
+export { _attrsStore, installAttr, getAttrDefinition};
 en._attrsStore = _attrsStore;
-
-export function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;
-export function installAttr(name: string, attr: INormalAttr): void;
-export function installAttr(name: any, value: any): void {
-    // Parameter checking, remove in min&mon version.
-    if (typeof name !== "string") {
-        throw new Error("EventNet.installAttr: name should be a string");
-    }
-
-    if (typeof value === "string") {
-        _attrsStore.typed[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
-    } else {
-        if (typeof value.priority === "undefined") {
-            value.priority = 9999;
-        }
-        if (value.before && typeof value.beforePriority === "undefined") {
-            value.beforePriority = value.priority;
-        }
-        if (value.after && typeof value.afterPriority === "undefined") {
-            value.afterPriority = value.priority;
-        }
-        if (value.finish && typeof value.finishPriority === "undefined") {
-            value.finishPriority = value.priority;
-        }
-        value.priority = void 0;
-        _attrsStore.normal[name] = value;
-    }
-}
-
 en.installAttr = installAttr;
-
-export const getAttrDefinition = (name: string) =>
-    _attrsStore.typed[name] ||
-        (!_attrsStore.normal[name].before
-            && !_attrsStore.normal[name].after
-            && !_attrsStore.normal[name].finish) ?
-        void 0 :
-        [(_attrsStore.normal[name].before || void 0),
-        (_attrsStore.normal[name].after || void 0),
-        (_attrsStore.normal[name].finish || void 0)];
-
 en.getAttrDefinition = getAttrDefinition;
 
 // The default state of each new Node.
@@ -102,27 +58,3 @@ export const defaultState = {
 };
 
 en.defaultState = defaultState;
-/*
-installAttr("fold", "number");
-installAttr("sync", "boolean");
-installAttr("runPlan", {
-    before(condition, currentNode, isSync) {
-        // TODO
-    },
-    beforePriority: 100,
-    after(condition, currentNode, isSync) {
-        // TODO
-    },
-    afterPriority: 100,
-});
-installAttr("timelimit", {
-    before(condition, currentNode, isSync) {
-        // TODO
-    },
-    beforePriority: 100,
-    after(condition, currentNode, isSync) {
-        // TODO
-    },
-    afterPriority: 100,
-});
-*/

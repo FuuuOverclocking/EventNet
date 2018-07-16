@@ -1,4 +1,4 @@
-import {ILine, IStreamOfElement, ITypedDictionary} from "../../types";
+import { ILine, IStreamOfElement, ITypedDictionary } from "../../types";
 
 export class StreamOfNode implements IStreamOfElement {
     public add(line: ILine) {

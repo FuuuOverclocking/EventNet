@@ -14,13 +14,13 @@ export interface ICallableElementLike {
 /**
  * ElementType
  * Lowest bit: 0 - Node,    1 - Line
- * 
+ *
  * For Node:
- *** 2-th bit: 0 - Normal,  1 - Raw
+ *   2-th bit: 0 - Normal,  1 - Raw
  * For Line:
- *** 2-th bit: 0 - Normal,  1 - Smart
- *** 1-th bit: 0 - Arrow,   1 - Some kind of pipe
- *** 0-th bit: 0 - one-way, 1 - two-way
+ *   2-th bit: 0 - Normal,  1 - Smart
+ *   1-th bit: 0 - Arrow,   1 - Some kind of pipe
+ *   0-th bit: 0 - one-way, 1 - two-way
  *
  * @readonly
  * @enum {number}

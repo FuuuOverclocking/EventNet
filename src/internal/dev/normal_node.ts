@@ -1,10 +1,10 @@
+import { _attrsStore as attrsStore, _debug, defaultState } from "../../eventnet.dev";
 import {
     ElementType, IAttrFuncCondition, ICallableElementLike, IDictionary,
     IElementLike, ILine, INode,
-    INodeCode, INodeCodeDWS, NodeRunningStage
+    INodeCode, INodeCodeDWS, NodeRunningStage,
 } from "../../types";
 import { StreamOfNode } from "./stream_of_node";
-import { _attrsStore as attrsStore, _debug, defaultState } from "../../eventnet.dev";
 
 const linesWaitingLink: ILine[] = [];
 
@@ -73,21 +73,21 @@ export class NormalNode implements INode {
                 this._attrs.beforeSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normal[name].beforePriority!
+                    priority: attrsStore.normal[name].beforePriority!,
                 });
             }
             if (attrsStore.normal[name].after) {
                 this._attrs.afterSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normal[name].afterPriority!
+                    priority: attrsStore.normal[name].afterPriority!,
                 });
             }
             if (attrsStore.normal[name].finish) {
                 this._attrs.finishSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normal[name].finishPriority!
+                    priority: attrsStore.normal[name].finishPriority!,
                 });
             }
         }
@@ -114,7 +114,7 @@ export class NormalNode implements INode {
             if (attrsStore.typed[name] &&
                 typeof attrs[name] !== attrsStore.typed[name]) {
                 throw new Error(
-                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`
+                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`,
                 );
             }
         }
@@ -431,8 +431,11 @@ export class NormalNode implements INode {
     public createLine(node: INode, options: any = {}, type: ElementType) {
         options.smart = !!(type & 0b10);
         if (type & 0b100) {
-            if (type & 0b1000) { return this.createTwpipe(node, options); }
-            else { return this.createPipe(node, options); }
+            if (type & 0b1000) {
+                return this.createTwpipe(node, options);
+            } else {
+                return this.createPipe(node, options);
+            }
         } else {
             return this.createArrow(node, options);
         }
