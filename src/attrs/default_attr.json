@@ -1,0 +1,9 @@
+{
+    "typed": [
+        "fold",
+        "sync"
+    ],
+    "normal": [
+        "runPlan"
+    ]
+}

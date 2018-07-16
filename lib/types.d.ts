@@ -8,6 +8,20 @@ export interface ICallableElementLike {
     (data?: any, caller?: IElementLike): void;
     origin: IElementLike;
 }
+/**
+ * ElementType
+ * Lowest bit: 0 - Node,    1 - Line
+ *
+ * For Node:
+ *** 2-th bit: 0 - Normal,  1 - Raw
+ * For Line:
+ *** 2-th bit: 0 - Normal,  1 - Smart
+ *** 1-th bit: 0 - Arrow,   1 - Some kind of pipe
+ *** 0-th bit: 0 - one-way, 1 - two-way
+ *
+ * @readonly
+ * @enum {number}
+ */
 export declare enum ElementType {
     NormalNode = 0,
     RawNode = 2,
@@ -15,8 +29,8 @@ export declare enum ElementType {
     SmartArrow = 3,
     Pipe = 5,
     SmartPipe = 7,
-    Twpipe = 9,
-    SmartTwpipe = 11
+    Twpipe = 13,
+    SmartTwpipe = 15
 }
 export interface IElementLike {
     run: (data: any, caller?: IElementLike) => any;
@@ -59,10 +73,10 @@ export interface INodeCodeThisExec {
     origin: INode;
 }
 export interface IAttrsStore {
-    normalAttrs: {
+    normal: {
         [index: string]: INormalAttr;
     };
-    typedAttrs: {
+    typed: {
         [index: string]: "number" | "string" | "object" | "symbol" | "boolean" | "function";
     };
 }

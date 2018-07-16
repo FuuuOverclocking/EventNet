@@ -25,11 +25,20 @@ export declare class NormalNode implements INode {
     readonly code: INodeCode;
     private _errorReceiver;
     errorReceiver: ILine | INode;
-    createPipe(node: INode, options?: {}): ILine;
     private errorHandler;
     private _codeAsync;
     private _codeSync;
     private codeParam;
     private static codeParamDws;
     private codeDwsDataAttrAfterProcess;
+    createLine(node: INode, options: any, type: ElementType): ILine;
+    createArrow(node: INode, options?: {}): ILine;
+    createPipe(node: INode, options?: {}): ILine;
+    createTwpipe(node: INode, options?: {}): ILine;
+    arrow(node: INode, options?: {}): INode;
+    pipe(node: INode, options?: {}): INode;
+    twpipe(node: INode, options?: {}): INode;
+    alsoArrow(node: INode, options?: {}): INode;
+    alsoPipe(node: INode, options?: {}): INode;
+    alsoTwpipe(node: INode, options?: {}): INode;
 }

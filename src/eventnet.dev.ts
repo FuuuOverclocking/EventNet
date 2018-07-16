@@ -43,8 +43,8 @@ export const en = ((attrs: any, state?: any, code?: any) => {
 
 // The store of attributes.
 export const _attrsStore: IAttrsStore = {
-    normalAttrs: {},
-    typedAttrs: {},
+    normal: {},
+    typed: {},
 };
 
 en._attrsStore = _attrsStore;
@@ -58,7 +58,7 @@ export function installAttr(name: any, value: any): void {
     }
 
     if (typeof value === "string") {
-        _attrsStore.typedAttrs[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
+        _attrsStore.typed[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
     } else {
         if (typeof value.priority === "undefined") {
             value.priority = 9999;
@@ -73,21 +73,21 @@ export function installAttr(name: any, value: any): void {
             value.finishPriority = value.priority;
         }
         value.priority = void 0;
-        _attrsStore.normalAttrs[name] = value;
+        _attrsStore.normal[name] = value;
     }
 }
 
 en.installAttr = installAttr;
 
 export const getAttrDefinition = (name: string) =>
-    _attrsStore.typedAttrs[name] ||
-        (!_attrsStore.normalAttrs[name].before
-            && !_attrsStore.normalAttrs[name].after
-            && !_attrsStore.normalAttrs[name].finish) ?
+    _attrsStore.typed[name] ||
+        (!_attrsStore.normal[name].before
+            && !_attrsStore.normal[name].after
+            && !_attrsStore.normal[name].finish) ?
         void 0 :
-        [(_attrsStore.normalAttrs[name].before || void 0),
-        (_attrsStore.normalAttrs[name].after || void 0),
-        (_attrsStore.normalAttrs[name].finish || void 0)];
+        [(_attrsStore.normal[name].before || void 0),
+        (_attrsStore.normal[name].after || void 0),
+        (_attrsStore.normal[name].finish || void 0)];
 
 en.getAttrDefinition = getAttrDefinition;
 

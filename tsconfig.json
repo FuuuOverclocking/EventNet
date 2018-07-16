@@ -22,7 +22,6 @@
         "node_modules",
         "**/*.spec.ts",
         "**/*.test.ts",
-        "**/types.ts",
         "**/*.js"
     ]
 }

@@ -11,6 +11,20 @@ export interface ICallableElementLike {
     origin: IElementLike;
 }
 
+/**
+ * ElementType
+ * Lowest bit: 0 - Node,    1 - Line
+ * 
+ * For Node:
+ *** 2-th bit: 0 - Normal,  1 - Raw
+ * For Line:
+ *** 2-th bit: 0 - Normal,  1 - Smart
+ *** 1-th bit: 0 - Arrow,   1 - Some kind of pipe
+ *** 0-th bit: 0 - one-way, 1 - two-way
+ *
+ * @readonly
+ * @enum {number}
+ */
 export enum ElementType {
     NormalNode = 0b0000,
     RawNode = 0b0010,
@@ -18,8 +32,8 @@ export enum ElementType {
     SmartArrow = 0b0011,
     Pipe = 0b0101,
     SmartPipe = 0b0111,
-    Twpipe = 0b1001,
-    SmartTwpipe = 0b1011,
+    Twpipe = 0b1101,
+    SmartTwpipe = 0b1111,
 }
 
 export interface IElementLike {
@@ -68,10 +82,10 @@ export interface INodeCodeThisExec {
 }
 
 export interface IAttrsStore {
-    normalAttrs: {
+    normal: {
         [index: string]: INormalAttr;
     };
-    typedAttrs: {
+    typed: {
         [index: string]: "number"|"string"|"object"|"symbol"|"boolean"|"function";
     };
 }

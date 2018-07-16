@@ -4,9 +4,7 @@ import {
     INodeCode, INodeCodeDWS, NodeRunningStage
 } from "../../types";
 import { StreamOfNode } from "./stream_of_node";
-import { en, _debug } from "../../eventnet.dev";
-
-const attrsStore = en._attrsStore;
+import { _attrsStore as attrsStore, _debug, defaultState } from "../../eventnet.dev";
 
 const linesWaitingLink: ILine[] = [];
 
@@ -71,25 +69,25 @@ export class NormalNode implements INode {
         // For-in will traverse all the attributes of Node, including its own and inherited.
         for (const name in attr) {
             if (typeof attr[name] === "undefined") { continue; }
-            if (attrsStore.normalAttrs[name].before) {
+            if (attrsStore.normal[name].before) {
                 this._attrs.beforeSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normalAttrs[name].beforePriority!
+                    priority: attrsStore.normal[name].beforePriority!
                 });
             }
-            if (attrsStore.normalAttrs[name].after) {
+            if (attrsStore.normal[name].after) {
                 this._attrs.afterSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normalAttrs[name].afterPriority!
+                    priority: attrsStore.normal[name].afterPriority!
                 });
             }
-            if (attrsStore.normalAttrs[name].finish) {
+            if (attrsStore.normal[name].finish) {
                 this._attrs.finishSequence.push({
                     name,
                     value: attr[name],
-                    priority: attrsStore.normalAttrs[name].finishPriority!
+                    priority: attrsStore.normal[name].finishPriority!
                 });
             }
         }
@@ -107,16 +105,16 @@ export class NormalNode implements INode {
             throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
         }
         for (const name of Object.keys(attrs)) {
-            if (!attrsStore.typedAttrs[name] &&
-                !attrsStore.normalAttrs[name].before &&
-                !attrsStore.normalAttrs[name].after &&
-                !attrsStore.normalAttrs[name].finish) {
+            if (!attrsStore.typed[name] &&
+                !attrsStore.normal[name].before &&
+                !attrsStore.normal[name].after &&
+                !attrsStore.normal[name].finish) {
                 _debug(`Node: Attribution '${name}' has not been installed.`);
             }
-            if (attrsStore.typedAttrs[name] &&
-                typeof attrs[name] !== attrsStore.typedAttrs[name]) {
+            if (attrsStore.typed[name] &&
+                typeof attrs[name] !== attrsStore.typed[name]) {
                 throw new Error(
-                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typedAttrs[name]}.`
+                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`
                 );
             }
         }
@@ -139,7 +137,7 @@ export class NormalNode implements INode {
         }
         this.sortAttrs();
 
-        this.state = Object.assign({}, en.defaultState, state);
+        this.state = Object.assign({}, defaultState, state);
 
         for (const ups of linesWaitingLink) {
             ups.downstream.add(this);
@@ -152,14 +150,30 @@ export class NormalNode implements INode {
             try {
                 return this._codeSync(data, caller);
             } catch (error) {
-                ////////////////////////////////////////////////////////////////
+                if (typeof error.when !== "undefined") {
+                    //////////////////////////////////////////////////////////////
+                    if (typeof error.what !== "undefined") {
+                        this.errorHandler(error.when, error.what);
+                    }
+                } else {
+                    --this.state.running;
+                    this.errorHandler(NodeRunningStage.code, error);
+                }
             }
         } else {
             return this._codeAsync(data, caller).catch((error) => {
-                ////////////////////////////////////////////////////////////////
+                if (typeof error.when !== "undefined") {
+                    //////////////////////////////////////////////////////////////
+                    if (typeof error.what !== "undefined") {
+                        this.errorHandler(error.when, error.what);
+                    }
+                } else {
+                    --this.state.running;
+                    this.errorHandler(NodeRunningStage.code, error);
+                }
             });
         }
-        //////////////////////////////
+        //////////////////////////////////////////////////////////////
         // Try-catch will copy all the variables in the current scope.
     }
 
@@ -176,9 +190,7 @@ export class NormalNode implements INode {
             throw new Error("EventNet.Node.errorReceiver: errorReceiver must be assigned to an type of Node or Pipe.");
         }
     }
-    public createPipe(node: INode, options?: {}): ILine {
-        return {} as any;
-    }
+
     private errorHandler(when: NodeRunningStage, what?: any) {
         if (typeof this._errorReceiver === "undefined") {
             throw { when, what };
@@ -212,7 +224,7 @@ export class NormalNode implements INode {
             },
         };
         for (const attrObj of this._attrs.beforeSequence) {
-            await attrsStore.normalAttrs[attrObj.name].before!(attrObj.value, conditionBefore);
+            await attrsStore.normal[attrObj.name].before!(attrObj.value, conditionBefore);
             if (shutByAttrBefore) {
                 runningStage = NodeRunningStage.over;
                 --this.state.running;
@@ -242,7 +254,7 @@ export class NormalNode implements INode {
                 },
             };
             for (const attrObj of this._attrs.finishSequence) {
-                await attrsStore.normalAttrs[attrObj.name].finish!(attrObj.value, conditionFinish);
+                await attrsStore.normal[attrObj.name].finish!(attrObj.value, conditionFinish);
                 if (shutByAttrFinish) {
                     runningStage = NodeRunningStage.over;
                     --this.state.running;
@@ -283,7 +295,7 @@ export class NormalNode implements INode {
             },
         };
         for (const attrObj of this._attrs.beforeSequence) {
-            attrsStore.normalAttrs[attrObj.name].before!(attrObj.value, conditionBefore);
+            attrsStore.normal[attrObj.name].before!(attrObj.value, conditionBefore);
             if (shutByAttrBefore) {
                 runningStage = NodeRunningStage.over;
                 --this.state.running;
@@ -313,7 +325,7 @@ export class NormalNode implements INode {
                 },
             };
             for (const attrObj of this._attrs.finishSequence) {
-                attrsStore.normalAttrs[attrObj.name].finish!(attrObj.value, conditionFinish);
+                attrsStore.normal[attrObj.name].finish!(attrObj.value, conditionFinish);
                 if (shutByAttrFinish) {
                     runningStage = NodeRunningStage.over;
                     --this.state.running;
@@ -407,12 +419,55 @@ export class NormalNode implements INode {
             collection,
         };
         for (const attrObj of this._attrs.afterSequence) {
-            attrsStore.normalAttrs[attrObj.name].after!(attrObj.value, condition);
+            attrsStore.normal[attrObj.name].after!(attrObj.value, condition);
             if (shutByAttrAfter) {
                 this.state.running--;
                 throw { when: NodeRunningStage.after, what: errorInAttrAfter };
             }
         }
         return condition.data;
+    }
+
+    public createLine(node: INode, options: any = {}, type: ElementType) {
+        options.smart = !!(type & 0b10);
+        if (type & 0b100) {
+            if (type & 0b1000) { return this.createTwpipe(node, options); }
+            else { return this.createPipe(node, options); }
+        } else {
+            return this.createArrow(node, options);
+        }
+    }
+    public createArrow(node: INode, options?: {}): ILine {
+        return {} as any;
+    }
+    public createPipe(node: INode, options?: {}): ILine {
+        return {} as any;
+    }
+    public createTwpipe(node: INode, options?: {}): ILine {
+        return {} as any;
+    }
+    public arrow(node: INode, options?: {}): INode {
+        this.createArrow(node, options);
+        return node;
+    }
+    public pipe(node: INode, options?: {}): INode {
+        this.createPipe(node, options);
+        return node;
+    }
+    public twpipe(node: INode, options?: {}): INode {
+        this.createTwpipe(node, options);
+        return node;
+    }
+    public alsoArrow(node: INode, options?: {}): INode {
+        this.createArrow(node, options);
+        return this;
+    }
+    public alsoPipe(node: INode, options?: {}): INode {
+        this.createPipe(node, options);
+        return this;
+    }
+    public alsoTwpipe(node: INode, options?: {}): INode {
+        this.createTwpipe(node, options);
+        return this;
     }
 }
