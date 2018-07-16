@@ -4,9 +4,7 @@ import {
     INodeCode, INodeCodeDWS, NodeRunningStage
 } from "../../types";
 import { StreamOfNode } from "./stream_of_node";
-import en = require("../../eventnet.dev");
-import _debug = require("debug");
-const debug = _debug("EventNet");
+import { en, _debug } from "../../eventnet.dev";
 
 const attrsStore = en._attrsStore;
 
@@ -51,7 +49,7 @@ export class NormalNode implements INode {
     }
     public setAttrs(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
+        _debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
         for (const attr of attrs) {
             this._attrs.own[attr.name] = attr.value;
         }
@@ -113,7 +111,7 @@ export class NormalNode implements INode {
                 !attrsStore.normalAttrs[name].before &&
                 !attrsStore.normalAttrs[name].after &&
                 !attrsStore.normalAttrs[name].finish) {
-                debug(`Node: Attribution '${name}' has not been installed.`);
+                _debug(`Node: Attribution '${name}' has not been installed.`);
             }
             if (attrsStore.typedAttrs[name] &&
                 typeof attrs[name] !== attrsStore.typedAttrs[name]) {
@@ -178,7 +176,9 @@ export class NormalNode implements INode {
             throw new Error("EventNet.Node.errorReceiver: errorReceiver must be assigned to an type of Node or Pipe.");
         }
     }
-    public createPipe(node: INode, options?: {}): ILine { }
+    public createPipe(node: INode, options?: {}): ILine {
+        return {} as any;
+    }
     private errorHandler(when: NodeRunningStage, what?: any) {
         if (typeof this._errorReceiver === "undefined") {
             throw { when, what };
@@ -343,7 +343,7 @@ export class NormalNode implements INode {
 
             // Downstream presence checking, remove in min&mon version.
             if (typeof downstream === "undefined") {
-                debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                _debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                 return void 0;
             }
 
@@ -366,7 +366,7 @@ export class NormalNode implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[id], this);
                     } else {
-                        debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                        _debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                     }
                 }
             } else {
@@ -379,7 +379,7 @@ export class NormalNode implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[index], this);
                     } else {
-                        debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
+                        _debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
                     }
                 }
             }

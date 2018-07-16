@@ -11,15 +11,15 @@ import {
 } from "./types";
 import {NormalNode} from "./internal/dev/normal_node";
 
+import debug = require("debug");
+export const _debug = debug("EventNet");
+
 interface IEventNet {
     (attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;
     (attrs: IDictionary, code: INodeCode): NormalNode;
     (code: INodeCode): NormalNode;
     installAttr: typeof installAttr;
-    getAttrDefinition: (name: string) =>
-        string
-        | [INormalAttrFunc | undefined, INormalAttrFunc | undefined, INormalAttrFunc | undefined]
-        | undefined;
+    getAttrDefinition: typeof getAttrDefinition;
     defaultState: any;
     _attrsStore: IAttrsStore;
 }
@@ -31,7 +31,7 @@ interface IEventNet {
  * @param {Function} code - set the code that is executed when the Node runs
  * @return {NormalNode} a new normal EventNet Node
  */
-const en = ((attrs: any, state?: any, code?: any) => {
+export const en = ((attrs: any, state?: any, code?: any) => {
     if (typeof attrs === "object" && typeof state === "object" && typeof code === "function") {
         return new NormalNode(attrs, state, code);
     } else if (typeof attrs === "object" && typeof state === "function") {
@@ -41,25 +41,24 @@ const en = ((attrs: any, state?: any, code?: any) => {
     }
 }) as IEventNet;
 
-export = en;
-
 // The store of attributes.
-const attrsStore: IAttrsStore = {
+export const _attrsStore: IAttrsStore = {
     normalAttrs: {},
     typedAttrs: {},
 };
-en._attrsStore = attrsStore;
 
-function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;
-function installAttr(name: string, attr: INormalAttr): void;
-function installAttr(name: any, value: any): void {
+en._attrsStore = _attrsStore;
+
+export function installAttr(name: string, type: "number" | "string" | "object" | "symbol" | "boolean" | "function"): void;
+export function installAttr(name: string, attr: INormalAttr): void;
+export function installAttr(name: any, value: any): void {
     // Parameter checking, remove in min&mon version.
     if (typeof name !== "string") {
         throw new Error("EventNet.installAttr: name should be a string");
     }
 
     if (typeof value === "string") {
-        attrsStore.typedAttrs[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
+        _attrsStore.typedAttrs[name] = value as "number" | "string" | "object" | "symbol" | "boolean" | "function";
     } else {
         if (typeof value.priority === "undefined") {
             value.priority = 9999;
@@ -74,32 +73,35 @@ function installAttr(name: any, value: any): void {
             value.finishPriority = value.priority;
         }
         value.priority = void 0;
-        attrsStore.normalAttrs[name] = value;
+        _attrsStore.normalAttrs[name] = value;
     }
 }
 
 en.installAttr = installAttr;
 
-en.getAttrDefinition = (name: string) =>
-    attrsStore.typedAttrs[name] ||
-        (!attrsStore.normalAttrs[name].before
-            && !attrsStore.normalAttrs[name].after
-            && !attrsStore.normalAttrs[name].finish) ?
+export const getAttrDefinition = (name: string) =>
+    _attrsStore.typedAttrs[name] ||
+        (!_attrsStore.normalAttrs[name].before
+            && !_attrsStore.normalAttrs[name].after
+            && !_attrsStore.normalAttrs[name].finish) ?
         void 0 :
-        [(attrsStore.normalAttrs[name].before || void 0),
-        (attrsStore.normalAttrs[name].after || void 0),
-        (attrsStore.normalAttrs[name].finish || void 0)];
+        [(_attrsStore.normalAttrs[name].before || void 0),
+        (_attrsStore.normalAttrs[name].after || void 0),
+        (_attrsStore.normalAttrs[name].finish || void 0)];
+
+en.getAttrDefinition = getAttrDefinition;
 
 // The default state of each new Node.
 // The states of Node created by calling en() is the result
 // of assigning parameter `states` to the default state.
-en.defaultState = {
+export const defaultState = {
     data: {},
     error: null,
     runTimes: 0,
     running: 0,
 };
 
+en.defaultState = defaultState;
 /*
 installAttr("fold", "number");
 installAttr("sync", "boolean");
