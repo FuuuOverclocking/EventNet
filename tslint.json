@@ -5,11 +5,6 @@
     ],
     "jsRules": {},
     "rules": {
-        "no-console": [
-            false,
-            "log",
-            "error"
-        ],
         "object-literal-sort-keys": false,
         "unified-signatures": false,
         "variable-name": [
@@ -31,7 +26,8 @@
         "no-consecutive-blank-lines": [
             true,
             2
-        ]
+        ],
+        "no-bitwise": false,
     },
     "rulesDirectory": []
 }

@@ -12,16 +12,14 @@ export interface ICallableElementLike {
 }
 
 export enum ElementType {
-    Node,
-    RawNode,
-    Line,
-    SmartLine,
-}
-
-export enum LineType {
-    arrow,
-    pipe,
-    twpipe,
+    NormalNode = 0b0000,
+    RawNode = 0b0010,
+    Arrow = 0b0001,
+    SmartArrow = 0b0011,
+    Pipe = 0b0101,
+    SmartPipe = 0b0111,
+    Twpipe = 0b1001,
+    SmartTwpipe = 0b1011,
 }
 
 export interface IElementLike {
@@ -39,6 +37,7 @@ export interface IStreamOfElement {
 export interface INode extends IElementLike {
     parentNode?: INode;
     readonly code: INodeCode;
+    errorReceiver: ILine;
 }
 
 export interface ILine extends IElementLike {
@@ -87,7 +86,7 @@ export interface INormalAttr {
 }
 export type INormalAttrFunc = (value: any, condition: IAttrFuncCondition) => void;
 export interface IAttrFuncCondition {
-    data?: any;
+    data: any;
     attrs: IDictionary;
     state: IDictionary;
     node: INode;
