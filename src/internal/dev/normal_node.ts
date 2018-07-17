@@ -4,12 +4,54 @@ import {
     IElementLike, ILine, INode,
     INodeCode, INodeCodeDWS, NodeRunningStage,
 } from "../../types";
+import { CompatWeakSet } from "../util/compat_weak_map";
 import { StreamOfNode } from "./stream_of_node";
+
 
 const linesWaitingLink: ILine[] = [];
 
+function converter(obj: IDictionary, prop: string, needWatchLower = 0) {
+    if (typeof obj["__" + prop] !== "undefined") {
+        if (typeof obj["__" + prop] === "object") {
+            obj["__" + prop].__needWatchLower__ =
+                Math.max(obj["__" + prop].__needWatchLower__, needWatchLower);
+        }
+        return;
+    }
+    Object.defineProperty(obj, "__" + prop, {
+        configurable: true,
+        enumerable: false,
+        value: obj.prop,
+        writable: true,
+    });
+    if (typeof obj.prop === "object") {
+        Object.defineProperty(obj.prop, "__needWatchLower__", {
+            configurable: true,
+            enumerable: false,
+            value: needWatchLower,
+            writable: true,
+        });
+    }
+    Object.defineProperty(obj, prop, {
+        configurable: true,
+        enumerable: true,
+        get: () => obj["__" + prop],
+        set: (value) => {
+            obj["__" + prop] = value;
+            if (obj.__needWatchLower__ /* If obj.__needWatchLower__ is not undefined or number 0. */
+                && typeof value === "object") {
+                for (const key of value) {
+                    converter(value, key, obj.__needWatchLower__ === 2 ? 2 : 0);
+                }
+            }
+        },
+    });
+}
+
 export class NormalNode implements INode {
+
     public type: ElementType.NormalNode;
+
     public upstream = new StreamOfNode();
     public downstream = new StreamOfNode((line) => {
         const func: ICallableElementLike = ((data?: any) => {
@@ -19,10 +61,73 @@ export class NormalNode implements INode {
         func.origin = line;
         return func;
     });
+
     public parentNode: INode | undefined = void 0;
 
 
     public state: IDictionary;
+    public watchMe(target: string, callback: any) { //////////////////
+        target = target.replace(/\s+/g, "");
+        const paths = target.split(".");
+
+        if (paths.length === 1) {
+            converter(this.state, target);
+            return;
+        }
+
+        let lastItem = paths[paths.length - 1];
+        paths.splice(-1, 1);
+        let currentTarget = this.state;
+        for (const key of paths) {
+            switch (typeof currentTarget[key]) {
+                case "undefined":
+                    currentTarget[key] = {};
+                case "object":
+                    converter(currentTarget, key);
+                    break;
+                default:
+                    throw new Error(`EventNet.Node.watchMe: (Node).state.**.${key} is not an object.`);
+            }
+            currentTarget = currentTarget["__" + key];
+        }
+
+        let weakset: any;
+        let regRes: RegExpExecArray | null;
+        function deepConvert(obj: IDictionary) {
+            // Check for circular references.
+            if (weakset.has(obj)) { return; }
+
+            weakset.add(obj);
+            for (const key of Object.keys(obj)) {
+                if (typeof obj[key] === "object") {
+                    deepConvert(obj[key]);
+                    converter(obj, key, 2);
+                } else {
+                    converter(obj, key);
+                }
+            }
+        }
+        if (lastItem === "*") {
+            currentTarget.__needWatchLower__ = 1;
+            for (const key of Object.keys(currentTarget)) {
+                converter(currentTarget, key);
+            }
+        } else if (lastItem === "**") {
+            currentTarget.__needWatchLower__ = 2;
+            weakset = new CompatWeakSet();
+            deepConvert(currentTarget);
+        } else if (regRes = /^([a-zA-Z\$\_][a-zA-Z0-9\$\_]*)\[\*\]$/.exec(lastItem)) {
+            lastItem = regRes[1];
+            if (typeof currentTarget[lastItem] === "undefined") {
+                currentTarget[lastItem] = [];
+            } else if (!Array.isArray(currentTarget[lastItem])) {
+                throw new Error(`EventNet.Node.watchMe: (Node).state.**.${lastItem} is not an array.`);
+            }
+            ///////////////////////////
+        } else {
+            throw new Error("EventNet.Node.watchMe: Invalid target.");
+        }
+    }
     private _watchers: IDictionary = []; ////////////////////////////////
     public get watchers() {
         return this._watchers;

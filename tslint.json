@@ -18,6 +18,7 @@
             true,
             2
         ],
+        "no-conditional-assignment": false,
         "no-bitwise": false,
         "object-literal-sort-keys": false
     },
