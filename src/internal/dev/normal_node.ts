@@ -1,14 +1,20 @@
-import { _attrsStore as attrsStore, _debug, defaultState } from "../../eventnet.dev";
+import { _attrsStore as attrsStore, _debug as debug, defaultState } from "../../eventnet.dev";
 import {
-    ElementType, IAttrFuncCondition, ICallableElementLike, IDictionary,
+    ElementType, IAttrFuncCondition, IDictionary,
     IElementLike, ILine, INode,
     INodeCode, INodeCodeDWS, NodeRunningStage,
 } from "../../types";
 import { CompatWeakSet } from "../util/compat_weak_map";
-import { StreamOfNode } from "./stream_of_node";
+import { BasicNode } from "./basic_node";
 
-
-const linesWaitingLink: ILine[] = [];
+function def(target: IDictionary, prop: string, value: any, enumerable: boolean = false) {
+    Object.defineProperty(target, prop, {
+        configurable: true,
+        enumerable,
+        value,
+        writable: true,
+    });
+}
 
 function converter(obj: IDictionary, prop: string, needWatchLower = 0) {
     if (typeof obj["__" + prop] !== "undefined") {
@@ -18,19 +24,9 @@ function converter(obj: IDictionary, prop: string, needWatchLower = 0) {
         }
         return;
     }
-    Object.defineProperty(obj, "__" + prop, {
-        configurable: true,
-        enumerable: false,
-        value: obj.prop,
-        writable: true,
-    });
+    def(obj, "__" + prop, obj.prop);
     if (typeof obj.prop === "object") {
-        Object.defineProperty(obj.prop, "__needWatchLower__", {
-            configurable: true,
-            enumerable: false,
-            value: needWatchLower,
-            writable: true,
-        });
+        def(obj.prop, "__needWatchLower__", needWatchLower);
     }
     Object.defineProperty(obj, prop, {
         configurable: true,
@@ -48,22 +44,11 @@ function converter(obj: IDictionary, prop: string, needWatchLower = 0) {
     });
 }
 
-export class NormalNode implements INode {
+const linesWaitingLink: ILine[] = [];
 
-    public type: ElementType.NormalNode;
+export class NormalNode extends BasicNode implements INode {
 
-    public upstream = new StreamOfNode();
-    public downstream = new StreamOfNode((line) => {
-        const func: ICallableElementLike = ((data?: any) => {
-            data = this.codeDwsDataAttrAfterProcess(data, false);
-            line.run(data, this);
-        }) as ICallableElementLike;
-        func.origin = line;
-        return func;
-    });
-
-    public parentNode: INode | undefined = void 0;
-
+    public type = ElementType.NormalNode;
 
     public state: IDictionary;
     public watchMe(target: string, callback: any) { //////////////////
@@ -152,7 +137,7 @@ export class NormalNode implements INode {
     }
     public setAttrs(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        _debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
+        debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
         for (const attr of attrs) {
             this._attrs.own[attr.name] = attr.value;
         }
@@ -204,7 +189,7 @@ export class NormalNode implements INode {
     }
 
     constructor(attrs: IDictionary, state: IDictionary, code: INodeCode) {
-
+        super(code);
         // Parameter checking, remove in min&mon version.
         if (typeof attrs.sync !== "undefined" && typeof attrs.sync !== "boolean") {
             throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
@@ -214,7 +199,7 @@ export class NormalNode implements INode {
                 !attrsStore.normal[name].before &&
                 !attrsStore.normal[name].after &&
                 !attrsStore.normal[name].finish) {
-                _debug(`Node: Attribution '${name}' has not been installed.`);
+                debug(`Node: Attribution '${name}' has not been installed.`);
             }
             if (attrsStore.typed[name] &&
                 typeof attrs[name] !== attrsStore.typed[name]) {
@@ -224,7 +209,6 @@ export class NormalNode implements INode {
             }
         }
 
-        this.code = code;
         Object.assign(this.downstream.wrappedContent, {
             all: NormalNode.codeParamDws.all.bind(this),
             get: NormalNode.codeParamDws.get.bind(this),
@@ -250,7 +234,7 @@ export class NormalNode implements INode {
         }
         linesWaitingLink.length = 0;
     }
-    public run(data: any, caller?: IElementLike) {
+    public run(data: any, caller?: ILine) {
         if (this._attrs.own.sync) {
             try {
                 return this._codeSync(data, caller);
@@ -282,27 +266,7 @@ export class NormalNode implements INode {
         // Try-catch will copy all the variables in the current scope.
     }
 
-    public readonly code: INodeCode;
 
-    private _errorReceiver: ILine | undefined = void 0;
-    public set errorReceiver(element: ILine | INode) {
-        if (!(element.type & 1)) {
-            this._errorReceiver = this.createPipe(element as INode,
-                { feature: "error" });
-        } else if (element.type === ElementType.Pipe) {
-            this._errorReceiver = element;
-        } else {
-            throw new Error("EventNet.Node.errorReceiver: errorReceiver must be assigned to an type of Node or Pipe.");
-        }
-    }
-
-    private errorHandler(when: NodeRunningStage, what?: any) {
-        if (typeof this._errorReceiver === "undefined") {
-            throw { when, what };
-        } else {
-            this._errorReceiver.run({ when, what }, this);
-        }
-    }
     private async _codeAsync(data: any, caller?: ILine): Promise<any> {
         ++this.state.runTimes;
 
@@ -460,7 +424,7 @@ export class NormalNode implements INode {
 
             // Downstream presence checking, remove in min&mon version.
             if (typeof downstream === "undefined") {
-                _debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                 return void 0;
             }
 
@@ -483,7 +447,7 @@ export class NormalNode implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[id], this);
                     } else {
-                        _debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                        debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                     }
                 }
             } else {
@@ -496,13 +460,13 @@ export class NormalNode implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[index], this);
                     } else {
-                        _debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
+                        debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
                     }
                 }
             }
         },
     };
-    private codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
+    protected codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
         // Speed up the operation of the function.
         if (this._attrs.afterSequence.length === 0) {
             return data;
@@ -533,49 +497,4 @@ export class NormalNode implements INode {
         return condition.data;
     }
 
-    public createLine(node: INode, options: any = {}, type: ElementType) {
-        options.smart = !!(type & 0b10);
-        if (type & 0b100) {
-            if (type & 0b1000) {
-                return this.createTwpipe(node, options);
-            } else {
-                return this.createPipe(node, options);
-            }
-        } else {
-            return this.createArrow(node, options);
-        }
-    }
-    public createArrow(node: INode, options?: {}): ILine {
-        return {} as any;
-    }
-    public createPipe(node: INode, options?: {}): ILine {
-        return {} as any;
-    }
-    public createTwpipe(node: INode, options?: {}): ILine {
-        return {} as any;
-    }
-    public arrow(node: INode, options?: {}): INode {
-        this.createArrow(node, options);
-        return node;
-    }
-    public pipe(node: INode, options?: {}): INode {
-        this.createPipe(node, options);
-        return node;
-    }
-    public twpipe(node: INode, options?: {}): INode {
-        this.createTwpipe(node, options);
-        return node;
-    }
-    public alsoArrow(node: INode, options?: {}): INode {
-        this.createArrow(node, options);
-        return this;
-    }
-    public alsoPipe(node: INode, options?: {}): INode {
-        this.createPipe(node, options);
-        return this;
-    }
-    public alsoTwpipe(node: INode, options?: {}): INode {
-        this.createTwpipe(node, options);
-        return this;
-    }
 }
