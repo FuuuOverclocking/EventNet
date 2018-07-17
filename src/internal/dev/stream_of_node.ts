@@ -26,8 +26,11 @@ export class StreamOfNode implements IStreamOfElement {
     private contentById: ITypedDictionary<ILine> = {};
     public wrappedContent: any;
     private wrapper: (line: ILine) => any;
-    constructor(wrapper?: (line: ILine) => any) {
+    public wrap(wrapper?: (line: ILine) => any) {
         // tslint:disable-next-line:no-unused-expression
         wrapper && (this.wrappedContent = []) && (this.wrapper = wrapper);
+    }
+    constructor(wrapper?: (line: ILine) => any) {
+        this.wrap(wrapper);
     }
 }

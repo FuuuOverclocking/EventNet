@@ -1,8 +1,8 @@
 import { _attrsStore as attrsStore, _debug as debug, defaultState } from "../../eventnet.dev";
 import {
-    ElementType, IAttrFuncCondition, IDictionary,
-    IElementLike, ILine, INode,
-    INodeCode, INodeCodeDWS, NodeRunningStage,
+    ElementType, IAttrFuncCondition, ICallableElementLike,
+    IDictionary, IElementLike, ILine,
+    INode, INodeCode, INodeCodeDWS, NodeRunningStage,
 } from "../../types";
 import { CompatWeakSet } from "../util/compat_weak_map";
 import { BasicNode } from "./basic_node";
@@ -209,6 +209,14 @@ export class NormalNode extends BasicNode implements INode {
             }
         }
 
+        this.downstream.wrap((line) => {
+            const func: ICallableElementLike = ((data?: any) => {
+                data = this.codeDwsDataAttrAfterProcess(data, false);
+                line.run(data, this);
+            }) as ICallableElementLike;
+            func.origin = line;
+            return func;
+        });
         Object.assign(this.downstream.wrappedContent, {
             all: NormalNode.codeParamDws.all.bind(this),
             get: NormalNode.codeParamDws.get.bind(this),

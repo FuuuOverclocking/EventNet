@@ -4,16 +4,8 @@ import { StreamOfNode } from "./stream_of_node";
 export abstract class BasicNode {
     public abstract type: ElementType;
     public parentNode: INode | undefined = void 0;
-    protected abstract codeDwsDataAttrAfterProcess(data: any, collection: boolean): any;
     public upstream = new StreamOfNode();
-    public downstream = new StreamOfNode((line) => {
-        const func: ICallableElementLike = ((data?: any) => {
-            data = this.codeDwsDataAttrAfterProcess(data, false);
-            line.run(data, this);
-        }) as ICallableElementLike;
-        func.origin = line;
-        return func;
-    });
+    public downstream = new StreamOfNode();
     public abstract run(data: any, caller?: ILine): any;
     public readonly code: INodeCode;
     constructor(code: INodeCode) {
