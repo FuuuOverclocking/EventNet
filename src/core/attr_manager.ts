@@ -1,4 +1,4 @@
-import { IAttrsStore, INormalAttr } from "../../types";
+import { IAttrsStore, INormalAttr } from "./types";
 
 // The store of attributes.
 export const _attrsStore: IAttrsStore = {
@@ -11,8 +11,7 @@ export const installAttr =
     name: string,
     value: "number" | "string" | "object" | "symbol" | "boolean" | "function" | INormalAttr,
 ) => {
-    // Parameter checking, remove in min&mon version.
-    if (typeof name !== "string") {
+    if (process.env.NODE_ENV !== "production" && typeof name !== "string") {
         throw new Error("EventNet.installAttr: name should be a string");
     }
 

@@ -23,22 +23,28 @@
   "homepage": "http://justlog.xyz/eventnet",
   "dependencies": {
     "@types/debug": "0.0.30",
-    "debug": "^3.1.0",
-    "socket.io-client": "^2.1.1"
+    "debug": "^3.1.0"
   },
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "@types/node": "^10.1.2",
-    "gulp": "^3.9.1",
-    "gulp-typescript": "^4.0.2",
     "jest": "^23.0.1",
     "ts-jest": "^22.4.6",
+    "ts-loader": "^4.4.2",
     "tslint": "^5.10.0",
-    "typescript": "^2.9.2"
+    "typescript": "^2.9.2",
+    "webpack": "^4.16.1",
+    "webpack-cli": "^3.0.8"
   },
   "scripts": {
+    "build": "npm run clean:all && webpack",
+    "build:dev": "",
+    "build:mnt": "",
+    "build:min": "",
+    "clean": "npm run clean:all",
+    "clean:all": "node scripts/clean.js",
     "test": "jest",
-    "lint": "tslint -c tslint.json 'src/**/*.ts'"
+    "lint": "tslint --fix -c tslint.json 'src/**/*.ts'"
   },
   "jest": {
     "globals": {

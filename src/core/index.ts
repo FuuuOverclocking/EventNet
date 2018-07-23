@@ -4,8 +4,10 @@
  * @version 0.0.2
  */
 
-import { _attrsStore, getAttrDefinition, installAttr } from "./internal/dev/attr_manager";
-import { NormalNode } from "./internal/dev/normal_node";
+import { _attrsStore, getAttrDefinition, installAttr } from "./attr_manager";
+import "./install_default_attrs";
+import { NormalNode } from "./normal_node";
+export { NormalNode };
 import {
     ElementType, IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
     INode, INodeCode, INodeCodeDWS, INormalAttr, INormalAttrFunc,
@@ -13,7 +15,8 @@ import {
 } from "./types";
 
 import debug = require("debug");
-export const _debug = debug("EventNet");
+export const warn = debug("EventNet");
+
 
 interface IEventNet {
     (attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;

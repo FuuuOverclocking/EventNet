@@ -1,5 +1,5 @@
-import { ElementType, ICallableElementLike, ILine, INode, INodeCode, NodeRunningStage } from "../../types";
 import { StreamOfNode } from "./stream_of_node";
+import { ElementType, ICallableElementLike, ILine, INode, INodeCode, NodeRunningStage } from "./types";
 
 export abstract class BasicNode {
     public abstract type: ElementType;

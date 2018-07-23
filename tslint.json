@@ -12,6 +12,7 @@
             "allow-leading-underscore"
         ],
         "no-empty": false,
+        "no-console": false,
         "max-classes-per-file": false,
         "member-ordering": false,
         "no-consecutive-blank-lines": [

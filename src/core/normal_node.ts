@@ -1,48 +1,12 @@
-import { _attrsStore as attrsStore, _debug as debug, defaultState } from "../../eventnet.dev";
+import { _attrsStore as attrsStore, defaultState, warn } from ".";
+import { BasicNode } from "./basic_node";
+import { watch, Watcher } from "./observer";
 import {
     ElementType, IAttrFuncCondition, ICallableElementLike,
     IDictionary, IElementLike, ILine,
     INode, INodeCode, INodeCodeDWS, NodeRunningStage,
-} from "../../types";
-import { CompatWeakSet } from "../util/compat_weak_map";
-import { BasicNode } from "./basic_node";
-
-function def(target: IDictionary, prop: string, value: any, enumerable: boolean = false) {
-    Object.defineProperty(target, prop, {
-        configurable: true,
-        enumerable,
-        value,
-        writable: true,
-    });
-}
-
-function converter(obj: IDictionary, prop: string, needWatchLower = 0) {
-    if (typeof obj["__" + prop] !== "undefined") {
-        if (typeof obj["__" + prop] === "object") {
-            obj["__" + prop].__needWatchLower__ =
-                Math.max(obj["__" + prop].__needWatchLower__, needWatchLower);
-        }
-        return;
-    }
-    def(obj, "__" + prop, obj.prop);
-    if (typeof obj.prop === "object") {
-        def(obj.prop, "__needWatchLower__", needWatchLower);
-    }
-    Object.defineProperty(obj, prop, {
-        configurable: true,
-        enumerable: true,
-        get: () => obj["__" + prop],
-        set: (value) => {
-            obj["__" + prop] = value;
-            if (obj.__needWatchLower__ /* If obj.__needWatchLower__ is not undefined or number 0. */
-                && typeof value === "object") {
-                for (const key of value) {
-                    converter(value, key, obj.__needWatchLower__ === 2 ? 2 : 0);
-                }
-            }
-        },
-    });
-}
+} from "./types";
+import { remove } from "./util";
 
 const linesWaitingLink: ILine[] = [];
 
@@ -50,70 +14,24 @@ export class NormalNode extends BasicNode implements INode {
 
     public type = ElementType.NormalNode;
 
-    public state: IDictionary;
-    public watchMe(target: string, callback: any) { //////////////////
-        target = target.replace(/\s+/g, "");
-        const paths = target.split(".");
-
-        if (paths.length === 1) {
-            converter(this.state, target);
-            return;
-        }
-
-        let lastItem = paths[paths.length - 1];
-        paths.splice(-1, 1);
-        let currentTarget = this.state;
-        for (const key of paths) {
-            switch (typeof currentTarget[key]) {
-                case "undefined":
-                    currentTarget[key] = {};
-                case "object":
-                    converter(currentTarget, key);
-                    break;
-                default:
-                    throw new Error(`EventNet.Node.watchMe: (Node).state.**.${key} is not an object.`);
-            }
-            currentTarget = currentTarget["__" + key];
-        }
-
-        let weakset: any;
-        let regRes: RegExpExecArray | null;
-        function deepConvert(obj: IDictionary) {
-            // Check for circular references.
-            if (weakset.has(obj)) { return; }
-
-            weakset.add(obj);
-            for (const key of Object.keys(obj)) {
-                if (typeof obj[key] === "object") {
-                    deepConvert(obj[key]);
-                    converter(obj, key, 2);
-                } else {
-                    converter(obj, key);
-                }
-            }
-        }
-        if (lastItem === "*") {
-            currentTarget.__needWatchLower__ = 1;
-            for (const key of Object.keys(currentTarget)) {
-                converter(currentTarget, key);
-            }
-        } else if (lastItem === "**") {
-            currentTarget.__needWatchLower__ = 2;
-            weakset = new CompatWeakSet();
-            deepConvert(currentTarget);
-        } else if (regRes = /^([a-zA-Z\$\_][a-zA-Z0-9\$\_]*)\[\*\]$/.exec(lastItem)) {
-            lastItem = regRes[1];
-            if (typeof currentTarget[lastItem] === "undefined") {
-                currentTarget[lastItem] = [];
-            } else if (!Array.isArray(currentTarget[lastItem])) {
-                throw new Error(`EventNet.Node.watchMe: (Node).state.**.${lastItem} is not an array.`);
-            }
-            ///////////////////////////
-        } else {
-            throw new Error("EventNet.Node.watchMe: Invalid target.");
-        }
+    public state: IDictionary = {};
+    public watchMe(
+        expression: string,
+        callback: any,
+        {
+            deep = false,
+            sync = false,
+            immediate = false,
+        },
+    ) {
+        const watcher = watch(this.state, expression, callback, { deep, sync, immediate });
+        this._watchers.push(watcher);
+        return () => {
+            remove(this._watchers, watcher);
+            watcher.deconstruction();
+        };
     }
-    private _watchers: IDictionary = []; ////////////////////////////////
+    private _watchers: Watcher[] = [];
     public get watchers() {
         return this._watchers;
     }
@@ -137,7 +55,7 @@ export class NormalNode extends BasicNode implements INode {
     }
     public setAttrs(attrs: Array<{ name: string, value: any }>) {
         // Coding suggestion, remove in min&mon version.
-        debug("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
+        warn("Node.setAttr: Modify attribute while the Node is running may cause unknown errors.");
         for (const attr of attrs) {
             this._attrs.own[attr.name] = attr.value;
         }
@@ -184,31 +102,32 @@ export class NormalNode extends BasicNode implements INode {
 
         // Sort attributes based on priority.
         this._attrs.beforeSequence.sort((a, b) => a.priority - b.priority);
+
         this._attrs.afterSequence.sort((a, b) => b.priority - a.priority);
         this._attrs.finishSequence.sort((a, b) => b.priority - a.priority);
     }
 
     constructor(attrs: IDictionary, state: IDictionary, code: INodeCode) {
         super(code);
-        // Parameter checking, remove in min&mon version.
-        if (typeof attrs.sync !== "undefined" && typeof attrs.sync !== "boolean") {
-            throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
-        }
-        for (const name of Object.keys(attrs)) {
-            if (!attrsStore.typed[name] &&
-                !attrsStore.normal[name].before &&
-                !attrsStore.normal[name].after &&
-                !attrsStore.normal[name].finish) {
-                debug(`Node: Attribution '${name}' has not been installed.`);
+        if (process.env.NODE_ENV !== "production") {
+            if (typeof attrs.sync !== "undefined" && typeof attrs.sync !== "boolean") {
+                throw new Error("EventNet.Node: Attribution 'sync' must be true or false.");
             }
-            if (attrsStore.typed[name] &&
-                typeof attrs[name] !== attrsStore.typed[name]) {
-                throw new Error(
-                    `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`,
-                );
+            for (const name of Object.keys(attrs)) {
+                if (!attrsStore.typed[name] &&
+                    !attrsStore.normal[name].before &&
+                    !attrsStore.normal[name].after &&
+                    !attrsStore.normal[name].finish) {
+                    warn(`Node: Attribution '${name}' has not been installed.`);
+                }
+                if (attrsStore.typed[name] &&
+                    typeof attrs[name] !== attrsStore.typed[name]) {
+                    throw new Error(
+                        `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`,
+                    );
+                }
             }
         }
-
         this.downstream.wrap((line) => {
             const func: ICallableElementLike = ((data?: any) => {
                 data = this.codeDwsDataAttrAfterProcess(data, false);
@@ -432,7 +351,7 @@ export class NormalNode extends BasicNode implements INode {
 
             // Downstream presence checking, remove in min&mon version.
             if (typeof downstream === "undefined") {
-                debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                warn(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                 return void 0;
             }
 
@@ -455,7 +374,7 @@ export class NormalNode extends BasicNode implements INode {
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[id], this);
                     } else {
-                        debug(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
+                        warn(`Node.codeParamDws.get: There is no downstream of ID '${id}'.`);
                     }
                 }
             } else {
@@ -464,18 +383,16 @@ export class NormalNode extends BasicNode implements INode {
                 for (const index in IdValue_or_IndexValue) {
                     downstream = this.downstream.get(Number(index)) as ILine | undefined;
 
-                    // Downstream presence checking, remove in min&mon version.
                     if (typeof downstream !== "undefined") {
                         downstream.run(IdValue_or_IndexValue[index], this);
-                    } else {
-                        debug(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
+                    } else if (process.env.NODE_ENV !== "production") {
+                        warn(`Node.codeParamDws.get: There is no downstream of ID '${index}'.`);
                     }
                 }
             }
         },
     };
     protected codeDwsDataAttrAfterProcess(data: any, collection: boolean) {
-        // Speed up the operation of the function.
         if (this._attrs.afterSequence.length === 0) {
             return data;
         }

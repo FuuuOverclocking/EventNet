@@ -1,8 +1,8 @@
-docs
+docs/
 gulpfile.js
-scripts
-src
-tests
+scripts/
+src/
+tests/
 tslint.json
 .gitattributes
 .gitmodules
@@ -13,3 +13,4 @@ tslint.json
 test.config
 package-lock.json
 yarn.lock
+.gitbook.yaml

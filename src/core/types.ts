@@ -107,3 +107,14 @@ export interface IAttrFuncCondition {
     shut: (error?: any) => void;
     readonly collection?: boolean;
 }
+
+export interface ISimpleSet<T> {
+  has(value: T): boolean;
+  add(value: T): this;
+  clear(): void;
+}
+export interface ISimpleSetConstructor {
+    new (): ISimpleSet<any>;
+    new <T>(values?: ReadonlyArray<T> | null): ISimpleSet<T>;
+    readonly prototype: ISimpleSet<any>;
+}

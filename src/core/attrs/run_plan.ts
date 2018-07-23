@@ -1,6 +1,6 @@
-import { IAttrFuncCondition } from "../../types";
+import { IAttrFuncCondition } from "../types";
 
-export default {
+export const runPlan = {
     priority: 10,
     before: (value: any, condition: IAttrFuncCondition) => {
         //////////////////////////////////////////////
