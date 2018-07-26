@@ -3,12 +3,14 @@ export interface IDictionary {
 }
 
 export interface ITypedDictionary<T> {
-    [index: string]: T;
+    [index: string]: T | undefined;
 }
 
+export type IPrimitive = "string" | "number" | "boolean" | "symbol";
+
 export interface ICallableElementLike {
-    (data?: any, caller?: IElementLike): void;
-    origin: IElementLike;
+    (data?: any, caller?: IElement): void;
+    origin: IElement;
 }
 
 /**
@@ -16,69 +18,66 @@ export interface ICallableElementLike {
  * Lowest bit: 0 - Node,    1 - Line
  *
  * For Node:
- *   2-th bit: 0 - Normal,  1 - Raw
+ *   1-th bit: 0 - Normal,  1 - Raw
  * For Line:
- *   2-th bit: 0 - Normal,  1 - Smart
- *   1-th bit: 0 - Arrow,   1 - Some kind of pipe
+ *   1-th bit: 0 - Arrow,   1 - Some kinds of pipe
  *   0-th bit: 0 - one-way, 1 - two-way
- *
- * @readonly
- * @enum {number}
  */
 export enum ElementType {
-    NormalNode = 0b0000,
-    RawNode = 0b0010,
-    Arrow = 0b0001,
-    SmartArrow = 0b0011,
-    Pipe = 0b0101,
-    SmartPipe = 0b0111,
-    Twpipe = 0b1101,
-    SmartTwpipe = 0b1111,
+    NormalNode = 0b000,
+    RawNode = 0b010,
+    Arrow = 0b001,
+    Pipe = 0b011,
+    Twpipe = 0b111,
 }
 
 export interface IElementLike {
     run: (data: any, caller?: IElementLike) => any;
-    type: ElementType;
     upstream: IStreamOfElement;
     downstream: IStreamOfElement;
+    type: number;
+}
+
+export interface IElement extends IElementLike {
+    _isEN: boolean;
 }
 
 export interface IStreamOfElement {
-    add: (stream: IElementLike) => void;
-    get: (index?: number) => IElementLike[]|IElementLike | undefined;
+    add: (elem: IElement) => void;
+    get: (index?: number) => Array<IElementLike | undefined> | IElementLike | undefined;
+    del: (elem: IElement) => void;
 }
 
-export interface INode extends IElementLike {
-    parentNode?: INode;
-    readonly code: INodeCode;
-    errorReceiver: ILine;
+export interface INodeLike extends IElementLike {
+    name?: string;
+    parentNode?: INodeLike;
 }
 
-export interface ILine extends IElementLike {
+export interface ILineLike extends IElement {
     id?: string;
+    features: string[];
 }
 
 export enum NodeRunningStage {
-    before,
+    before = 1,
     code,
     after,
-    finish,
     over,
 }
 
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
-export interface INodeCodeDWS extends Array<IElementLike> {
+export interface INodeCodeDWS extends Array<IElement> {
     all: (data: any) => void;
-    get: (id: string, data?: any) => ILine|undefined;
-    dispense: (keyValue: {[key: string]: any}) => void;
+    get: (id: string, data?: any) => ILineLike | undefined;
+    dispense: (keyValue: { [key: string]: any }) => void;
 }
 export interface INodeCodeUPS {
     data: any;
-    caller: ILine|undefined;
+    caller: ILineLike | undefined;
 }
 export interface INodeCodeThisExec {
-    origin: INode;
+    origin: INodeLike;
 }
 
 export interface IAttrsStore {
@@ -86,7 +85,7 @@ export interface IAttrsStore {
         [index: string]: INormalAttr;
     };
     typed: {
-        [index: string]: "number"|"string"|"object"|"symbol"|"boolean"|"function";
+        [index: string]: IPrimitive | "object" | "function";
     };
 }
 export interface INormalAttr {
@@ -95,26 +94,23 @@ export interface INormalAttr {
     beforePriority?: number;
     after?: INormalAttrFunc;
     afterPriority?: number;
-    finish?: INormalAttrFunc;
-    finishPriority?: number;
 }
 export type INormalAttrFunc = (value: any, condition: IAttrFuncCondition) => void;
 export interface IAttrFuncCondition {
     data: any;
     attrs: IDictionary;
     state: IDictionary;
-    node: INode;
+    node: INodeLike;
     shut: (error?: any) => void;
-    readonly collection?: boolean;
 }
 
 export interface ISimpleSet<T> {
-  has(value: T): boolean;
-  add(value: T): this;
-  clear(): void;
+    has(value: T): boolean;
+    add(value: T): this;
+    clear(): void;
 }
 export interface ISimpleSetConstructor {
-    new (): ISimpleSet<any>;
+    new(): ISimpleSet<any>;
     new <T>(values?: ReadonlyArray<T> | null): ISimpleSet<T>;
     readonly prototype: ISimpleSet<any>;
 }

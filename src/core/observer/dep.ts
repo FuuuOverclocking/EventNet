@@ -4,6 +4,8 @@ import { Watcher } from "./watcher";
 let uid = 0;
 
 export default class Dep {
+  public static target: Watcher | null = null;
+
   public id: number;
   public subs: Watcher[];
 
@@ -20,6 +22,11 @@ export default class Dep {
     remove(this.subs, sub);
   }
 
+  public depend() {
+    if (Dep.target) {
+      Dep.target.addDep(this);
+    }
+  }
   public notify() {
     // stabilize the subscriber list first
     const subs = this.subs.slice();

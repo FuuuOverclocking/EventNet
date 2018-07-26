@@ -1,5 +1,5 @@
+import { isNative } from ".";
 import { ISimpleSet, ISimpleSetConstructor } from "../types";
-import { isNative } from "../util";
 
 // tslint:disable-next-line:variable-name
 let SimpleSet: ISimpleSetConstructor;

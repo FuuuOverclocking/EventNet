@@ -2,7 +2,7 @@
  * Install the default attrs.
  */
 
-import { installAttr } from "./attr_manager";
+import { installAttr } from "./attr-manager";
 import { runPlan, typedAttrs } from "./attrs";
 // tslint:disable:no-string-literal
 

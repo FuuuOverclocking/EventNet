@@ -2,6 +2,9 @@
     "compilerOptions": {
         "alwaysStrict": true,
         "declaration": true,
+        "lib": [
+            "es2015"
+        ],
         "module": "commonjs",
         "newLine": "lf",
         "noEmitOnError": true,
@@ -9,7 +12,7 @@
         "noImplicitThis": true,
         "outDir": "./lib",
         "strictNullChecks": true,
-        "target": "es2017",
+        "target": "es5",
         "sourceMap": true,
         "pretty": true,
         "preserveConstEnums": true,

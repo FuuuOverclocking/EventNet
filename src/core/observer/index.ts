@@ -1,21 +1,6 @@
-import { def, hasOwn, isObject, isPlainObject } from "../util";
-import { arrayMethods } from "./array";
+import { def, hasOwn, hasProto, isObject, isPlainObject } from "../util";
+import { arrayMethods, methodsToPatch } from "./array";
 import Dep from "./dep";
-import { Watcher } from "./watcher";
-export { Watcher };
-
-export function watch(
-    target: any,
-    expression: string,
-    callback: (newVal: any, oldVal: any) => void,
-    {
-        deep = false,
-        sync = false,
-        immediate = false,
-    },
-) {
-    return new Watcher();
-}
 
 /**
  * 尝试对 value 创建 Observer 实例，
@@ -39,25 +24,46 @@ export function observe(value: any) {
     return ob;
 }
 
+const augment = (Object as any).setPrototypeOf ||
+    hasProto ? protoAugment : copyAugment;
+
+function protoAugment(target: any, src: any) {
+    target.__proto__ = src;
+}
+
+function copyAugment(target: any, src: any) {
+    for (const key of methodsToPatch) {
+        def(target, key, src[key]);
+    }
+}
+
 export class Observer {
     public value: any;
     public dep: Dep;
-    constructor(value: any) {
+    constructor(value: any, asRoot: boolean = false) {
         this.value = value;
         this.dep = new Dep();
         def(value, "__ob__", this);
         if (Array.isArray(value)) {
-            // 替换原型（Object.setPrototype 这个方法执行地比较慢，而且支持情况堪忧）
-            Object.setPrototypeOf(value, arrayMethods);
+            augment(value, arrayMethods);
             this.observeArray(value);
-        } else {
+        } else if (!asRoot) {
             this.walk(value);
+        } else {
+            this.walkExcept(value, "data");
         }
     }
     public walk(value: any) {
         for (const key of Object.keys(value)) {
             defineReactive(value, key);
         }
+    }
+    public walkExcept(value: any, except: string) {
+        for (const key of Object.keys(value)) {
+            if (key === except) { continue; }
+            defineReactive(value, key);
+        }
+
     }
     public observeArray(items: any[]) {
         // 设置 l = items.length 防止遍历过程中 items 长度变化
@@ -88,9 +94,17 @@ function defineReactive(obj: any, key: string, val?: any) {
         configurable: true,
         get() {
             const value = getter ? getter.call(obj) : val;
-            ////////////////
-            console.log("you get ");
-            ////////////////
+
+            if (Dep.target) {
+                dep.depend();
+                if (childOb) {
+                    childOb.dep.depend();
+                    if (Array.isArray(value)) {
+                        dependArray(value);
+                    }
+                }
+            }
+
             return value;
         },
         set(newVal) {
@@ -98,9 +112,6 @@ function defineReactive(obj: any, key: string, val?: any) {
             if (newVal === value) {
                 return;
             }
-            ////////////////
-            console.log("you set " + newVal);
-            ////////////////
             if (setter) {
                 setter.call(obj, newVal);
             } else {
@@ -110,4 +121,15 @@ function defineReactive(obj: any, key: string, val?: any) {
             dep.notify();
         },
     });
+}
+
+function dependArray(value: any[]) {
+    for (let e, i = 0, l = value.length; i < l; i++) {
+        e = value[i];
+        // tslint:disable-next-line:no-unused-expression
+        e && e.__ob__ && e.__ob__.dep.depend();
+        if (Array.isArray(e)) {
+            dependArray(e);
+        }
+    }
 }

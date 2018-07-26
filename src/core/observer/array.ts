@@ -3,7 +3,7 @@ import { def } from "../util";
 const arrayProto = Array.prototype as any;
 export const arrayMethods = Object.create(arrayProto);
 
-const methodsToPatch = [
+export const methodsToPatch = [
   "push",
   "pop",
   "shift",

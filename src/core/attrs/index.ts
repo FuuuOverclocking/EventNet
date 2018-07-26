@@ -1,3 +1,3 @@
-export { typedAttrs } from "./typed_attrs";
+export { typedAttrs } from "./typed-attrs";
 
-export { runPlan } from "./run_plan";
+export { runPlan } from "./run-plan";

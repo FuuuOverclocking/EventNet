@@ -1,3 +1,14 @@
+export * from "./env";
+export * from "./next-tick";
+export * from "./debug";
+export * from "./error";
+
+export function noop() { }
+
+export function isElement(elem: any) {
+  return isObject(elem) && elem._isEN;
+}
+
 export function def(obj: any, key: string, value: any, enumerable: boolean = false) {
   Object.defineProperty(obj, key, {
     value,

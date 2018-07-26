@@ -4,19 +4,15 @@
  * @version 0.0.2
  */
 
-import { _attrsStore, getAttrDefinition, installAttr } from "./attr_manager";
+import { _attrsStore, getAttrDefinition, installAttr } from "./attr-manager";
 import "./install_default_attrs";
-import { NormalNode } from "./normal_node";
+import { NormalNode } from "./normal-node";
 export { NormalNode };
 import {
-    ElementType, IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElementLike, ILine,
-    INode, INodeCode, INodeCodeDWS, INormalAttr, INormalAttrFunc,
+    ElementType, IAttrFuncCondition, IAttrsStore, ICallableElementLike, IDictionary, IElement, ILineLike,
+    INodeCode, INodeCodeDWS, INodeLike, INormalAttr, INormalAttrFunc,
     IStreamOfElement, ITypedDictionary, NodeRunningStage,
 } from "./types";
-
-import debug = require("debug");
-export const warn = debug("EventNet");
-
 
 interface IEventNet {
     (attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;
@@ -56,7 +52,7 @@ en.getAttrDefinition = getAttrDefinition;
 export const defaultState = {
     data: {},
     error: null,
-    runTimes: 0,
+    runningTimes: 0,
     running: 0,
 };
 

@@ -1,1 +1,1 @@
-export * from "../core/attrs/index";
+export * from "../core/attrs";
