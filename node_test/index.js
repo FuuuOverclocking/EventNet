@@ -1,16 +1,17 @@
 const en = require("../lib/core/index").en;
+const debug = (s) => {
+    console.log(s?s+Date.now():Date.now())
+}
 const nd1 = en((dws) => {
     const $0 = dws[0];
     $0(111);
     dws.ask("good-pipe", 235);
-    console.log("12345")
 });
 
 nd1.pipeNext();
 const nd2 = en(
     { name: "goodnode" },
     (dws, ups, thisExec) => {
-        console.log(ups.data === 111);
         dws.all(thisExec.origin.name);
     });
 
@@ -19,12 +20,29 @@ nd1.pipeNext({
 });
 const nd3 = en(
     (dws, ups, thisExec) => {
-        console.log(ups.data === 235);
+        debug("end");
     });
 
 nd2.pipeNext();
 const nd4 = en(
     (dws, ups) => {
-        console.log(ups.data === "goodnode");
+        console.log(ups.data);
+        debug("end");
     });
+debug();
+debug();
+
+
+debug();
+debug();
+
+debug();
+debug();
+debug();
+debug("start");
+
+debug("start");
+debug("start");
+debug("start");
+debug("start");
 nd1.run();

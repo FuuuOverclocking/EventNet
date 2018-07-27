@@ -21,12 +21,24 @@ test("basic test", (done) => {
     const nd3 = en(
         (dws, ups, thisExec) => {
             expect(ups.data).toBe(235);
-            done();
         });
 
     nd2.pipeNext();
     const nd4 = en(
         (dws, ups) => {
             expect(ups.data).toBe("goodnode");
+            const $ = dws.ask(["kind"], "so kind");
+            $[0]("so kind");
         });
-}, 100);
+
+    nd4.pipeNext({
+        features: "kind",
+    });
+    const nd5 = en(
+        (dws, ups) => {
+            expect(ups.data).toBe("so kind");
+            done();
+        },
+    );
+    nd1.run(null);
+});
