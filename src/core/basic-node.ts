@@ -58,8 +58,7 @@ export abstract class BasicNode implements INodeLike {
             return;
         }
         if (!(elem.type & 1)) {
-            /////////////////////////////////////////////////////////
-            // this.errorReceiver = new Pipe(this, elem as INode, { features: "error" });
+            this.errorReceiver = new Pipe(this, elem as INodeLike, { features: "error" });
         } else if (elem.type === ElementType.Pipe) {
             this.errorReceiver = elem as ILineLike;
             elem.upstream.add(this);
@@ -151,7 +150,7 @@ export abstract class BasicNode implements INodeLike {
             }
         },
         ask(this: BasicNode, askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
-            const dws = this.downstream.find(askFor as any) as ILineLike | ILineLike[] | undefined;
+            const dws = this.downstream.ask(askFor as any) as ILineLike | ILineLike[] | undefined;
             let res: ICallableElementLike[] | ICallableElementLike;
             if (!dws) {
                 return;
@@ -185,7 +184,7 @@ export abstract class BasicNode implements INodeLike {
                 Object.keys(IdValue_or_IndexValue)[0]))) {
                 // Identify 'keyValue' with ID-value type.
                 for (const id of Object.keys(IdValue_or_IndexValue)) {
-                    downstream = this.downstream.find(id) as ILineLike | undefined;
+                    downstream = this.downstream.ask(id) as ILineLike | undefined;
 
                     if (downstream) {
                         downstream.run(IdValue_or_IndexValue[id], this);

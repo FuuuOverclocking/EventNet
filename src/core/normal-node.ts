@@ -1,4 +1,4 @@
-import { _attrsStore as attrsStore, defaultState, getAttrDefinition } from ".";
+import { _attrsStore as attrsStore, getAttrDefinition } from ".";
 import { BasicNode } from "./basic-node";
 import { observe } from "./observer";
 import { Watcher } from "./observer/watcher";
@@ -9,6 +9,15 @@ import {
 } from "./types";
 import { handleError, isObject, nextTick, remove, tip } from "./util";
 
+// The default state of each new Node.
+// The states of Node created by calling en() is the result
+// of assigning parameter `states` to the default state.
+export const defaultState = {
+    data: {},
+    error: null,
+    runningTimes: 0,
+    running: 0,
+};
 
 export class NormalNode extends BasicNode {
 

@@ -25,11 +25,11 @@ export class StreamOfNode implements IStreamOfElement {
     }
 
     // tslint:disable:unified-signatures
-    public find(id: string): ILineLike | undefined;
-    public find(features: string[]): ILineLike[];
-    public find(filter: (line: ILineLike) => boolean): ILineLike[];
+    public ask(id: string): ILineLike | undefined;
+    public ask(features: string[]): ILineLike[];
+    public ask(filter: (line: ILineLike) => boolean): ILineLike[];
     // tslint:enable:unified-signatures
-    public find(arg: any) {
+    public ask(arg: any) {
         let fn: any;
         if (typeof arg === "string") {
             return this.contentById[arg];
