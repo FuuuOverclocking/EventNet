@@ -8,4 +8,5 @@ import { runPlan, typedAttrs } from "./attrs";
 
 installAttr("fold", typedAttrs["fold"]);
 installAttr("sync", typedAttrs["sync"]);
+installAttr("name", typedAttrs["name"]);
 installAttr("runPlan", runPlan);

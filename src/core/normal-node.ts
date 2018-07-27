@@ -3,11 +3,11 @@ import { BasicNode } from "./basic-node";
 import { observe } from "./observer";
 import { Watcher } from "./observer/watcher";
 import {
-    ElementType, IAttrFuncCondition, ICallableElementLike,
-    IDictionary, IElement, ILineLike,
-    INodeCode, INodeCodeDWS, INodeLike, NodeRunningStage,
+    ElementType, IAttrFuncCondition,
+    IDictionary, ILineLike,
+    INodeCode, NodeRunningStage,
 } from "./types";
-import { handleError, remove, tip } from "./util";
+import { handleError, isObject, nextTick, remove, tip } from "./util";
 
 
 export class NormalNode extends BasicNode {
@@ -82,7 +82,7 @@ export class NormalNode extends BasicNode {
 
         // For-in will traverse all the attributes of Node, including its own and inherited.
         for (const name in attr) {
-            if (typeof attr[name] === "undefined") { continue; }
+            if (typeof attr[name] === "undefined" || attrsStore.typed[name]) { continue; }
             if (attrsStore.normal[name].before) {
                 this._attrs.beforeSequence.push({
                     name,
@@ -131,17 +131,19 @@ export class NormalNode extends BasicNode {
         if (typeof this._attrs.own.sync === "undefined") {
             this._attrs.own.sync = false;
         }
+        this._attrs.beforeSequence = [];
+        this._attrs.afterSequence = [];
         this.sortAttrs();
 
         this.state = Object.assign({}, defaultState, state);
         observe(this.state);
     }
-    public run(data: any, caller?: ILineLike) {
+    public run(data: any, caller?: ILineLike): any | Promise<any> {
         if (this._attrs.own.sync) {
             try {
                 return this._codeSync(data, caller);
             } catch (error) {
-                if (typeof error.when !== "undefined") {
+                if (isObject(error) && typeof error.when !== "undefined") {
                     //////////////////////////////////////////////////////////////
                     if (typeof error.what !== "undefined") {
                         this.errorHandler(error.when, error.what);
@@ -152,7 +154,9 @@ export class NormalNode extends BasicNode {
                 }
             }
         } else {
-            return this._codeAsync(data, caller).catch((error) => {
+            return nextTick().then(() => {
+                return this._codeAsync(data, caller);
+            }).catch((error) => {
                 if (typeof error.when !== "undefined") {
                     //////////////////////////////////////////////////////////////
                     if (typeof error.what !== "undefined") {
@@ -169,7 +173,7 @@ export class NormalNode extends BasicNode {
     }
 
 
-    private async _codeAsync(data: any, caller?: ILineLike): Promise<any> {
+    private async _codeAsync(data: any, caller?: ILineLike) {
         ++this.state.runningTimes;
 
         let runningStage: NodeRunningStage = NodeRunningStage.before;

@@ -21,6 +21,7 @@
         ],
         "no-conditional-assignment": false,
         "no-bitwise": false,
+        "no-unused-expression": false,
         "object-literal-sort-keys": false
     },
     "rulesDirectory": []

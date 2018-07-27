@@ -1,6 +1,6 @@
 import debug = require("debug");
-import { isElement, noop } from ".";
 import { IElementLike } from "../../core/types";
+import { isElement, noop } from "./util";
 
 export let warn: (msg: string, elem?: IElementLike) => void = noop;
 export let tip: (msg: string, elem?: IElementLike) => void = noop;
@@ -24,6 +24,7 @@ if (process.env.NODE_ENV !== "production") {
 
     generateElemTrace = (elem: IElementLike) => {
         if (!isElement(elem)) { return ""; }
+        return "";
         ////////////////////////////////////////
     };
 }

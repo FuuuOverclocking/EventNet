@@ -1,6 +1,6 @@
-import { isNative, noop, warn } from ".";
 import { isIOS } from "./env";
 import { handleError } from "./error";
+import { isNative, noop } from "./util";
 
 declare const MessageChannel: any;
 const callbacks: Array<() => void> = [];
@@ -85,7 +85,7 @@ export function withMacroTask(fn: any) {
   });
 }
 
-export function nextTick<T>(nothing: null, val: T): Promise<T>;
+export function nextTick<T>(nothing?: null, val?: T): Promise<T>;
 export function nextTick(
   cb: (this: any) => void,
   ctx?: any,

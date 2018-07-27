@@ -15,11 +15,12 @@ export const installAttr =
         if (process.env.NODE_ENV !== "production") {
             if (typeof name !== "string") {
                 handleError(new Error("name should be a string"), "installAttr");
+                return;
             }
             if (_attrsStore.typed[name] || _attrsStore.normal[name]) {
                 handleError(new Error(`attr '${name}' has already been installed.`), "installAttr");
+                return;
             }
-            return;
         }
 
         if (typeof value === "string") {

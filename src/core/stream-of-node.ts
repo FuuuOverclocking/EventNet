@@ -9,7 +9,6 @@ export class StreamOfNode implements IStreamOfElement {
 
         this.content.push(line);
 
-        // tslint:disable-next-line:no-unused-expression
         this.wrappedContent && this.wrappedContent.push(this.wrapper(line));
 
         if (typeof line.id !== "undefined") {
@@ -55,7 +54,6 @@ export class StreamOfNode implements IStreamOfElement {
         const i = this.content.indexOf(line);
         if (!~i) { return; }
         delete this.content[i];
-        // tslint:disable-next-line:no-unused-expression
         this.wrappedContent && delete this.wrappedContent[i];
         if (line.id) {
             delete this.contentById[line.id];
@@ -69,7 +67,6 @@ export class StreamOfNode implements IStreamOfElement {
     public wrappedContent: any;
     private wrapper: (line: ILineLike) => any;
     public wrap(wrapper?: (line: ILineLike) => any) {
-        // tslint:disable-next-line:no-unused-expression
         wrapper && (this.wrappedContent = []) && (this.wrapper = wrapper);
     }
     constructor(node: INodeLike, wrapper?: (line: ILineLike) => any) {

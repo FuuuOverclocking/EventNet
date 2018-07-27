@@ -1,8 +1,9 @@
+import { Arrow, Pipe, Twpipe } from "./line";
 import { StreamOfNode } from "./stream-of-node";
 import {
     ElementType, ICallableElementLike, IDictionary,
-    ILineLike, INodeCode, INodeLike,
-    NodeRunningStage,
+    ILineLike, ILineOptions, INodeCode,
+    INodeLike, NodeRunningStage,
 } from "./types";
 import { handleError } from "./util";
 
@@ -21,7 +22,7 @@ export abstract class BasicNode implements INodeLike {
         func.origin = line;
         return func;
     });
-    public abstract run(data: any, caller?: ILineLike): any;
+    public abstract run(data: any, caller?: ILineLike): any | Promise<any>;
     public readonly code: INodeCode;
     constructor(code: INodeCode, name?: string) {
         this.code = code;
@@ -29,7 +30,7 @@ export abstract class BasicNode implements INodeLike {
 
         Object.assign(this.downstream.wrappedContent, {
             all: BasicNode.codeParamDws.all.bind(this),
-            find: BasicNode.codeParamDws.find.bind(this),
+            ask: BasicNode.codeParamDws.ask.bind(this),
             dispense: BasicNode.codeParamDws.dispense.bind(this),
         });
         for (const line of linesWaitingLink) {
@@ -58,7 +59,7 @@ export abstract class BasicNode implements INodeLike {
         }
         if (!(elem.type & 1)) {
             /////////////////////////////////////////////////////////
-            // this.errorReceiver = new Pipe(this, elem as INode, { feature: "error" });
+            // this.errorReceiver = new Pipe(this, elem as INode, { features: "error" });
         } else if (elem.type === ElementType.Pipe) {
             this.errorReceiver = elem as ILineLike;
             elem.upstream.add(this);
@@ -74,7 +75,7 @@ export abstract class BasicNode implements INodeLike {
         if (this.errorReceiver) {
             this.errorReceiver.run({ when, what }, this);
         } else {
-            handleError({ when, what }, "Node", this);
+            handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
         }
     }
     public createLine(node: INodeLike, options: any = {}, type: ElementType) {
@@ -88,71 +89,94 @@ export abstract class BasicNode implements INodeLike {
             return this.createArrow(node, options);
         }
     }
-    public createArrow(node: INodeLike, options?: {}): ILineLike {
-        return {} as any;
+    public createArrow(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
+        const line = new Arrow(this, node, options);
+        this.downstream.add(line);
+        line.upstream.add(this);
+        return line;
     }
-    public createPipe(node: INodeLike, options?: {}): ILineLike {
-        return {} as any;
+    public createPipe(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
+        const line = new Pipe(this, node, options);
+        this.downstream.add(line);
+        line.upstream.add(this);
+        return line;
     }
-    public createTwpipe(node: INodeLike, options?: {}): ILineLike {
-        return {} as any;
+    public createTwpipe(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
+        const line = new Twpipe(this, node, options);
+        this.downstream.add(line);
+        this.upstream.add(line);
+        line.upstream.add(this);
+        return line;
     }
-    public arrow(node: INodeLike, options?: {}): INodeLike {
+    public arrow(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createArrow(node, options);
         return node;
     }
-    public pipe(node: INodeLike, options?: {}): INodeLike {
+    public pipe(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createPipe(node, options);
         return node;
     }
-    public twpipe(node: INodeLike, options?: {}): INodeLike {
+    public twpipe(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createTwpipe(node, options);
         return node;
     }
-    public alsoArrow(node: INodeLike, options?: {}): INodeLike {
+    public alsoArrow(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createArrow(node, options);
         return this;
     }
-    public alsoPipe(node: INodeLike, options?: {}): INodeLike {
+    public alsoPipe(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createPipe(node, options);
         return this;
     }
-    public alsoTwpipe(node: INodeLike, options?: {}): INodeLike {
+    public alsoTwpipe(node: INodeLike, options?: ILineOptions): INodeLike {
         this.createTwpipe(node, options);
         return this;
     }
-    public arrowNext() {
-        // linesWaitingLink.push(new Arrow(this, null));
+    public arrowNext(options?: ILineOptions) {
+        linesWaitingLink.push(this.createArrow(null, options));
         return this;
     }
-    public pipeNext() {
-        // linesWaitingLink.push(new Pipe(this, null));
+    public pipeNext(options?: ILineOptions) {
+        linesWaitingLink.push(this.createPipe(null, options));
         return this;
     }
-    public twpipeNext() {
-        // linesWaitingLink.push(new Twpipe(this, null));
+    public twpipeNext(options?: ILineOptions) {
+        linesWaitingLink.push(this.createTwpipe(null, options));
         return this;
     }
     protected static codeParamDws = {
         all(this: BasicNode, data: any) {
             for (const dws of (this.downstream.get() as Array<ILineLike | undefined>)) {
-                // tslint:disable-next-line:no-unused-expression
                 dws && dws.run(data, this);
             }
         },
-        find(this: BasicNode, askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
+        ask(this: BasicNode, askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
             const dws = this.downstream.find(askFor as any) as ILineLike | ILineLike[] | undefined;
+            let res: ICallableElementLike[] | ICallableElementLike;
             if (!dws) {
                 return;
             }
             if (Array.isArray(dws)) {
+                res = [];
+
                 dws.forEach((line) => {
-                    line.run(data, this);
+                    if (typeof data !== "undefined") { line.run(data, this); }
+                    const func = ((d: any) => {
+                        line.run(d, this);
+                    }) as ICallableElementLike;
+                    func.origin = line;
+                    (res as ICallableElementLike[]).push(func);
                 });
+
             } else {
-                dws.run(data, this);
+                if (typeof data !== "undefined") { dws.run(data, this); }
+                const func = ((d: any) => {
+                    dws.run(d, this);
+                }) as ICallableElementLike;
+                func.origin = dws;
+                res = func;
             }
-            return dws;
+            return res;
         },
         // tslint:disable-next-line:variable-name
         dispense(this: BasicNode, IdValue_or_IndexValue: IDictionary) {

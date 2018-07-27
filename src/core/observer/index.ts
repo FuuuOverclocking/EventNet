@@ -126,7 +126,6 @@ function defineReactive(obj: any, key: string, val?: any) {
 function dependArray(value: any[]) {
     for (let e, i = 0, l = value.length; i < l; i++) {
         e = value[i];
-        // tslint:disable-next-line:no-unused-expression
         e && e.__ob__ && e.__ob__.dep.depend();
         if (Array.isArray(e)) {
             dependArray(e);

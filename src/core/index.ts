@@ -5,7 +5,7 @@
  */
 
 import { _attrsStore, getAttrDefinition, installAttr } from "./attr-manager";
-import "./install_default_attrs";
+import "./install-default-attrs";
 import { NormalNode } from "./normal-node";
 export { NormalNode };
 import {

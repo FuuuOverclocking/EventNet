@@ -1,10 +1,10 @@
 import { BasicNode } from "./basic-node";
 import {
-    ElementType, ICallableElementLike, IDictionary,
-    IElement, ILineLike, INodeCode,
-    INodeCodeDWS, INodeLike, NodeRunningStage,
+    ElementType,
+    ILineLike, INodeCode,
+    NodeRunningStage,
 } from "./types";
-import { handleError } from "./util";
+import { nextTick } from "./util";
 
 export class RawNode extends BasicNode {
     public type = ElementType.RawNode;
@@ -22,11 +22,13 @@ export class RawNode extends BasicNode {
                 this.errorHandler(NodeRunningStage.code, error);
             }
         } else {
-            return (this.code(
-                this.downstream.wrappedContent,
-                { data, caller },
-                { origin: this },
-            ) as Promise<any>).catch(
+            return nextTick().then(() => {
+                return this.code(
+                    this.downstream.wrappedContent,
+                    { data, caller },
+                    { origin: this },
+                );
+            }).catch(
                 (error) => {
                     this.errorHandler(NodeRunningStage.code, error);
                 });

@@ -54,7 +54,7 @@ export interface INodeLike extends IElementLike {
 }
 
 export interface ILineLike extends IElement {
-    id?: string;
+    readonly id?: string;
     features: string[];
 }
 
@@ -67,9 +67,12 @@ export enum NodeRunningStage {
 
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
-export interface INodeCodeDWS extends Array<IElement> {
+export interface INodeCodeDWS extends Array<ICallableElementLike> {
     all: (data: any) => void;
-    get: (id: string, data?: any) => ILineLike | undefined;
+    ask: (
+        askFor: string | string[] | ((line: ILineLike) => boolean),
+        data?: any,
+    ) => ICallableElementLike | ICallableElementLike[] | undefined;
     dispense: (keyValue: { [key: string]: any }) => void;
 }
 export interface INodeCodeUPS {
@@ -102,6 +105,11 @@ export interface IAttrFuncCondition {
     state: IDictionary;
     node: INodeLike;
     shut: (error?: any) => void;
+}
+
+export interface ILineOptions {
+    id?: string;
+    features?: string | string[];
 }
 
 export interface ISimpleSet<T> {

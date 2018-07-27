@@ -37,7 +37,7 @@
     "webpack-cli": "^3.0.8"
   },
   "scripts": {
-    "build": "npm run clean:all && webpack",
+    "build": "tsc",
     "build:dev": "",
     "build:mnt": "",
     "build:min": "",
@@ -59,6 +59,6 @@
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
-    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$"
+    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(js|ts)$"
   }
 }

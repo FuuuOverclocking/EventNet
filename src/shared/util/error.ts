@@ -1,7 +1,7 @@
-import { isObject } from ".";
 import { IElementLike } from "../../core/types";
 import { warn } from "./debug";
 import { inBrowser } from "./env";
+import { isObject } from "./util";
 
 export function handleError(err: any, position: string, elem?: IElementLike) {
     if (process.env.NODE_ENV !== "production") {
