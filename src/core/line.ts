@@ -35,7 +35,10 @@ export class Arrow extends Line {
   public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
-        handleError(new Error(`data '${data}' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
+        handleError(new Error(`data '${
+                              String(data).length > 20 ?
+                                String(data).substr(0, 20) + '...' : String(data)
+                              }' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
         return;
       }
       if (!this.downstream.stream) {
@@ -43,9 +46,8 @@ export class Arrow extends Line {
         return;
       }
       if (caller !== this.upstream.stream) {
-        tip('the line below is not called by its upstream, however, it still runs', this);
+        tip('the arrow below is not called by its upstream, however, it still runs', this);
       }
-
     }
     this.downstream.stream && this.downstream.stream.run(void 0, this);
   }
@@ -58,6 +60,9 @@ export class Pipe extends Line {
       if (!this.downstream.stream) {
         tip('the downstream of the pipe below is null', this);
         return;
+      }
+      if (caller !== this.upstream.stream) {
+        tip('the pipe below is not called by its upstream, however, it still runs', this);
       }
     }
     this.downstream.stream && this.downstream.stream.run(data, this);
