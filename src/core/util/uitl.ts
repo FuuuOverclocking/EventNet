@@ -48,6 +48,17 @@ export function def(obj: any, key: string, value: any, enumerable: boolean = fal
   });
 }
 
+export function protoAugment(target: any, src: any) {
+  target.__proto__ = src;
+}
+
+export function copyAugment(target: any, src: any, keys: string[]) {
+  for (const key of keys) {
+    def(target, key, src[key]);
+  }
+}
+
+
 export function isObject(obj: any) {
   return obj !== null && typeof obj === 'object';
 }

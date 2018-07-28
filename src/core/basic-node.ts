@@ -8,7 +8,7 @@ import {
   INodeHasDwsAndErrorReceiver, INodeHasUps, INodeLike,
   NodeRunningStage,
 } from './types';
-import { applyMixins, handleError, isNode, isPipe, isTwpipe } from './util';
+import { applyMixins, copyAugment, handleError, isNode, isPipe, isTwpipe } from './util';
 import { deweld, weld } from './weld';
 
 export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
@@ -61,12 +61,17 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
     this.code = code;
     this.name = name;
 
-    Object.assign(this.Out.wrappedContent, {
+    copyAugment(this.Out.wrappedContent, {
       all: BasicNode.codeParamDws.all.bind(this),
       ask: BasicNode.codeParamDws.ask.bind(this),
       id: BasicNode.codeParamDws.id.bind(this),
       dispense: BasicNode.codeParamDws.dispense.bind(this),
-    });
+    }, [
+      'all',
+      'ask',
+      'id',
+      'dispense',
+    ]);
 
     for (const line of getLinesWaitingLink()) {
       weld(this.In, line.downstream);

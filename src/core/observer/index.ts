@@ -1,4 +1,4 @@
-import { def, hasOwn, hasProto, isObject, isPlainObject } from '../util';
+import { copyAugment, def, hasOwn, hasProto, isObject, isPlainObject, protoAugment } from '../util';
 import { arrayMethods, methodsToPatch } from './array';
 import Dep from './dep';
 
@@ -25,17 +25,7 @@ export function observe(value: any) {
 }
 
 const augment = (Object as any).setPrototypeOf ||
-  hasProto ? protoAugment : copyAugment;
-
-function protoAugment(target: any, src: any) {
-  target.__proto__ = src;
-}
-
-function copyAugment(target: any, src: any) {
-  for (const key of methodsToPatch) {
-    def(target, key, src[key]);
-  }
-}
+  (hasProto ? protoAugment : copyAugment);
 
 export class Observer {
   public value: any;
@@ -45,7 +35,7 @@ export class Observer {
     this.dep = new Dep();
     def(value, '__ob__', this);
     if (Array.isArray(value)) {
-      augment(value, arrayMethods);
+      augment(value, arrayMethods, methodsToPatch);
       this.observeArray(value);
     } else if (!asRoot) {
       this.walk(value);
