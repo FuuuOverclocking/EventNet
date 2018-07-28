@@ -1,14 +1,14 @@
-import { isObject } from "../util";
-import Dep from "./dep";
-import { queueWatcher } from "./scheduler";
-import { traverse } from "./traverse";
+import { isObject } from '../util';
+import Dep from './dep';
+import { queueWatcher } from './scheduler';
+import { traverse } from './traverse';
 
 const bailRE = /[^\w.$]/;
 function parsePath(path: string): any {
   if (bailRE.test(path)) {
     return;
   }
-  const segments = path.split(".");
+  const segments = path.split('.');
   return (obj: any) => {
     for (const segment of segments) {
       if (!obj) { return; }

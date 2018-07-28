@@ -1,0 +1,114 @@
+import { IElementLike, IElementStream, ILineLike, INodeLike, ITypedDictionary } from './types';
+import { handleError } from './util';
+
+export class NodeStream implements IElementStream {
+  public add(line: ILineLike) {
+    if (~this.content.indexOf(line)) {
+      return;
+    }
+
+    this.content.push(line);
+
+    this.wrappedContent && this.wrappedContent.push(this.wrapper(line));
+
+    if (typeof line.id !== 'undefined') {
+      if (process.env.NODE_ENV !== 'production' && typeof this.contentById[line.id] !== 'undefined') {
+        handleError('The stream of the same id already exists.', 'stream.add', this.owner);
+      }
+
+      this.contentById[line.id] = line;
+    }
+  }
+
+  public get(index?: number): ILineLike | Array<ILineLike | undefined> | undefined {
+    return typeof index === 'undefined' ? this.content : this.content[index];
+  }
+
+  public getById(id: string): ILineLike | undefined {
+    return this.contentById[id];
+  }
+
+  // tslint:disable:unified-signatures
+  /**
+   * Return the line with the given querystring
+   */
+  public ask(querystring: string): ILineLike[];
+  /**
+   * Return the lines having these features
+   */
+  public ask(features: string[]): ILineLike[];
+  /**
+   * Return the lines that meet the condition specified in a callback function
+   */
+  public ask(filter: (line: ILineLike) => boolean): ILineLike[];
+  // tslint:enable:unified-signatures
+  public ask(arg: any) {
+    let fn: any;
+    if (typeof arg === 'string') {
+      ///////////////////////////////
+      /////////////////////////////////////
+      /////////////////////////////////////////
+      return this.contentById[arg];
+    } else if (Array.isArray(arg)) {
+      fn = (line: ILineLike | undefined) => {
+        for (const theClass of arg) {
+          if (!line) { continue; }
+          if (!~line.classes.indexOf(theClass)) { return false; }
+        }
+        return true;
+      };
+    } else if (typeof arg === 'function') {
+      fn = arg;
+    } else if (process.env.NODE_ENV !== 'production') {
+      handleError(new Error('the type of param is wrong'), 'stream.find', this.owner);
+    }
+
+    return this.content.filter(fn);
+  }
+
+  public del(line: ILineLike) {
+    const i = this.content.indexOf(line);
+    if (!~i) { return; }
+    delete this.content[i];
+    this.wrappedContent && delete this.wrappedContent[i];
+    if (line.id) {
+      delete this.contentById[line.id];
+    }
+  }
+
+  public owner: INodeLike;
+  private content: Array<ILineLike | undefined> = [];
+  private contentById: ITypedDictionary<ILineLike> = {};
+
+  public wrappedContent: any;
+  private wrapper: (line: ILineLike) => any;
+  public wrap(wrapper?: (line: ILineLike) => any) {
+    wrapper && (this.wrappedContent = []) && (this.wrapper = wrapper);
+  }
+  constructor(owner: INodeLike, wrapper?: (line: ILineLike) => any) {
+    this.owner = owner;
+    this.wrap(wrapper);
+  }
+}
+
+export class SingleStream<O extends IElementLike, S extends IElementLike> implements IElementStream {
+  public owner: O;
+  public stream: S | undefined = void 0;
+  constructor(owner: O) {
+    this.owner = owner;
+  }
+
+  public add(node: S) {
+    this.stream = node;
+  }
+  public get() {
+    return this.stream;
+  }
+  public del(node: S) {
+    this.stream === node && (this.stream = void 0);
+  }
+}
+
+export class LineStream extends SingleStream<ILineLike, INodeLike> {}
+
+export class NodeErrorStream extends SingleStream<INodeLike, ILineLike> {}

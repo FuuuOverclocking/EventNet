@@ -5,6 +5,7 @@
     ],
     "jsRules": {},
     "rules": {
+        "indent": [true, "spaces", 2],
         "variable-name": [
             true,
             "ban-keywords",
@@ -22,7 +23,12 @@
         "no-conditional-assignment": false,
         "no-bitwise": false,
         "no-unused-expression": false,
-        "object-literal-sort-keys": false
+        "object-literal-sort-keys": false,
+        "quotemark": [
+            true,
+            "single"
+        ],
+        "arrow-parens": [true, "ban-single-arg-parens"]
     },
     "rulesDirectory": []
 }

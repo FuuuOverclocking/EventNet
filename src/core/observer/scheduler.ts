@@ -1,6 +1,6 @@
 
-import { nextTick } from "../util";
-import { Watcher } from "./watcher";
+import { nextTick } from '../util';
+import { Watcher } from './watcher';
 
 const queue: Watcher[] = [];
 let has: { [key: number]: true | null } = {};

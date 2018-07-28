@@ -1,6 +1,6 @@
-import { isIOS } from "./env";
-import { handleError } from "./error";
-import { isNative, noop } from "./util";
+import { isIOS } from './env';
+import { handleError } from './error';
+import { isNative, noop } from './util';
 
 declare const MessageChannel: any;
 const callbacks: Array<() => void> = [];
@@ -32,14 +32,14 @@ let useMacroTask = false;
 // in IE. The only polyfill that consistently queues the callback after all DOM
 // events triggered in the same loop is by using MessageChannel.
 /* istanbul ignore if */
-if (typeof setImmediate !== "undefined" && isNative(setImmediate)) {
+if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = () => {
     setImmediate(flushCallbacks);
   };
-} else if (typeof MessageChannel !== "undefined" && (
+} else if (typeof MessageChannel !== 'undefined' && (
   isNative(MessageChannel) ||
   // PhantomJS
-  MessageChannel.toString() === "[object MessageChannelConstructor]"
+  MessageChannel.toString() === '[object MessageChannelConstructor]'
 )) {
   const channel = new MessageChannel();
   const port = channel.port2;
@@ -56,7 +56,7 @@ if (typeof setImmediate !== "undefined" && isNative(setImmediate)) {
 
 // Determine microtask defer implementation.
 /* istanbul ignore next, $flow-disable-line */
-if (typeof Promise !== "undefined" && isNative(Promise)) {
+if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve();
   microTimerFunc = () => {
     p.then(flushCallbacks);
@@ -97,7 +97,7 @@ export function nextTick(cb: any, ctx: any) {
       try {
         cb.call(ctx);
       } catch (e) {
-        handleError(e, "nextTick", ctx);
+        handleError(e, 'nextTick', ctx);
       }
     } else if (_resolve) {
       _resolve(ctx);
@@ -112,8 +112,8 @@ export function nextTick(cb: any, ctx: any) {
     }
   }
 
-  if (!cb && typeof Promise !== "undefined") {
-    return new Promise((resolve) => {
+  if (!cb && typeof Promise !== 'undefined') {
+    return new Promise(resolve => {
       _resolve = resolve;
     });
   }

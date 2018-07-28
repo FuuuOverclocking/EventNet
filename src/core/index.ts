@@ -4,15 +4,15 @@
  * @version 0.0.2
  */
 import {
-    IDictionary,
-    INodeCode,
-} from "./types";
+  IDictionary,
+  INodeCode,
+} from './types';
 
-import { _attrsStore, getAttrDefinition, installAttr } from "./attr-manager";
-import "./install-default-attrs";
+import { _attrsStore, getAttrDefinition, installAttr } from './attr-manager';
+import './install-default-attrs';
 
-import { defaultState, NormalNode } from "./normal-node";
-import { RawNode } from "./raw-node";
+import { defaultState, NormalNode } from './normal-node';
+import { RawNode } from './raw-node';
 
 /**
  * Create a EventNet NormalNode.
@@ -21,29 +21,29 @@ import { RawNode } from "./raw-node";
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function node(attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;
+export function nn(attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;
 /**
  * Create a EventNet NormalNode.
  * @param {Object} attrs set the attributes of Node
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function node(attrs: IDictionary, code: INodeCode): NormalNode;
+export function nn(attrs: IDictionary, code: INodeCode): NormalNode;
 /**
  * Create a EventNet NormalNode.
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function node(code: INodeCode): NormalNode;
+export function nn(code: INodeCode): NormalNode;
 
-export function node(attrs: any, state?: any, code?: any) {
-    if (typeof attrs === "object" && typeof state === "object" && typeof code === "function") {
-        return new NormalNode(attrs, state, code);
-    } else if (typeof attrs === "object" && typeof state === "function") {
-        return new NormalNode(attrs, {}, state);
-    } else {
-        return new NormalNode({}, {}, attrs);
-    }
+export function nn(attrs: any, state?: any, code?: any) {
+  if (typeof attrs === 'object' && typeof state === 'object' && typeof code === 'function') {
+    return new NormalNode(attrs, state, code);
+  } else if (typeof attrs === 'object' && typeof state === 'function') {
+    return new NormalNode(attrs, {}, state);
+  } else {
+    return new NormalNode({}, {}, attrs);
+  }
 }
 
 /**
@@ -53,10 +53,10 @@ export function node(attrs: any, state?: any, code?: any) {
  * @param {string} name set the name of Node
  * @returns {RawNode} a new EventNet RawNode
  */
-export function raw(code: INodeCode, sync: boolean = true, name?: string) {
-    return new RawNode(code, sync, name);
+export function raw(code: INodeCode, sync: boolean = true, name?: string): RawNode {
+  return new RawNode(code, sync, name);
 }
 
-export { _attrsStore, installAttr, getAttrDefinition};
+export { _attrsStore, installAttr, getAttrDefinition };
 export { defaultState, NormalNode };
 export { RawNode };
