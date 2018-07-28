@@ -12,7 +12,7 @@ export interface ITypedDictionary<T> {
 export type IPrimitive = 'string' | 'number' | 'boolean' | 'symbol';
 
 export interface ICallableElementLike {
-  (data?: any, caller?: IElementLike): void;
+  (data?: any): void;
   origin: IElementLike;
 }
 
@@ -36,7 +36,7 @@ export enum ElementType {
 
 export interface IElementLike {
   // the method to run the element
-  run: (data: any, caller?: IElementLike) => any;
+  run: (data?: any, caller?: IElementLike) => any;
 
   // the stream of element
   // the element must have one of them
@@ -104,13 +104,13 @@ export enum NodeRunningStage {
 export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
 
 export interface INodeCodeDWS extends Array<ICallableElementLike> {
-  all: (data: any) => void;
+  all: (data?: any) => void;
   ask: (
     askFor: string | string[] | ((line: ILineLike) => boolean),
     data?: any,
   ) => ICallableElementLike[];
   id: (id: string) => ICallableElementLike;
-  dispense: (keyValue: { [key: string]: any }) => void;
+  dispense: (IdValue_or_IndexValue: IDictionary) => void;
 }
 export interface INodeCodeUPS {
   data: any;

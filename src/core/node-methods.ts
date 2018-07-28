@@ -19,7 +19,7 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
   public abstract downstream: IElementStream | IElementStream[];
   public abstract name: string | undefined;
   public abstract parentNode: INodeLike | undefined;
-  public abstract run(data: any, caller?: IElementLike): any;
+  public abstract run(data?: any, caller?: IElementLike): any;
   public abstract type: number;
   public abstract createLine(node: INodeHasUps, options: any, type: ElementType): Arrow | Pipe | Twpipe;
   public abstract createArrow(node: INodeHasUps | null | undefined, options?: ILineOptions): Arrow;
@@ -58,7 +58,7 @@ export abstract class NodeDwsMethods implements INodeHasDws {
   public abstract downstream: IElementStream | IElementStream[];
   public abstract name: string | undefined;
   public abstract parentNode: INodeLike | undefined;
-  public abstract run(data: any, caller?: IElementLike): any;
+  public abstract run(data?: any, caller?: IElementLike): any;
   public abstract type: number;
   public createLine(node: INodeHasUps, options: any = {}, type: ElementType) {
     if (isPipeLike(type)) {

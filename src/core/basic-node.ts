@@ -55,7 +55,7 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   // the error stream of node
   public errorReceiver = this.downstream[1];
 
-  public abstract run(data: any, caller?: ILineHasDws): any | Promise<any>;
+  public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
   public readonly code: INodeCode;
   constructor(code: INodeCode, name?: string) {
     this.code = code;
@@ -115,7 +115,7 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
     }
   }
   protected static codeParamDws = {
-    all(this: BasicNode, data: any) {
+    all(this: BasicNode, data?: any) {
       for (const dws of (this.Out.get() as Array<ILineLike | undefined>)) {
         dws && dws.run(data, this);
       }

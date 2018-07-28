@@ -34,16 +34,20 @@ export class Arrow extends Line {
   public type = ElementType.Arrow;
   public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
-      if (typeof data !== 'undefined' || data !== null) {
-        handleError(new Error('data can not pass through Arrow, replace with Pipe'), 'Arrow', this);
+      if (typeof data !== 'undefined' && data !== null) {
+        handleError(new Error(`data '${data}' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
         return;
       }
       if (!this.downstream.stream) {
         tip('the downstream of the arrow below is null', this);
         return;
       }
+      if (caller !== this.upstream.stream) {
+        tip('the line below is not called by its upstream, however, it still runs', this);
+      }
+
     }
-    this.downstream.stream && this.downstream.stream.run(void 0, caller);
+    this.downstream.stream && this.downstream.stream.run(void 0, this);
   }
 }
 
@@ -56,7 +60,7 @@ export class Pipe extends Line {
         return;
       }
     }
-    this.downstream.stream && this.downstream.stream.run(data, caller);
+    this.downstream.stream && this.downstream.stream.run(data, this);
   }
 }
 
@@ -85,9 +89,9 @@ export class Twpipe extends Line {
 
     if (this.upstream.stream && this.downstream.stream) {
       if (caller === this.upstream.stream) {
-        this.downstream.stream.run(data, caller);
+        this.downstream.stream.run(data, this);
       } else if (caller === this.downstream.stream) {
-        this.upstream.stream.run(data, caller);
+        this.upstream.stream.run(data, this);
       }
     }
   }
