@@ -1,7 +1,7 @@
 import { BasicNode } from './basic-node';
 import {
   ElementType,
-  ILineHasDws, ILineLike,
+  ILineHasDws,
   INodeCode,
   NodeRunningStage,
 } from './types';
