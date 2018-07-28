@@ -15,7 +15,7 @@ export class RawNode extends BasicNode {
     this.sync = sync;
   }
 
-  public run(data: any, caller?: ILineHasDws): any | Promise<any> {
+  public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this.sync) {
       try {
         return this.code(this.Out.wrappedContent, { data, caller }, { origin: this });

@@ -147,7 +147,7 @@ export class NormalNode extends BasicNode {
     this.state = Object.assign({}, defaultState, state);
     observe(this.state);
   }
-  public run(data: any, caller?: ILineHasDws): any | Promise<any> {
+  public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this._attrs.own.sync) {
       try {
         return this._codeSync(data, caller);
@@ -182,7 +182,7 @@ export class NormalNode extends BasicNode {
   }
 
 
-  private async _codeAsync(data: any, caller?: ILineHasDws) {
+  private async _codeAsync(data?: any, caller?: ILineHasDws) {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -252,7 +252,7 @@ export class NormalNode extends BasicNode {
 
     return result;
   }
-  private _codeSync(data: any, caller?: ILineHasDws): any {
+  private _codeSync(data?: any, caller?: ILineHasDws): any {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
