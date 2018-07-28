@@ -1,4 +1,9 @@
-import { IElementLike, IElementStream, ILineLike, INodeLike, ITypedDictionary } from './types';
+import { Line } from './line';
+import {
+  IElementLike, IElementStream, ILineHasUps,
+  ILineLike, INodeHasDwsAndErrorReceiver, INodeLike,
+  ITypedDictionary,
+} from './types';
 import { handleError } from './util';
 
 export class NodeStream implements IElementStream {
@@ -52,7 +57,7 @@ export class NodeStream implements IElementStream {
     } else if (Array.isArray(arg)) {
       fn = (line: ILineLike | undefined) => {
         for (const theClass of arg) {
-          if (!line) { continue; }
+          if (!line || !line.classes) { continue; }
           if (!~line.classes.indexOf(theClass)) { return false; }
         }
         return true;
@@ -91,24 +96,22 @@ export class NodeStream implements IElementStream {
   }
 }
 
-export class SingleStream<O extends IElementLike, S extends IElementLike> implements IElementStream {
-  public owner: O;
-  public stream: S | undefined = void 0;
-  constructor(owner: O) {
+export class SingleStream<Owner extends IElementLike, Stream extends IElementLike> implements IElementStream {
+  public owner: Owner;
+  public stream: Stream | undefined = void 0;
+  constructor(owner: Owner) {
     this.owner = owner;
   }
 
-  public add(node: S) {
+  public add(node: Stream) {
     this.stream = node;
   }
   public get() {
     return this.stream;
   }
-  public del(node: S) {
+  public del(node: Stream) {
     this.stream === node && (this.stream = void 0);
   }
 }
-
-export class LineStream extends SingleStream<ILineLike, INodeLike> {}
-
-export class NodeErrorStream extends SingleStream<INodeLike, ILineLike> {}
+export class LineStream extends SingleStream<ILineLike, INodeLike> { }
+export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorReceiver, ILineHasUps> { }

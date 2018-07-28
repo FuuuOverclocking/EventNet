@@ -4,8 +4,8 @@ import { observe } from './observer';
 import { Watcher } from './observer/watcher';
 import {
   ElementType, IAttrFuncCondition,
-  IDictionary, ILineLike,
-  INodeCode, NodeRunningStage,
+  IDictionary, ILineHasDws,
+  ILineLike, INodeCode, NodeRunningStage,
 } from './types';
 import { handleError, isObject, nextTick, remove, tip } from './util';
 
@@ -147,7 +147,7 @@ export class NormalNode extends BasicNode {
     this.state = Object.assign({}, defaultState, state);
     observe(this.state);
   }
-  public run(data: any, caller?: ILineLike): any | Promise<any> {
+  public run(data: any, caller?: ILineHasDws): any | Promise<any> {
     if (this._attrs.own.sync) {
       try {
         return this._codeSync(data, caller);
@@ -182,7 +182,7 @@ export class NormalNode extends BasicNode {
   }
 
 
-  private async _codeAsync(data: any, caller?: ILineLike) {
+  private async _codeAsync(data: any, caller?: ILineHasDws) {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -223,7 +223,7 @@ export class NormalNode extends BasicNode {
 
     runningStage = NodeRunningStage.code;
 
-    let result = await this.code(this.out.wrappedContent, { data, caller }, { origin: this });
+    let result = await this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
 
     errorJudge();
 
@@ -252,7 +252,7 @@ export class NormalNode extends BasicNode {
 
     return result;
   }
-  private _codeSync(data: any, caller?: ILineLike): any {
+  private _codeSync(data: any, caller?: ILineHasDws): any {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -293,7 +293,7 @@ export class NormalNode extends BasicNode {
 
     runningStage = NodeRunningStage.code;
 
-    let result = this.code(this.out.wrappedContent, { data, caller }, { origin: this });
+    let result = this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
 
     errorJudge();
 

@@ -1,3 +1,6 @@
+import { NodeDwsMethods } from './node-methods';
+import { LineStream, NodeErrorStream, NodeStream } from './stream';
+
 export interface IDictionary {
   [index: string]: any;
 }
@@ -37,8 +40,8 @@ export interface IElementLike {
 
   // the stream of element
   // the element must have one of them
-  upstream: IElementStream | IElementStream[] | undefined;
-  downstream: IElementStream | IElementStream[] | undefined;
+  upstream?: IElementStream | IElementStream[];
+  downstream?: IElementStream | IElementStream[];
   type: number;
 }
 
@@ -58,17 +61,37 @@ export interface IElementStream {
 }
 
 export interface INodeLike extends IElementLike {
-  name?: string;
-  upstream: IElementStream;
-  downstream: [IElementStream, IElementStream];
-  parentNode?: INodeLike;
+  name: string | undefined;
+  parentNode: INodeLike | undefined;
+}
+
+export interface INodeHasUps extends INodeLike {
+  In: IElementStream;
+  upstream: IElementStream | IElementStream[];
+}
+
+export interface INodeHasDwsAndErrorReceiver extends INodeLike, NodeDwsMethods {
+  Out: IElementStream;
+  errorReceiver: IElementStream;
+  downstream: [IElementStream, NodeErrorStream];
+}
+
+export interface INodeHasDws extends INodeLike, NodeDwsMethods {
+  Out: IElementStream;
+  downstream: IElementStream | IElementStream[];
 }
 
 export interface ILineLike extends IElementLike {
-  readonly id?: string;
-  upstream: IElementStream;
-  downstream: IElementStream;
-  classes: string[];
+  readonly id: string | undefined;
+  classes?: string[];
+}
+
+export interface ILineHasUps extends ILineLike {
+  upstream: LineStream;
+}
+
+export interface ILineHasDws extends ILineLike {
+  downstream: LineStream;
 }
 
 export enum NodeRunningStage {
@@ -85,12 +108,13 @@ export interface INodeCodeDWS extends Array<ICallableElementLike> {
   ask: (
     askFor: string | string[] | ((line: ILineLike) => boolean),
     data?: any,
-  ) => ICallableElementLike | ICallableElementLike[] | undefined;
+  ) => ICallableElementLike[];
+  id: (id: string) => ICallableElementLike;
   dispense: (keyValue: { [key: string]: any }) => void;
 }
 export interface INodeCodeUPS {
   data: any;
-  caller: ILineLike | undefined;
+  caller: ILineHasDws | undefined;
 }
 export interface INodeCodeThisExec {
   origin: INodeLike;

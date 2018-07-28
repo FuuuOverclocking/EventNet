@@ -1,16 +1,38 @@
 import { Arrow, Pipe, Twpipe } from './line';
+import { getLinesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods } from './node-methods';
 import { NodeErrorStream, NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
-  ILineLike, ILineOptions, INodeCode,
-  INodeLike, NodeRunningStage,
+  ILineHasDws, ILineHasUps, ILineLike,
+  ILineOptions, INodeCode, INodeHasDws,
+  INodeHasDwsAndErrorReceiver, INodeHasUps, INodeLike,
+  NodeRunningStage,
 } from './types';
-import { handleError, isNode, isPipe, isPipeLike, isTwpipe } from './util';
+import { applyMixins, handleError, isNode, isPipe, isTwpipe } from './util';
 import { deweld, weld } from './weld';
 
-const linesWaitingLink: ILineLike[] = [];
+export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
+  INodeHasUps,
+  NodeDwsMethods,
+  NodeDwsUpsMethods {
 
-export abstract class BasicNode implements INodeLike {
+  // mixin methods
+  // tslint:disable:max-line-length
+  public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
+  public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
+  public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
+  public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
+  public arrow: (node: INodeHasUps, options?: ILineOptions) => INodeHasUps;
+  public pipe: (node: INodeHasUps, options?: ILineOptions) => INodeHasUps;
+  public twpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
+  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => INodeHasDws & INodeHasUps;
+  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => INodeHasDws & INodeHasUps;
+  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
+  public arrowNext: (options?: ILineOptions) => INodeHasDws & INodeHasUps;
+  public pipeNext: (options?: ILineOptions) => INodeHasDws & INodeHasUps;
+  public twpipeNext: (options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
+  // tslint:enable:max-line-length
+
   public readonly name: string | undefined;
   public abstract type: ElementType;
   public parentNode: INodeLike | undefined = void 0;
@@ -25,35 +47,42 @@ export abstract class BasicNode implements INodeLike {
     }),
     new NodeErrorStream(this),
   ];
-  public out = this.downstream[0];
-  protected errorReceiver = this.downstream[1];
-  public abstract run(data: any, caller?: ILineLike): any | Promise<any>;
+
+  // the default iostream of node
+  public In: NodeStream = this.upstream;
+  public Out = this.downstream[0];
+
+  // the error stream of node
+  public errorReceiver = this.downstream[1];
+
+  public abstract run(data: any, caller?: ILineHasDws): any | Promise<any>;
   public readonly code: INodeCode;
   constructor(code: INodeCode, name?: string) {
     this.code = code;
     this.name = name;
 
-    Object.assign(this.out.wrappedContent, {
+    Object.assign(this.Out.wrappedContent, {
       all: BasicNode.codeParamDws.all.bind(this),
       ask: BasicNode.codeParamDws.ask.bind(this),
       id: BasicNode.codeParamDws.id.bind(this),
       dispense: BasicNode.codeParamDws.dispense.bind(this),
     });
-    for (const line of linesWaitingLink) {
-      weld(this.upstream, line.downstream);
+
+    for (const line of getLinesWaitingLink()) {
+      weld(this.In, line.downstream);
       if (isTwpipe(line.type)) {
-        weld(this.out, line.downstream);
+        weld(this.Out, line.downstream);
       }
     }
-    linesWaitingLink.length = 0;
+    getLinesWaitingLink().length = 0;
   }
 
-  public setErrorReceiver(elem: ILineLike | INodeLike | null) {
+  public setErrorReceiver(elem: ILineHasUps | INodeHasUps | null) {
     const original = this.errorReceiver.get();
     if (original) {
       deweld(this.errorReceiver, original.upstream);
       if (isTwpipe(original.type)) {
-        deweld(this.upstream, original.upstream);
+        deweld(this.In, original.upstream);
       }
     }
 
@@ -61,13 +90,13 @@ export abstract class BasicNode implements INodeLike {
       return;
     }
     if (isNode(elem.type)) {
-      const pipe = new Pipe(this, elem as INodeLike, { classes: 'error' });
+      const pipe = new Pipe(null, elem as INodeHasUps, { classes: 'error' });
       weld(this.errorReceiver, pipe.upstream);
     } else if (isPipe(elem.type)) {
-      weld(this.errorReceiver, elem.upstream);
+      weld(this.errorReceiver, (elem as ILineHasUps).upstream);
     } else if (isTwpipe(elem.type)) {
-      weld(this.errorReceiver, elem.upstream);
-      weld(this.upstream, elem.upstream);
+      weld(this.errorReceiver, (elem as ILineHasUps).upstream);
+      weld(this.In, (elem as ILineHasUps).upstream);
     } else {
       handleError(new Error('errorReceiver must be assigned to Node, Pipe or Twpipe'), 'Node.setErrorReceiver', this);
     }
@@ -80,77 +109,14 @@ export abstract class BasicNode implements INodeLike {
       handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
     }
   }
-  public createLine(node: INodeLike, options: any = {}, type: ElementType) {
-    if (isPipeLike(type)) {
-      if (isTwpipe(type)) {
-        return this.createTwpipe(node, options);
-      } else {
-        return this.createPipe(node, options);
-      }
-    } else {
-      return this.createArrow(node, options);
-    }
-  }
-  public createArrow(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
-    const line = new Arrow(this, node, options);
-    weld(this.out, line.upstream);
-    return line;
-  }
-  public createPipe(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
-    const line = new Pipe(this, node, options);
-    weld(this.out, line.upstream);
-    return line;
-  }
-  public createTwpipe(node: INodeLike | null | undefined, options?: ILineOptions): ILineLike {
-    const line = new Twpipe(this, node, options);
-    weld(this.out, line.upstream);
-    weld(this.upstream, line.upstream);
-    return line;
-  }
-  public arrow(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createArrow(node, options);
-    return node;
-  }
-  public pipe(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createPipe(node, options);
-    return node;
-  }
-  public twpipe(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createTwpipe(node, options);
-    return node;
-  }
-  public alsoArrow(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createArrow(node, options);
-    return this;
-  }
-  public alsoPipe(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createPipe(node, options);
-    return this;
-  }
-  public alsoTwpipe(node: INodeLike, options?: ILineOptions): INodeLike {
-    this.createTwpipe(node, options);
-    return this;
-  }
-  public arrowNext(options?: ILineOptions) {
-    linesWaitingLink.push(this.createArrow(null, options));
-    return this;
-  }
-  public pipeNext(options?: ILineOptions) {
-    linesWaitingLink.push(this.createPipe(null, options));
-    return this;
-  }
-  public twpipeNext(options?: ILineOptions) {
-    linesWaitingLink.push(this.createTwpipe(null, options));
-    return this;
-  }
   protected static codeParamDws = {
     all(this: BasicNode, data: any) {
-      for (const dws of (this.out.get() as Array<ILineLike | undefined>)) {
+      for (const dws of (this.Out.get() as Array<ILineLike | undefined>)) {
         dws && dws.run(data, this);
       }
     },
     id(this: BasicNode, id: string) {
-      const dws = this.out.getById(id);
+      const dws = this.Out.getById(id);
       if (!dws) { return; }
 
       const res = (data => {
@@ -160,11 +126,11 @@ export abstract class BasicNode implements INodeLike {
       return res;
     },
     ask(this: BasicNode, askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
-      const dws = this.out.ask(askFor as any);
-      if (!dws.length) {
-        return;
-      }
+      const dws = this.Out.ask(askFor as any);
       const res: ICallableElementLike[] = [];
+      if (!dws.length) {
+        return res;
+      }
 
       dws.forEach(line => {
         if (typeof data !== 'undefined') { line.run(data, this); }
@@ -184,7 +150,7 @@ export abstract class BasicNode implements INodeLike {
         Object.keys(IdValue_or_IndexValue)[0]))) {
         // Identify 'keyValue' with ID-value type.
         for (const id of Object.keys(IdValue_or_IndexValue)) {
-          downstream = this.out.getById(id);
+          downstream = this.Out.getById(id);
 
           if (downstream) {
             downstream.run(IdValue_or_IndexValue[id], this);
@@ -201,7 +167,7 @@ export abstract class BasicNode implements INodeLike {
         // for-in will skip those index(es) that don't have value
         // tslint:disable-next-line:forin
         for (const index in IdValue_or_IndexValue) {
-          downstream = this.out.get(Number(index)) as ILineLike | undefined;
+          downstream = this.Out.get(Number(index)) as ILineLike | undefined;
 
           if (typeof downstream !== 'undefined') {
             downstream.run(IdValue_or_IndexValue[index], this);
@@ -216,3 +182,5 @@ export abstract class BasicNode implements INodeLike {
     },
   };
 }
+
+applyMixins(BasicNode, [NodeDwsMethods, NodeDwsUpsMethods]);

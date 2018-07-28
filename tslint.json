@@ -6,12 +6,6 @@
     "jsRules": {},
     "rules": {
         "indent": [true, "spaces", 2],
-        "variable-name": [
-            true,
-            "ban-keywords",
-            "check-format",
-            "allow-leading-underscore"
-        ],
         "no-empty": false,
         "no-console": false,
         "max-classes-per-file": false,
@@ -28,7 +22,8 @@
             true,
             "single"
         ],
-        "arrow-parens": [true, "ban-single-arg-parens"]
+        "arrow-parens": [true, "ban-single-arg-parens"],
+        "variable-name": false
     },
     "rulesDirectory": []
 }

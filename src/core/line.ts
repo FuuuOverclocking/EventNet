@@ -1,13 +1,14 @@
 import { LineStream } from './stream';
-import { ElementType, ILineLike, ILineOptions, INodeLike } from './types';
+import { ElementType, ILineHasDws, ILineHasUps, ILineOptions, INodeHasDws, INodeHasUps, INodeLike } from './types';
 import { handleError, tip } from './util';
+import { weld } from './weld';
 
-export abstract class Line implements ILineLike {
+export abstract class Line implements ILineHasUps, ILineHasDws {
   public abstract type: ElementType;
   public readonly id: string | undefined;
   constructor(
-    ups: INodeLike | null | undefined,
-    dws: INodeLike | null | undefined,
+    ups: INodeHasDws | null | undefined,
+    dws: INodeHasUps | null | undefined,
     { id, classes }: ILineOptions = {},
   ) {
     this.id = id;
@@ -15,8 +16,8 @@ export abstract class Line implements ILineLike {
       Array.isArray(classes) ?
         classes : [classes]
       : [];
-    ups && (this.upstream.stream = ups);
-    dws && (this.downstream.stream = dws);
+    ups && weld(ups.Out, this.upstream);
+    dws && weld(dws.In, this.downstream);
   }
   public classes: string[] = [];
 
@@ -24,14 +25,14 @@ export abstract class Line implements ILineLike {
    * Run this Line
    * @param data if the line is Arrow, data only can be null or undefined
    */
-  public abstract run(data: any, caller: INodeLike): void;
+  public abstract run(data: any, caller: INodeHasDws): void;
   public upstream: LineStream = new LineStream(this);
   public downstream: LineStream = new LineStream(this);
 }
 
 export class Arrow extends Line {
   public type = ElementType.Arrow;
-  public run(data: any, caller: INodeLike) {
+  public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' || data !== null) {
         handleError(new Error('data can not pass through Arrow, replace with Pipe'), 'Arrow', this);
@@ -48,7 +49,7 @@ export class Arrow extends Line {
 
 export class Pipe extends Line {
   public type = ElementType.Pipe;
-  public run(data: any, caller: INodeLike) {
+  public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
       if (!this.downstream.stream) {
         tip('the downstream of the pipe below is null', this);
@@ -61,7 +62,16 @@ export class Pipe extends Line {
 
 export class Twpipe extends Line {
   public type = ElementType.Twpipe;
-  public run(data: any, caller: INodeLike) {
+  constructor(
+    ups: (INodeHasDws & INodeHasUps) | null | undefined,
+    dws: (INodeHasDws & INodeHasUps) | null | undefined,
+    { id, classes }: ILineOptions = {},
+  ) {
+    super(ups, dws, { id, classes });
+    ups && weld(ups.In, this.upstream);
+    dws && weld(dws.Out, this.downstream);
+  }
+  public run(data: any, caller: INodeHasDws & INodeHasUps) {
     if (process.env.NODE_ENV !== 'production') {
       if (!this.downstream.stream || !this.upstream.stream) {
         tip('the downstream or the upstream of the two-way pipe below is null', this);
