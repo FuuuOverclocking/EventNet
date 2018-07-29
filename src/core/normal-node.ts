@@ -91,7 +91,10 @@ export class NormalNode extends BasicNode {
 
     // For-in will traverse all the attributes of Node, including its own and inherited.
     for (const name in attr) {
-      if (typeof attr[name] === 'undefined' || attrsStore.typed[name]) { continue; }
+      if (typeof attr[name] === 'undefined' ||
+        attrsStore.typed[name] ||
+        !attrsStore.normal[name]
+      ) { continue; }
       if (attrsStore.normal[name].before) {
         this._attrs.beforeSequence.push({
           name,
@@ -118,7 +121,6 @@ export class NormalNode extends BasicNode {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof attrs.sync !== 'undefined' && typeof attrs.sync !== 'boolean') {
         handleError(new Error('Attribution \'sync\' must be set to true or false.'), 'NodeConstructor');
-        return;
       }
       for (const name of Object.keys(attrs)) {
         if (!getAttrDefinition(name)) {
@@ -129,7 +131,6 @@ export class NormalNode extends BasicNode {
           handleError(new Error(
             `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`,
           ), 'NodeConstructor');
-          return;
         }
       }
     }
