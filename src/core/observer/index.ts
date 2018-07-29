@@ -1,11 +1,16 @@
-import { copyAugment, def, hasOwn, hasProto, isObject, isPlainObject, protoAugment } from '../util';
+import { isPrimitive } from 'util';
+import {
+  copyAugment, def, hasOwn,
+  hasProto, isObject, isPlainObject,
+  isValidArrayIndex, protoAugment, warn,
+} from '../util';
 import { arrayMethods, methodsToPatch } from './array';
 import Dep from './dep';
 
 /**
- * 尝试对 value 创建 Observer 实例，
- * value 如果不是对象或数组，什么都不做。
- * @param value 需要尝试监视的目标
+ * Attempt to create an observer instance for a value,
+ * returns the new observer if successfully observed,
+ * or the existing observer if the value already has one.
  */
 export function observe(value: any) {
   if (!isObject(value)) {
@@ -30,17 +35,17 @@ const augment = (Object as any).setPrototypeOf ||
 export class Observer {
   public value: any;
   public dep: Dep;
-  constructor(value: any, asRoot: boolean = false) {
+  constructor(value: any, except: string = '') {
     this.value = value;
     this.dep = new Dep();
     def(value, '__ob__', this);
     if (Array.isArray(value)) {
       augment(value, arrayMethods, methodsToPatch);
       this.observeArray(value);
-    } else if (!asRoot) {
+    } else if (!except) {
       this.walk(value);
     } else {
-      this.walkExcept(value, 'data');
+      this.walkExcept(value, except);
     }
   }
   public walk(value: any) {
@@ -56,9 +61,7 @@ export class Observer {
 
   }
   public observeArray(items: any[]) {
-    // 设置 l = items.length 防止遍历过程中 items 长度变化
     for (let i = 0, l = items.length; i < l; i++) {
-      // 直接观察数组元素，不在键上设置 getter/setter
       observe(items[i]);
     }
   }
@@ -99,7 +102,7 @@ function defineReactive(obj: any, key: string, val?: any) {
     },
     set(newVal) {
       const value = getter ? getter.call(obj) : val;
-      if (newVal === value) {
+      if (newVal === value || (newVal !== newVal && value !== value)) {
         return;
       }
       if (setter) {
@@ -121,4 +124,61 @@ function dependArray(value: any[]) {
       dependArray(e);
     }
   }
+}
+
+/**
+ * Set a property on an object. Adds the new property and
+ * triggers change notification if the property doesn't
+ * already exist.
+ */
+export function set(target: any, key: any, val: any): any {
+  if (process.env.NODE_ENV !== 'production' &&
+    typeof target === 'undefined' || isPrimitive(target)) {
+    warn(`Cannot set reactive property on undefined, null, or primitive value: ${target}`);
+  }
+  if (Array.isArray(target)) {
+    if (isValidArrayIndex(key)) {
+      target.length = Math.max(target.length, key);
+      target.splice(key, 1, val);
+    } else {
+      target[key] = val;
+    }
+    return val;
+  }
+  if (key in target && !(key in Object.prototype)) {
+    target[key] = val;
+    return val;
+  }
+  const ob = target.__ob__;
+  if (!ob) {
+    target[key] = val;
+    return val;
+  }
+  defineReactive(ob.value, key, val);
+  ob.dep.notify();
+  return val;
+}
+
+/**
+ * Delete a property and trigger change if necessary.
+ */
+export function del(target: any, key: any) {
+  if (process.env.NODE_ENV !== 'production' &&
+    (typeof target === 'undefined' || isPrimitive(target))
+  ) {
+    warn(`Cannot delete reactive property on undefined, null, or primitive value: ${target}`);
+  }
+  if (Array.isArray(target) && isValidArrayIndex(key)) {
+    target.splice(key, 1);
+    return;
+  }
+  if (!hasOwn(target, key)) {
+    return;
+  }
+  delete target[key];
+  const ob = target.__ob__;
+  if (!ob) {
+    return;
+  }
+  ob.dep.notify();
 }

@@ -1,22 +1,7 @@
-import { isObject } from '../util';
+import { isObject, parsePath } from '../util';
 import Dep from './dep';
 import { queueWatcher } from './scheduler';
 import { traverse } from './traverse';
-
-const bailRE = /[^\w.$]/;
-function parsePath(path: string): any {
-  if (bailRE.test(path)) {
-    return;
-  }
-  const segments = path.split('.');
-  return (obj: any) => {
-    for (const segment of segments) {
-      if (!obj) { return; }
-      obj = obj[segment];
-    }
-    return obj;
-  };
-}
 
 let uid = 0;
 

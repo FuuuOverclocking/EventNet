@@ -7,6 +7,10 @@ export function traverse(val: any) {
   seenObjects.clear();
 }
 
+/**
+ * One known problem is, if the val is a inextensible object
+ * and is in a reference ring, then the function may cause stack overflow.
+ */
 function _traverse(val: any, seen: Set<any>) {
   let i;
   let keys;

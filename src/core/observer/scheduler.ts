@@ -24,16 +24,14 @@ function resetSchedulerState() {
 function flushSchedulerQueue() {
   flushing = true;
   let watcher;
-  let id;
 
   queue.sort((a, b) => a.id - b.id);
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
-  for (index = 0; index < queue.length; index++) {
+  for (index = 0; index < queue.length; ++index) {
     watcher = queue[index];
-    id = watcher.id;
-    has[id] = null;
+    has[watcher.id] = null;
     watcher.run();
   }
 

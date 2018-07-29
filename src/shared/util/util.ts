@@ -16,6 +16,11 @@ export function isPlainObject(obj: any): boolean {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
+export function isValidArrayIndex(val: any): boolean {
+  const n = parseFloat(String(val));
+  return n >= 0 && Math.floor(n) === n && isFinite(val);
+}
+
 export function remove(arr: any[], item: any): any[] | void {
   if (arr.length) {
     const index = arr.indexOf(item);

@@ -1,6 +1,6 @@
 import { _attrsStore as attrsStore, getAttrDefinition } from '.';
 import { BasicNode } from './basic-node';
-import { observe } from './observer';
+import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
   ElementType, IAttrFuncCondition,
@@ -145,7 +145,7 @@ export class NormalNode extends BasicNode {
     this.sortAttrs();
 
     this.state = Object.assign({}, defaultState, state);
-    observe(this.state);
+    new Observer(this.state, 'data');
   }
   public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this._attrs.own.sync) {
