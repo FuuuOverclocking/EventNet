@@ -56,7 +56,6 @@
     ],
     "globals": {
       "ts-jest": {
-        "skipBabel": true
       }
     },
     "moduleFileExtensions": [

@@ -1,4 +1,5 @@
-import { isObject, parsePath } from '../util';
+import { IDictionary } from '../types';
+import { handleError, isObject, parsePath } from '../util';
 import Dep from './dep';
 import { queueWatcher } from './scheduler';
 import { traverse } from './traverse';
@@ -22,7 +23,7 @@ export class Watcher {
   public sync: boolean;
   constructor(
     target: any,
-    expression: string,
+    expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
     {
       deep = false,
@@ -33,7 +34,20 @@ export class Watcher {
     this.sync = sync;
     this.id = uid++;
     this.target = target;
-    this.getter = parsePath(expression);
+    if (typeof expOrFn === 'function') {
+      this.getter = expOrFn;
+    } else {
+      this.getter = parsePath(expOrFn);
+      if (!this.getter) {
+        this.getter = () => { };
+        process.env.NODE_ENV !== 'production' && handleError(
+          new Error(`Failed watching path: "${expOrFn}" ` +
+            'Watcher only accepts simple dot-delimited paths. ' +
+            'For full control, use a function instead.'),
+          'WatcherConstructor',
+        );
+      }
+    }
     this.callback = callback;
     this.value = this.get();
   }
@@ -74,7 +88,9 @@ export class Watcher {
     let value: any;
     const obj = this.target;
     try {
-      value = this.getter(obj);
+      value = this.getter.call(obj, obj);
+    } catch (e) {
+      handleError(e, 'Watcher.getter');
     } finally {
       if (this.deep) {
         traverse(value);
@@ -112,7 +128,15 @@ export class Watcher {
     if (value !== this.value || isObject(value) || this.deep) {
       const oldVal = this.value;
       this.value = value;
-      cb.call(this.target, value, oldVal);
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          cb.call(this.target, value, oldVal);
+        } catch (e) {
+          handleError(e, 'Watcher.callback');
+        }
+      } else {
+        cb.call(this.target, value, oldVal);
+      }
     }
   }
 }

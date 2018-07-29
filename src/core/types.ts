@@ -101,8 +101,10 @@ export enum NodeRunningStage {
   over,
 }
 
-export type INodeCode = (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INodeCodeThisExec) => any;
-
+export type IRawNodeCode =
+  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: IRawNodeCodeThisExec) => any;
+export type INormalNodeCode =
+  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INormalNodeCodeThisExec) => any;
 export interface INodeCodeDWS extends Array<ICallableElementLike> {
   all: (data?: any) => void;
   ask: (
@@ -116,8 +118,15 @@ export interface INodeCodeUPS {
   data: any;
   caller: ILineHasDws | undefined;
 }
-export interface INodeCodeThisExec {
+export interface IRawNodeCodeThisExec {
   origin: INodeLike;
+}
+
+export interface INormalNodeCodeThisExec {
+  origin: INodeLike;
+  attrs: () => IDictionary;
+  allAttrs: () => IDictionary;
+  state: IDictionary;
 }
 
 export interface IAttrsStore {

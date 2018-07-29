@@ -3,9 +3,8 @@ import { BasicNode } from './basic-node';
 import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
-  ElementType, IAttrFuncCondition,
-  IDictionary, ILineHasDws,
-  ILineLike, INodeCode, NodeRunningStage,
+  ElementType, IAttrFuncCondition, IDictionary,
+  ILineHasDws, INormalNodeCode, NodeRunningStage,
 } from './types';
 import { handleError, isObject, nextTick, remove, tip } from './util';
 
@@ -23,17 +22,19 @@ export class NormalNode extends BasicNode {
 
   public type = ElementType.NormalNode;
 
+  public code: INormalNodeCode;
+
   public state: IDictionary;
   public watchMe(
-    expression: string,
+    expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
     {
       deep = false,
       sync = false,
       immediate = false,
-    },
+    } = {},
   ) {
-    const watcher = new Watcher(this.state, expression, callback, { deep, sync });
+    const watcher = new Watcher(this.state, expOrFn, callback, { deep, sync });
     this._watchers.push(watcher);
 
     if (immediate) {
@@ -116,7 +117,7 @@ export class NormalNode extends BasicNode {
     this._attrs.afterSequence.sort((a, b) => b.priority - a.priority);
   }
 
-  constructor(attrs: IDictionary, state: IDictionary, code: INodeCode) {
+  constructor(attrs: IDictionary, state: IDictionary, code: INormalNodeCode) {
     super(code, attrs.name);
     if (process.env.NODE_ENV !== 'production') {
       if (typeof attrs.sync !== 'undefined' && typeof attrs.sync !== 'boolean') {
@@ -224,7 +225,16 @@ export class NormalNode extends BasicNode {
 
     runningStage = NodeRunningStage.code;
 
-    let result = await this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
+    let result = await this.code(
+      this.Out.wrappedContent,
+      { data, caller },
+      {
+        origin: this,
+        attrs: () => this.attrs,
+        allAttrs: () => this.allAttrs,
+        state: this.state,
+      },
+    );
 
     errorJudge();
 
@@ -294,7 +304,16 @@ export class NormalNode extends BasicNode {
 
     runningStage = NodeRunningStage.code;
 
-    let result = this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
+    let result = this.code(
+      this.Out.wrappedContent,
+      { data, caller },
+      {
+        origin: this,
+        attrs: () => this.attrs,
+        allAttrs: () => this.allAttrs,
+        state: this.state,
+      },
+    );
 
     errorJudge();
 

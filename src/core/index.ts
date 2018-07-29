@@ -5,7 +5,8 @@
  */
 import {
   IDictionary,
-  INodeCode,
+  INormalNodeCode,
+  IRawNodeCode,
 } from './types';
 
 import { _attrsStore, getAttrDefinition, installAttr } from './attr-manager';
@@ -21,20 +22,20 @@ import { RawNode } from './raw-node';
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function nn(attrs: IDictionary, state: IDictionary, code: INodeCode): NormalNode;
+export function nn(attrs: IDictionary, state: IDictionary, code: INormalNodeCode): NormalNode;
 /**
  * Create a EventNet NormalNode.
  * @param {Object} attrs set the attributes of Node
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function nn(attrs: IDictionary, code: INodeCode): NormalNode;
+export function nn(attrs: IDictionary, code: INormalNodeCode): NormalNode;
 /**
  * Create a EventNet NormalNode.
  * @param {Function} code set the code of Node
  * @return {NormalNode} a new EventNet NormalNode
  */
-export function nn(code: INodeCode): NormalNode;
+export function nn(code: INormalNodeCode): NormalNode;
 
 export function nn(attrs: any, state?: any, code?: any) {
   if (typeof attrs === 'object' && typeof state === 'object' && typeof code === 'function') {
@@ -53,7 +54,7 @@ export function nn(attrs: any, state?: any, code?: any) {
  * @param {string} name set the name of Node
  * @returns {RawNode} a new EventNet RawNode
  */
-export function raw(code: INodeCode, sync: boolean = true, name?: string): RawNode {
+export function raw(code: IRawNodeCode, sync: boolean = true, name?: string): RawNode {
   return new RawNode(code, sync, name);
 }
 

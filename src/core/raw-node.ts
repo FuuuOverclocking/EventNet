@@ -2,15 +2,16 @@ import { BasicNode } from './basic-node';
 import {
   ElementType,
   ILineHasDws,
-  INodeCode,
+  IRawNodeCode,
   NodeRunningStage,
 } from './types';
 import { nextTick } from './util';
 
 export class RawNode extends BasicNode {
   public type = ElementType.RawNode;
+  public code: IRawNodeCode;
   public sync: boolean;
-  constructor(code: INodeCode, sync: boolean = true, name?: string) {
+  constructor(code: IRawNodeCode, sync: boolean = true, name?: string) {
     super(code, name);
     this.sync = sync;
   }

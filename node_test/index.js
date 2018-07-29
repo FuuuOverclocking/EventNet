@@ -1,48 +1,45 @@
-const en = require("../lib/core/index").en;
-const debug = (s) => {
-    console.log(s?s+Date.now():Date.now())
-}
-const nd1 = en((dws) => {
-    const $0 = dws[0];
-    $0(111);
-    dws.ask("good-pipe", 235);
+const nn = require("../lib").nn;
+const nd1 = nn({}, {
+  HP: 100,
+  MP: 99,
+}, (dws, ups, thisExec) => {
+  thisExec.attrs();
+  thisExec.allAttrs();
+  thisExec.state.HP--;
+  thisExec.state.MP++;
 });
 
-nd1.pipeNext();
-const nd2 = en(
-    { name: "goodnode" },
-    (dws, ups, thisExec) => {
-        dws.all(thisExec.origin.name);
-    });
+function fn(n) {console.log(n)}
 
-nd1.pipeNext({
-    id: "good-pipe",
+const fn1 = fn.bind(null, 1);
+const fn2 = fn.bind(null, 2);
+const fn3 = fn.bind(null, 3);
+const fn4 = fn.bind(null, 4);
+
+nd1.watchMe('HP', (val, oldVal) => {
+  console.log('hp')
+  console.log(val, oldVal);
+  fn1();
 });
-const nd3 = en(
-    (dws, ups, thisExec) => {
-        debug("end");
-    });
 
-nd2.pipeNext();
-const nd4 = en(
-    (dws, ups) => {
-        console.log(ups.data);
-        debug("end");
-    });
-debug();
-debug();
+nd1.watchMe('MP', val => {
+  console.log('mp')
+  console.log(val)
+  fn2();
+}, { sync: true });
 
+nd1.watchMe(state => {
+  return state.HP + state.MP;
+}, val => {
+  console.log('hy')
+  console.log(val);
+  fn3();
+});
 
-debug();
-debug();
+nd1.watchMe(state => {
+  return state.HP + state.MP;
+}, () => {
+  fn4();
+}, { sync: true, immediate: true });
 
-debug();
-debug();
-debug();
-debug("start");
-
-debug("start");
-debug("start");
-debug("start");
-debug("start");
 nd1.run();

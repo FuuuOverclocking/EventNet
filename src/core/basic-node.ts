@@ -4,8 +4,9 @@ import { NodeErrorStream, NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
   ILineHasDws, ILineHasUps, ILineLike,
-  ILineOptions, INodeCode, INodeHasDws,
-  INodeHasDwsAndErrorReceiver, INodeHasUps, INodeLike,
+  ILineOptions, INodeHasDws, INodeHasDwsAndErrorReceiver,
+  INodeHasUps, INodeLike, INormalNodeCode,
+  IRawNodeCode,
   NodeRunningStage,
 } from './types';
 import { applyMixins, copyAugment, handleError, isNode, isPipe, isTwpipe } from './util';
@@ -56,8 +57,8 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   public errorReceiver = this.downstream[1];
 
   public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
-  public readonly code: INodeCode;
-  constructor(code: INodeCode, name?: string) {
+  public readonly code: IRawNodeCode | INormalNodeCode;
+  constructor(code: IRawNodeCode  | INormalNodeCode, name?: string) {
     this.code = code;
     this.name = name;
 

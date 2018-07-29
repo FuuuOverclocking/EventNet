@@ -143,6 +143,57 @@ test('NormalNode Error Test', done => {
   nd1.run();
 });
 
+test('NormalNode Watch Test', () => {
+  const nd1 = nn({}, {
+    HP: 100,
+    MP: 99,
+  }, (dws, ups, thisExec) => {
+    thisExec.attrs();
+    thisExec.allAttrs();
+    thisExec.state.HP--;
+    thisExec.state.MP++;
+  });
+
+  const fn1 = jest.fn();
+  const fn2 = jest.fn();
+  const fn3 = jest.fn();
+  const fn4 = jest.fn();
+
+  nd1.watchMe('HP', (val, oldVal) => {
+    expect(val).toBe(99);
+    expect(oldVal).toBe(100);
+    fn1();
+  });
+
+  nd1.watchMe('MP', val => {
+    expect(val).toBe(100);
+    fn2();
+  }, { sync: true });
+
+  nd1.watchMe(state => {
+    return state.HP + state.MP;
+  }, val => {
+    expect(val).toBe(199);
+    fn3();
+  });
+
+  nd1.watchMe(state => {
+    return state.HP + state.MP;
+  }, () => {
+    fn4();
+  }, { sync: true, immediate: true });
+
+
+  setTimeout(() => {
+    expect(fn1).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(1);
+    expect(fn3).toHaveBeenCalledTimes(0);
+    expect(fn4).toHaveBeenCalledTimes(3);
+  }, 20);
+
+  nd1.run();
+});
+
 test('RawNode Basic Test', done => {
   const nd1 = raw(dws => {
     dws.all(null);
