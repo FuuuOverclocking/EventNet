@@ -48,18 +48,26 @@
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'"
   },
   "jest": {
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "<rootDir>/lib/**/*.{js,ts}",
+      "!<rootDir>/lib/**/*.d.ts",
+      "!**/node_modules/**"
+    ],
     "globals": {
       "ts-jest": {
-        "tsConfigFile": "tsconfig.json"
+        "skipBabel": true
       }
     },
     "moduleFileExtensions": [
       "ts",
-      "js"
+      "js",
+      "json"
     ],
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
-    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(js|ts)$"
+    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(js|ts)$",
+    "testEnvironment": "node"
   }
 }
