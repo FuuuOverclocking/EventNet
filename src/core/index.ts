@@ -54,10 +54,33 @@ export function nn(attrs: any, state?: any, code?: any) {
  * @param {string} name set the name of Node
  * @returns {RawNode} a new EventNet RawNode
  */
-export function raw(code: IRawNodeCode, sync: boolean = true, name?: string): RawNode {
-  return new RawNode(code, sync, name);
+export function raw(code: IRawNodeCode, sync?: boolean, name?: string): RawNode;
+
+/**
+ * Create a EventNet RawNode.
+ * @param {boolean} sync whether the Node running synchronously or asynchronously
+ * @param {string} name set the name of Node
+ * @param {Function} code set the code of Node
+ * @returns {RawNode} a new EventNet RawNode
+ */
+export function raw({ sync, name }: {sync?: boolean, name?: string}, code: IRawNodeCode): RawNode;
+
+export function raw(arg1: any, arg2?: any, arg3?: any): RawNode {
+  if (typeof arg1 === 'function') {
+    if (typeof arg2 === 'undefined') {
+      arg2 = true;
+    }
+    return new RawNode(arg1, arg2, arg3);
+  } else {
+    const { sync = true, name } = arg1;
+    return new RawNode(arg2, sync, name);
+  }
 }
 
 export { _attrsStore, installAttr, getAttrDefinition };
 export { defaultState, NormalNode };
 export { RawNode };
+
+export { weld, deweld } from './weld';
+
+export * from './lines';

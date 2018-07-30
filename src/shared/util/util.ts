@@ -46,7 +46,7 @@ export function isNode(type: number) {
 }
 
 export function isRaw(type: number) {
-  return isNode(type) && (type & 0b10);
+  return !!(isNode(type) && (type & 0b10));
 }
 
 export function isPipe(type: number) {
@@ -54,11 +54,11 @@ export function isPipe(type: number) {
 }
 
 export function isPipeLike(type: number) {
-  return !isNode(type) && (type & 0b10);
+  return !!(!isNode(type) && (type & 0b10));
 }
 
 export function isTwpipe(type: number) {
-  return isPipeLike(type) && (type & 0b100);
+  return !!(isPipeLike(type) && (type & 0b100));
 }
 
 export function applyMixins(derivedCtor: any, baseCtors: any[]) {

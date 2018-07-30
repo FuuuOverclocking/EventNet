@@ -1,1 +1,1 @@
-export {} from './stare-line';
+export { StareArrow, StarePipe, StareTwpipe } from './stare-line';

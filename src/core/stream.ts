@@ -1,12 +1,13 @@
 import { Line } from './line';
 import {
-  IElementLike, IElementStream, ILineHasUps,
-  ILineLike, INodeHasDwsAndErrorReceiver, INodeLike,
+  ElementType, IElementLike, IElementStream,
+  ILineHasUps, ILineLike, INodeHasDwsAndErrorReceiver,
+  INodeLike,
   IStreamOfLine,
   IStreamOfNode,
   ITypedDictionary,
 } from './types';
-import { handleError } from './util';
+import { handleError, isPipeLike, isTwpipe } from './util';
 
 export class NodeStream implements IStreamOfNode {
   public add(line: ILineLike) {
@@ -52,10 +53,61 @@ export class NodeStream implements IStreamOfNode {
   public ask(arg: any) {
     let fn: any;
     if (typeof arg === 'string') {
-      ///////////////////////////////
-      /////////////////////////////////////
-      /////////////////////////////////////////
-      return this.contentById[arg];
+      const res: ILineLike[] = [];
+
+      const regLeading = /^\s*(arrow|pipelike|pipe|twpipe)/;
+      const regClasses = /(\.[0-9a-zA-Z\-_]+)/g;
+
+      let regRes: RegExpMatchArray | null;
+      let type: string | undefined;
+      let classes: string[] | undefined;
+      if (regRes = arg.match(regLeading)) {
+        type = regRes[1];
+      }
+      if (regRes = arg.match(regClasses)) {
+        classes = regRes;
+      }
+      if (process.env.NODE_ENV !== 'production' && !type && !classes) {
+        handleError(new Error('invaild querystring'), 'NodeStream.ask', this.owner);
+      }
+
+      let typeCheck: (line: ILineLike) => boolean = () => true;
+      let classCheck: (line: ILineLike) => boolean = () => true;
+      if (type) {
+        switch (type) {
+          case 'arrow':
+            typeCheck = (line: ILineLike) => !isPipeLike(line.type);
+            break;
+          case 'pipelike':
+            typeCheck = (line: ILineLike) => isPipeLike(line.type);
+            break;
+          case 'pipe':
+            typeCheck = (line: ILineLike) => isPipeLike(line.type) && !isTwpipe(line.type);
+            break;
+          case 'twpipe':
+            typeCheck = (line: ILineLike) => isTwpipe(line.type);
+            break;
+        }
+      }
+      if (classes) {
+        classCheck = (line: ILineLike) => {
+          if (!line.classes) { return false; }
+          for (const cl of classes as string[]) {
+            if (!~line.classes.indexOf(cl)) { return false; }
+          }
+          return true;
+        };
+      }
+
+      for (const line of this.content) {
+        if (!line) { continue; }
+        if (typeCheck(line) && classCheck(line)) {
+          res.push(line);
+        }
+      }
+
+      return res;
+
     } else if (Array.isArray(arg)) {
       fn = (line: ILineLike | undefined) => {
         for (const theClass of arg) {
