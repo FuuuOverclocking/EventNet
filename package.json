@@ -42,8 +42,8 @@
     "build:dev": "",
     "build:mnt": "",
     "build:min": "",
-    "clean": "npm run clean:all",
-    "clean:all": "node scripts/clean.js",
+    "clean": "",
+    "clean:all": "",
     "test": "jest",
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'"
   },

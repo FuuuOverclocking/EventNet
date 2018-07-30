@@ -8,12 +8,11 @@ import {
 } from './types';
 import { handleError, isObject, nextTick, remove, tip } from './util';
 
-// The default state of each new Node.
-// The states of Node created by calling en() is the result
+// The default state of each new NormalNode.
+// The states of Node created by calling nn() is the result
 // of assigning parameter `states` to the default state.
 export const defaultState = {
   data: {},
-  error: null,
   runningTimes: 0,
   running: 0,
 };
@@ -34,7 +33,7 @@ export class NormalNode extends BasicNode {
       immediate = false,
     } = {},
   ) {
-    const watcher = new Watcher(this.state, expOrFn, callback, { deep, sync });
+    let watcher = new Watcher(this.state, expOrFn, callback, { deep, sync });
     this._watchers.push(watcher);
 
     if (immediate) {
@@ -43,8 +42,9 @@ export class NormalNode extends BasicNode {
     }
 
     return () => {
-      remove(this._watchers, watcher);
+      watcher && remove(this._watchers, watcher);
       watcher.teardown();
+      watcher = null as any;
     };
   }
   private _watchers: Watcher[] = [];
@@ -53,6 +53,22 @@ export class NormalNode extends BasicNode {
     return copies;
   }
 
+  public destory() {
+    for (const fn of this.beforeDestory) {
+      fn.call(this, this);
+    }
+
+    for (const watcher of this._watchers) {
+      watcher && remove(this._watchers, watcher);
+      watcher.teardown();
+    }
+
+    this.state = null as any;
+
+    for (const fn of this.destoryed) {
+      fn.call(this, this);
+    }
+  }
 
   private _attrs: {
     own: IDictionary;

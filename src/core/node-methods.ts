@@ -3,7 +3,7 @@ import { NodeErrorStream, NodeStream } from './stream';
 import {
   ElementType, IElementLike, IElementStream,
   ILineHasDws, ILineOptions, INodeHasDws,
-  INodeHasUps, INodeLike,
+  INodeHasUps, INodeLike, IStreamOfNode,
 } from './types';
 import { isPipeLike, isTwpipe } from './util';
 import { weld } from './weld';
@@ -13,10 +13,11 @@ export const linesWaitingLink: ILineHasDws[] = [];
 export function getLinesWaitingLink() { return linesWaitingLink; }
 
 export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
-  public abstract In: IElementStream;
-  public abstract Out: IElementStream;
-  public abstract upstream: IElementStream | IElementStream[];
-  public abstract downstream: IElementStream | IElementStream[];
+  public abstract _isEN: boolean;
+  public abstract In: IStreamOfNode;
+  public abstract Out: IStreamOfNode;
+  public abstract upstream: IStreamOfNode | IStreamOfNode[];
+  public abstract downstream: IStreamOfNode | IStreamOfNode[];
   public abstract name: string | undefined;
   public abstract parentNode: INodeLike | undefined;
   public abstract run(data?: any, caller?: IElementLike): any;
@@ -54,8 +55,9 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
 export abstract class NodeUpsMethods { }
 
 export abstract class NodeDwsMethods implements INodeHasDws {
-  public abstract Out: IElementStream;
-  public abstract downstream: IElementStream | IElementStream[];
+  public abstract _isEN: boolean;
+  public abstract Out: IStreamOfNode;
+  public abstract downstream: IStreamOfNode | IStreamOfNode[];
   public abstract name: string | undefined;
   public abstract parentNode: INodeLike | undefined;
   public abstract run(data?: any, caller?: IElementLike): any;

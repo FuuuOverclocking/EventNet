@@ -17,6 +17,8 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   NodeDwsMethods,
   NodeDwsUpsMethods {
 
+  public _isEN = true;
+
   // mixin methods
   // tslint:disable:max-line-length
   public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
@@ -51,10 +53,14 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
 
   // the default iostream of node
   public In: NodeStream = this.upstream;
-  public Out = this.downstream[0];
+  public Out: NodeStream = this.downstream[0];
 
   // the error stream of node
   public errorReceiver = this.downstream[1];
+
+  public beforeDestory: Array<(this: BasicNode, node: BasicNode) => void> = [];
+  public destoryed: Array<(this: BasicNode, node: BasicNode) => void> = [];
+  public abstract destory(): void;
 
   public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
   public readonly code: IRawNodeCode | INormalNodeCode;

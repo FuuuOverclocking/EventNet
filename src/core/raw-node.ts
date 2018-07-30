@@ -16,6 +16,16 @@ export class RawNode extends BasicNode {
     this.sync = sync;
   }
 
+  public destory() {
+    for (const fn of this.beforeDestory) {
+      fn.call(this, this);
+    }
+
+    for (const fn of this.destoryed) {
+      fn.call(this, this);
+    }
+  }
+
   public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this.sync) {
       try {
@@ -31,8 +41,8 @@ export class RawNode extends BasicNode {
           { origin: this },
         );
       }).catch(error => {
-          this.errorHandler(NodeRunningStage.code, error);
-        });
+        this.errorHandler(NodeRunningStage.code, error);
+      });
     }
   }
 }

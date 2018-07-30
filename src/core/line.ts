@@ -4,6 +4,7 @@ import { handleError, tip } from './util';
 import { weld } from './weld';
 
 export abstract class Line implements ILineHasUps, ILineHasDws {
+  public _isEN = true;
   public abstract type: ElementType;
   public readonly id: string | undefined;
   constructor(
@@ -36,9 +37,9 @@ export class Arrow extends Line {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
         handleError(new Error(`data '${
-                              String(data).length > 20 ?
-                                String(data).substr(0, 20) + '...' : String(data)
-                              }' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
+          String(data).length > 20 ?
+            String(data).substr(0, 20) + '...' : String(data)
+          }' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
         return;
       }
       if (!this.downstream.stream) {

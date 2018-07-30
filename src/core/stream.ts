@@ -2,11 +2,13 @@ import { Line } from './line';
 import {
   IElementLike, IElementStream, ILineHasUps,
   ILineLike, INodeHasDwsAndErrorReceiver, INodeLike,
+  IStreamOfLine,
+  IStreamOfNode,
   ITypedDictionary,
 } from './types';
 import { handleError } from './util';
 
-export class NodeStream implements IElementStream {
+export class NodeStream implements IStreamOfNode {
   public add(line: ILineLike) {
     if (~this.content.indexOf(line)) {
       return;
@@ -41,7 +43,7 @@ export class NodeStream implements IElementStream {
   /**
    * Return the lines having these features
    */
-  public ask(features: string[]): ILineLike[];
+  public ask(classes: string[]): ILineLike[];
   /**
    * Return the lines that meet the condition specified in a callback function
    */
@@ -113,5 +115,5 @@ export class SingleStream<Owner extends IElementLike, Stream extends IElementLik
     this.stream === node && (this.stream = void 0);
   }
 }
-export class LineStream extends SingleStream<ILineLike, INodeLike> { }
-export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorReceiver, ILineHasUps> { }
+export class LineStream extends SingleStream<ILineLike, INodeLike> implements IStreamOfLine { }
+export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorReceiver, ILineHasUps> implements IStreamOfNode { }

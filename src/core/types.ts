@@ -42,7 +42,9 @@ export interface IElementLike {
   // the element must have one of them
   upstream?: IElementStream | IElementStream[];
   downstream?: IElementStream | IElementStream[];
+
   type: number;
+  _isEN: boolean;
 }
 
 export interface IElementStream {
@@ -60,25 +62,36 @@ export interface IElementStream {
   del: (elem: IElementLike) => void;
 }
 
+// tslint:disable-next-line:no-empty-interface
+export interface IStreamOfNode extends IElementStream {}
+
+// tslint:disable-next-line:no-empty-interface
+export interface IStreamOfLine extends IElementStream {}
+
 export interface INodeLike extends IElementLike {
   name: string | undefined;
   parentNode: INodeLike | undefined;
+  upstream?: IStreamOfNode | IStreamOfNode[];
+  downstream?: IStreamOfNode | IStreamOfNode[];
+  destory?: () => void;
+  beforeDestory?: Array<(this: INodeLike, node: INodeLike) => void>;
+  destoryed?: Array<(this: INodeLike, node: INodeLike) => void>;
 }
 
 export interface INodeHasUps extends INodeLike {
-  In: IElementStream;
-  upstream: IElementStream | IElementStream[];
+  In: IStreamOfNode;
+  upstream: IStreamOfNode | IStreamOfNode[];
 }
 
 export interface INodeHasDwsAndErrorReceiver extends INodeLike, NodeDwsMethods {
-  Out: IElementStream;
-  errorReceiver: IElementStream;
-  downstream: [IElementStream, NodeErrorStream];
+  Out: IStreamOfNode;
+  errorReceiver: IStreamOfNode;
+  downstream: [IStreamOfNode, NodeErrorStream];
 }
 
 export interface INodeHasDws extends INodeLike, NodeDwsMethods {
-  Out: IElementStream;
-  downstream: IElementStream | IElementStream[];
+  Out: IStreamOfNode;
+  downstream: IStreamOfNode | IStreamOfNode[];
 }
 
 export interface ILineLike extends IElementLike {
@@ -87,11 +100,11 @@ export interface ILineLike extends IElementLike {
 }
 
 export interface ILineHasUps extends ILineLike {
-  upstream: LineStream;
+  upstream: IStreamOfLine;
 }
 
 export interface ILineHasDws extends ILineLike {
-  downstream: LineStream;
+  downstream: IStreamOfLine;
 }
 
 export enum NodeRunningStage {
@@ -102,9 +115,9 @@ export enum NodeRunningStage {
 }
 
 export type IRawNodeCode =
-  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: IRawNodeCodeThisExec) => any;
+  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: IRawNodeCodeMe) => any;
 export type INormalNodeCode =
-  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, thisExec: INormalNodeCodeThisExec) => any;
+  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: INormalNodeCodeMe) => any;
 export interface INodeCodeDWS extends Array<ICallableElementLike> {
   all: (data?: any) => void;
   ask: (
@@ -118,11 +131,11 @@ export interface INodeCodeUPS {
   data: any;
   caller: ILineHasDws | undefined;
 }
-export interface IRawNodeCodeThisExec {
+export interface IRawNodeCodeMe {
   origin: INodeLike;
 }
 
-export interface INormalNodeCodeThisExec {
+export interface INormalNodeCodeMe {
   origin: INodeLike;
   attrs: () => IDictionary;
   allAttrs: () => IDictionary;
