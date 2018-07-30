@@ -2,12 +2,12 @@ import { isObject } from 'util';
 import { NormalNode } from '..';
 import { LineStream } from '../stream';
 import {
-  ElementType, ICallableElementLike, ILineHasDws,
-  ILineHasUps, ILineLike, ILineOptions,
-  INodeHasDws, INodeHasUps, INodeLike,
+  ElementType, ICallableElementLike, IElementLike,
+  ILineHasDws, ILineHasUps, ILineLike,
+  ILineOptions, INodeHasDws, INodeHasUps, INodeLike, IWatchableElement,
 } from '../types';
 import { handleError } from '../util';
-import { deweld } from '../weld';
+import { deweld, weld } from '../weld';
 
 export abstract class StareLine implements ILineLike {
   public _isEN = true;
@@ -173,7 +173,8 @@ export class StarePipe extends StareLine implements ILineHasDws {
   }
 }
 
-// the upstream's and downstream's target must be EventNet Element
+// the upstream's and downstream's target must be EventNet Watchable Element
+// call the constructor will build the connection, different from others
 // twpipe on destory: deweld both side
 export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
   public type = ElementType.Pipe;
@@ -190,11 +191,9 @@ export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
     ) => void);
 
   constructor(
-    upsTarget: any,
-    upsWatchMethod: typeof NormalNode.prototype.watchMe,
+    upsTarget: IWatchableElement & INodeHasUps,
     upsExpOrFn: string | (() => any),
-    dwsTarget: any,
-    dwsWatchMethod: typeof NormalNode.prototype.watchMe,
+    dwsTarget: IWatchableElement & INodeHasUps,
     dwsExpOrFn: string | (() => any),
     callback: (
       upsNewVal: any,
@@ -221,24 +220,26 @@ export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
     let upsOldVal: any = void 0;
     let dwsOldVal: any = void 0;
 
-    upsWatchMethod.call(upsTarget, upsExpOrFn, (newVal: any, oldVal: any) => {
+    upsTarget.watchMe(upsExpOrFn, (newVal: any, oldVal: any) => {
       this.run([newVal, void 0, oldVal, dwsOldVal]);
       upsOldVal = newVal;
     }, { deep, sync, immediate });
-    dwsWatchMethod.call(dwsTarget, dwsExpOrFn, (newVal: any, oldVal: any) => {
+    dwsTarget.watchMe(dwsExpOrFn, (newVal: any, oldVal: any) => {
       this.run([void 0, newVal, upsOldVal, oldVal]);
       dwsOldVal = newVal;
     }, { deep, sync, immediate });
 
-    (upsTarget as INodeLike).destoryed!.push(() => {
+    upsTarget.destoryed && upsTarget.destoryed.push(() => {
       this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
       this.upstream.stream && deweld(this.upstream, (this.upstream.stream as INodeHasDws).Out);
     });
-    (dwsTarget as INodeLike).destoryed!.push(() => {
+    dwsTarget.destoryed && dwsTarget.destoryed.push(() => {
       this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
       this.upstream.stream && deweld(this.upstream, (this.upstream.stream as INodeHasDws).Out);
     });
 
+    weld(this.upstream, upsTarget.In);
+    weld(this.downstream, dwsTarget.In);
   }
 
   public run(data: [any, any, any, any]) {

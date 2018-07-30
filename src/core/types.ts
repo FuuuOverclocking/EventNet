@@ -47,6 +47,23 @@ export interface IElementLike {
   _isEN: boolean;
 }
 
+export interface IWatchableElement {
+  state: IDictionary;
+  watchMe: (
+    expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
+    callback: (newVal: any, oldVal: any) => void,
+    {
+      deep,
+      sync,
+      immediate,
+    }: {
+      deep: boolean,
+      sync: boolean,
+      immediate: boolean,
+    },
+  ) => () => void;
+}
+
 export interface IElementStream {
   owner: IElementLike;
 
@@ -63,10 +80,10 @@ export interface IElementStream {
 }
 
 // tslint:disable-next-line:no-empty-interface
-export interface IStreamOfNode extends IElementStream {}
+export interface IStreamOfNode extends IElementStream { }
 
 // tslint:disable-next-line:no-empty-interface
-export interface IStreamOfLine extends IElementStream {}
+export interface IStreamOfLine extends IElementStream { }
 
 export interface INodeLike extends IElementLike {
   name: string | undefined;

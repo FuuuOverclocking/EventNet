@@ -1,12 +1,15 @@
 import { _attrsStore as attrsStore, getAttrDefinition } from '.';
 import { BasicNode } from './basic-node';
+import { StareArrow, StarePipe } from './lines/stare-line';
 import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
-  ElementType, IAttrFuncCondition, IDictionary,
-  ILineHasDws, INormalNodeCode, NodeRunningStage,
+  ElementType, IAttrFuncCondition, ICallableElementLike,
+  IDictionary, ILineHasDws, ILineOptions,
+  INodeHasUps, INormalNodeCode, IWatchableElement, NodeRunningStage,
 } from './types';
 import { handleError, isObject, nextTick, remove, tip } from './util';
+import { weld } from './weld';
 
 // The default state of each new NormalNode.
 // The states of Node created by calling nn() is the result
@@ -17,7 +20,7 @@ export const defaultState = {
   running: 0,
 };
 
-export class NormalNode extends BasicNode {
+export class NormalNode extends BasicNode implements IWatchableElement {
 
   public type = ElementType.NormalNode;
 
@@ -199,6 +202,73 @@ export class NormalNode extends BasicNode {
     // Try-catch will copy all the variables in the current scope.
   }
 
+  public stareArrow(
+    node: INodeHasUps,
+    expOrFn: string | (() => any),
+    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+    {
+      deep = false,
+      sync = false,
+      immediate = false,
+    } = {},
+    { id, classes }: ILineOptions = {},
+  ) {
+    const line = new StareArrow(
+      this,
+      NormalNode.prototype.watchMe,
+      expOrFn,
+      callback,
+      { deep, sync, immediate },
+      { id, classes },
+    );
+    weld(line.downstream, node.In);
+    return node;
+  }
+
+  public starePipe(
+    node: INodeHasUps,
+    expOrFn: string | (() => any),
+    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+    {
+      deep = false,
+      sync = false,
+      immediate = false,
+    } = {},
+    { id, classes }: ILineOptions = {},
+  ) {
+    const line = new StarePipe(
+      this,
+      NormalNode.prototype.watchMe,
+      expOrFn,
+      callback,
+      { deep, sync, immediate },
+      { id, classes },
+    );
+    weld(line.downstream, node.In);
+    return node;
+  }
+
+  public stareTwpipe(
+    node: INodeHasUps,
+    expOrFn: string | (() => any),
+    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+    {
+      deep = false,
+      sync = false,
+      immediate = false,
+    } = {},
+    { id, classes }: ILineOptions = {},
+  ) {
+    const line = new StarePipe(
+      this,
+      NormalNode.prototype.watchMe,
+      expOrFn,
+      callback,
+      { deep, sync, immediate },
+      { id, classes },
+    );
+    weld(line.downstream, node.In);
+  }
 
   private async _codeAsync(data?: any, caller?: ILineHasDws) {
     ++this.state.runningTimes;
