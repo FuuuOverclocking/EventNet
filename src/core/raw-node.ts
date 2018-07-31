@@ -31,7 +31,7 @@ export class RawNode extends BasicNode {
       try {
         return this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
       } catch (error) {
-        this.errorHandler(NodeRunningStage.code, error);
+        this._errorHandler(NodeRunningStage.code, error);
       }
     } else {
       return nextTick().then(() => {
@@ -41,7 +41,7 @@ export class RawNode extends BasicNode {
           { origin: this },
         );
       }).catch(error => {
-        this.errorHandler(NodeRunningStage.code, error);
+        this._errorHandler(NodeRunningStage.code, error);
       });
     }
   }

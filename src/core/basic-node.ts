@@ -25,15 +25,15 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
   public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
   public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
-  public arrow: (node: INodeHasUps, options?: ILineOptions) => INodeHasUps;
-  public pipe: (node: INodeHasUps, options?: ILineOptions) => INodeHasUps;
-  public twpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
-  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => INodeHasDws & INodeHasUps;
-  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => INodeHasDws & INodeHasUps;
-  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
-  public arrowNext: (options?: ILineOptions) => INodeHasDws & INodeHasUps;
-  public pipeNext: (options?: ILineOptions) => INodeHasDws & INodeHasUps;
-  public twpipeNext: (options?: ILineOptions) => INodeHasUps & INodeHasDwsAndErrorReceiver;
+  public arrow: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
+  public pipe: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
+  public twpipe: <T extends (INodeHasUps & INodeHasDws)>(node: T, options?: ILineOptions) => T;
+  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
+  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
+  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => BasicNode;
+  public arrowNext: (options?: ILineOptions) => BasicNode;
+  public pipeNext: (options?: ILineOptions) => BasicNode;
+  public twpipeNext: (options?: ILineOptions) => BasicNode;
   // tslint:enable:max-line-length
 
   public readonly name: string | undefined;
@@ -113,7 +113,7 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
       handleError(new Error('errorReceiver must be assigned to Node, Pipe or Twpipe'), 'Node.setErrorReceiver', this);
     }
   }
-  protected errorHandler(when: NodeRunningStage, what?: any) {
+  public _errorHandler(when: NodeRunningStage, what?: any) {
     const er = this.errorReceiver.get();
     if (er) {
       er.run({ when, what }, this);

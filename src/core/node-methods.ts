@@ -25,8 +25,8 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
   public abstract createLine(node: INodeHasUps, options: any, type: ElementType): Arrow | Pipe | Twpipe;
   public abstract createArrow(node: INodeHasUps | null | undefined, options?: ILineOptions): Arrow;
   public abstract createPipe(node: INodeHasUps | null | undefined, options?: ILineOptions): Pipe;
-  public abstract arrow(node: INodeHasUps, options?: ILineOptions): INodeHasUps;
-  public abstract pipe(node: INodeHasUps, options?: ILineOptions): INodeHasUps;
+  public abstract arrow<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
+  public abstract pipe<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
   public abstract alsoArrow(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
   public abstract alsoPipe(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
   public abstract arrowNext(options?: ILineOptions): INodeHasDws & INodeHasUps;
@@ -38,7 +38,7 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
     weld(this.In, line.upstream);
     return line;
   }
-  public twpipe(node: (INodeHasUps & INodeHasDws), options?: ILineOptions): INodeHasUps & INodeHasDws {
+  public twpipe<T extends (INodeHasUps & INodeHasDws)>(node: T, options?: ILineOptions): T {
     this.createTwpipe(node, options);
     return node;
   }
@@ -83,11 +83,11 @@ export abstract class NodeDwsMethods implements INodeHasDws {
     weld(this.Out, line.upstream);
     return line;
   }
-  public arrow(node: INodeHasUps, options?: ILineOptions) {
+  public arrow<T extends INodeHasUps>(node: T, options?: ILineOptions): T {
     this.createArrow(node, options);
     return node;
   }
-  public pipe(node: INodeHasUps, options?: ILineOptions) {
+  public pipe<T extends INodeHasUps>(node: T, options?: ILineOptions): T {
     this.createPipe(node, options);
     return node;
   }

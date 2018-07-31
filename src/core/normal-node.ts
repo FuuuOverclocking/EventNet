@@ -176,11 +176,11 @@ export class NormalNode extends BasicNode implements IWatchableElement {
         if (isObject(error) && typeof error.when !== 'undefined') {
           //////////////////////////////////////////////////////////////
           if (typeof error.what !== 'undefined') {
-            this.errorHandler(error.when, error.what);
+            this._errorHandler(error.when, error.what);
           }
         } else {
           --this.state.running;
-          this.errorHandler(NodeRunningStage.code, error);
+          this._errorHandler(NodeRunningStage.code, error);
         }
       }
     } else {
@@ -190,11 +190,11 @@ export class NormalNode extends BasicNode implements IWatchableElement {
         if (typeof error.when !== 'undefined') {
           //////////////////////////////////////////////////////////////
           if (typeof error.what !== 'undefined') {
-            this.errorHandler(error.when, error.what);
+            this._errorHandler(error.when, error.what);
           }
         } else {
           --this.state.running;
-          this.errorHandler(NodeRunningStage.code, error);
+          this._errorHandler(NodeRunningStage.code, error);
         }
       });
     }
@@ -298,7 +298,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
           if (runningStage !== NodeRunningStage.over) {
             error = error || err;
           } else {
-            this.errorHandler(NodeRunningStage.before, err);
+            this._errorHandler(NodeRunningStage.before, err);
           }
         },
       };
@@ -377,7 +377,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
           if (runningStage !== NodeRunningStage.over) {
             error = error || err;
           } else {
-            this.errorHandler(NodeRunningStage.before, err);
+            this._errorHandler(NodeRunningStage.before, err);
           }
         },
       };
