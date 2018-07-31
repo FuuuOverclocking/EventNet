@@ -1,4 +1,3 @@
-import { Line } from './line';
 import {
   ElementType, IElementLike, IElementStream,
   ILineHasUps, ILineLike, INodeHasDwsAndErrorReceiver,
@@ -93,7 +92,7 @@ export class NodeStream implements IStreamOfNode {
         classCheck = (line: ILineLike) => {
           if (!line.classes) { return false; }
           for (const cl of classes as string[]) {
-            if (!~line.classes.indexOf(cl)) { return false; }
+            if (!~line.classes.indexOf(cl.substr(1))) { return false; }
           }
           return true;
         };

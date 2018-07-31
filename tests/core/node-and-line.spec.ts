@@ -147,11 +147,11 @@ test('NormalNode Watch Test', () => {
   const nd1 = nn({}, {
     HP: 100,
     MP: 99,
-  }, (dws, ups, thisExec) => {
-    thisExec.attrs();
-    thisExec.allAttrs();
-    thisExec.state.HP--;
-    thisExec.state.MP++;
+  }, (dws, ups, me) => {
+    me.attrs();
+    me.allAttrs();
+    me.state.HP--;
+    me.state.MP++;
   });
 
   const fn1 = jest.fn();
