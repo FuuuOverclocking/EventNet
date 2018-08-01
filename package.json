@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/xyzingh/EventNet/issues"
   },
-  "homepage": "http://justlog.xyz/eventnet",
+  "homepage": "https://eventnet.justlog.xyz/",
   "dependencies": {
     "@types/debug": "0.0.30",
     "debug": "^3.1.0",
@@ -33,7 +33,7 @@
     "ts-jest": "^22.4.6",
     "ts-loader": "^4.4.2",
     "tslint": "^5.10.0",
-    "typescript": "^2.9.2",
+    "typescript": "^3.0.1",
     "webpack": "^4.16.1",
     "webpack-cli": "^3.0.8"
   },

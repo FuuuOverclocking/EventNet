@@ -37,11 +37,11 @@ export class NodeStream implements IStreamOfNode {
 
   // tslint:disable:unified-signatures
   /**
-   * Return the line with the given querystring
+   * Return the lines meet the condition specified in the given querystring
    */
   public ask(querystring: string): ILineLike[];
   /**
-   * Return the lines having these features
+   * Return the lines having these classes
    */
   public ask(classes: string[]): ILineLike[];
   /**
@@ -109,8 +109,8 @@ export class NodeStream implements IStreamOfNode {
 
     } else if (Array.isArray(arg)) {
       fn = (line: ILineLike | undefined) => {
+        if (!line || !line.classes) { return; }
         for (const theClass of arg) {
-          if (!line || !line.classes) { continue; }
           if (!~line.classes.indexOf(theClass)) { return false; }
         }
         return true;

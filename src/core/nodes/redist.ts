@@ -1,23 +1,20 @@
 import { Arrow, Pipe } from '../line';
 import { NodeDwsMethods } from '../node-methods';
-import { NormalNode } from '../normal-node';
-import { IDictionary, ILineOptions, INodeHasDws, INodeHasUps, INormalNodeCode } from '../types';
+import { RawNode } from '../raw-node';
+import { ILineOptions, INodeHasUps } from '../types';
 import { handleError } from '../util';
+import { IRawNodeCode } from './../types';
 
-const redistCode: INormalNodeCode = (dws, ups, me) => {
-  me.state.data.push(ups.data);
+const redistCode: IRawNodeCode = (dws, ups, me) => {
+  (me.origin as RedistNode).upsDataSequence.push(ups.data);
   dws.all(ups.data);
 };
 
-export class RedistNode extends NormalNode {
+export class RedistNode extends RawNode {
   constructor() {
-    super(
-      { sync: true },
-      {
-        data: [],
-      },
-      redistCode);
+    super(redistCode, true);
   }
+  public upsDataSequence: any[] = [];
   public createArrow: (node: INodeHasUps, options?: ILineOptions) => Arrow;
   public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
 
@@ -34,7 +31,7 @@ RedistNode.prototype.createArrow = function(this: RedistNode, node: INodeHasUps,
       handleError(new Error('the target node must be designated'), 'RedistNode.createArrow');
   }
   const line: Arrow = NodeDwsMethods.prototype.createArrow.call(this, node, options);
-  for (const msg of this.state.data) {
+  for (const msg of this.upsDataSequence) {
     // if the msg !== undefined or null, it will cause errors
     line.run(msg, this);
   }
@@ -46,7 +43,7 @@ RedistNode.prototype.createPipe = function(this: RedistNode, node: INodeHasUps, 
       handleError(new Error('the target node must be designated'), 'RedistNode.createPipe');
   }
   const line: Pipe = NodeDwsMethods.prototype.createPipe.call(this, node, options);
-  for (const msg of this.state.data) {
+  for (const msg of this.upsDataSequence) {
     line.run(msg, this);
   }
   return line;

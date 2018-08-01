@@ -6,8 +6,7 @@ import {
   ILineHasDws, ILineHasUps, ILineLike,
   ILineOptions, INodeHasDws, INodeHasDwsAndErrorReceiver,
   INodeHasUps, INodeLike, INormalNodeCode,
-  IRawNodeCode,
-  NodeRunningStage,
+  IRawNodeCode, NodeRunningStage,
 } from './types';
 import { applyMixins, copyAugment, handleError, isNode, isPipe, isTwpipe } from './util';
 import { deweld, weld } from './weld';
