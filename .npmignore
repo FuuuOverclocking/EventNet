@@ -1,8 +1,9 @@
 docs/
-gulpfile.js
+node_test/
 scripts/
 src/
 tests/
+tsconfig.json
 tslint.json
 .gitattributes
 .gitmodules
