@@ -2,6 +2,7 @@ import { BasicNode } from './basic-node';
 import {
   ElementType,
   ILineHasDws,
+  INodeCodeDWS,
   IRawNodeCode,
   NodeRunningStage,
 } from './types';
@@ -29,14 +30,14 @@ export class RawNode extends BasicNode {
   public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this.sync) {
       try {
-        return this.code(this.Out.wrappedContent, { data, caller }, { origin: this });
+        return this.code(this.Out.wrappedStreams as INodeCodeDWS, { data, caller }, { origin: this });
       } catch (error) {
         this._errorHandler(NodeRunningStage.code, error);
       }
     } else {
       return nextTick().then(() => {
         return this.code(
-          this.Out.wrappedContent,
+          this.Out.wrappedStreams as INodeCodeDWS,
           { data, caller },
           { origin: this },
         );

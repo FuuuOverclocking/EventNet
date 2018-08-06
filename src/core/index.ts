@@ -3,14 +3,10 @@
  * Created by X.Y.Z. at March 3rd, 2018.
  * @version 0.0.2
  */
-import {
-  IDictionary,
-  INormalNodeCode,
-  IRawNodeCode,
-} from './types';
-
 import { _attrsStore, getAttrDefinition, installAttr } from './attr-manager';
 import './install-default-attrs';
+
+import { IDictionary, INormalNodeCode, IRawNodeCode } from './types';
 
 import { defaultState, NormalNode } from './normal-node';
 import { RawNode } from './raw-node';
@@ -83,4 +79,6 @@ export { RawNode };
 
 export { weld, deweld } from './weld';
 
+// temporary /////////////////////////////////////
 export * from './lines';
+export * from './nodes';

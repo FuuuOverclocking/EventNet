@@ -1,6 +1,6 @@
 # Read Me
 
-EventNet是一个轻量级流程设计和类响应式编程库，它将你的程序流程描述成由节点和连线构成的网络，并在此基础上利用附加的，不太轻的可视化工具EN Viewer，提供大量项目阅读、调试、重构、扩展等方面的面向开发者的福利。
+EventNet 是一个轻量的流程设计库，使用它的 API 可将 JavaScript 程序表述成一张有向图，以支持你进行函数式和流式编程，以及管理状态。在图的基础上，我们可以利用一些可视化工具和团队协作工具，使得项目的阅读、调试、重构、扩展变得更为直观和便捷。
 
 [![GitHub issues](https://img.shields.io/github/issues/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/issues)
 [![npm](https://img.shields.io/npm/v/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)

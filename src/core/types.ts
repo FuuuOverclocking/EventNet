@@ -48,7 +48,6 @@ export interface IElementLike {
 }
 
 export interface IWatchableElement {
-  state: IDictionary;
   watchMe: (
     expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
@@ -65,7 +64,7 @@ export interface IWatchableElement {
 }
 
 export interface IElementStream {
-  owner: IElementLike;
+  readonly owner: IElementLike;
 
   // add an element to the stream
   // this method must be able to de-duplicate
@@ -135,7 +134,7 @@ export type IRawNodeCode =
   (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: IRawNodeCodeMe) => any;
 export type INormalNodeCode =
   (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: INormalNodeCodeMe) => any;
-export interface INodeCodeDWS extends Array<ICallableElementLike> {
+export interface INodeCodeDWS extends Array<ICallableElementLike | undefined> {
   all: (data?: any) => void;
   ask: (
     askFor: string | string[] | ((line: ILineLike) => boolean),

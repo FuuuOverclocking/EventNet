@@ -6,7 +6,8 @@ import { Watcher } from './observer/watcher';
 import {
   ElementType, IAttrFuncCondition, ICallableElementLike,
   IDictionary, ILineHasDws, ILineOptions,
-  INodeHasUps, INormalNodeCode, IWatchableElement, NodeRunningStage,
+  INodeCodeDWS, INodeHasUps, INormalNodeCode,
+  IWatchableElement, NodeRunningStage,
 } from './types';
 import { handleError, isObject, nextTick, remove, tip } from './util';
 import { weld } from './weld';
@@ -312,7 +313,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = await this.code(
-      this.Out.wrappedContent,
+      this.Out.wrappedStreams as INodeCodeDWS,
       { data, caller },
       {
         origin: this,
@@ -391,7 +392,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = this.code(
-      this.Out.wrappedContent,
+      this.Out.wrappedStreams as INodeCodeDWS,
       { data, caller },
       {
         origin: this,

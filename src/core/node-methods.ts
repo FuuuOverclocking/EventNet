@@ -10,8 +10,6 @@ import { weld } from './weld';
 
 export const linesWaitingLink: ILineHasDws[] = [];
 
-export function getLinesWaitingLink() { return linesWaitingLink; }
-
 export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
   public abstract _isEN: boolean;
   public abstract In: IStreamOfNode;

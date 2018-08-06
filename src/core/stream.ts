@@ -7,32 +7,45 @@ import {
   ITypedDictionary,
 } from './types';
 import { handleError, isPipeLike, isTwpipe } from './util';
+class F {
+  constructor() {
+    this.abc = 'abc';
+    const fn = () => {
+      console.log(this);
+    };
+    fn.origin = this;
+    return fn;
+  }
+}
+
+const fff = new F();
+fff();
 
 export class NodeStream implements IStreamOfNode {
   public add(line: ILineLike) {
-    if (~this.content.indexOf(line)) {
+    if (~this.streams.indexOf(line)) {
       return;
     }
 
-    this.content.push(line);
+    this.streams.push(line);
 
-    this.wrappedContent && this.wrappedContent.push(this.wrapper(line));
+    this.wrappedStreams && this.wrappedStreams.push(this.wrapper(line));
 
     if (typeof line.id !== 'undefined') {
-      if (process.env.NODE_ENV !== 'production' && typeof this.contentById[line.id] !== 'undefined') {
+      if (process.env.NODE_ENV !== 'production' && typeof this.streamsById[line.id] !== 'undefined') {
         handleError('The stream of the same id already exists.', 'stream.add', this.owner);
       }
 
-      this.contentById[line.id] = line;
+      this.streamsById[line.id] = line;
     }
   }
 
   public get(index?: number): ILineLike | Array<ILineLike | undefined> | undefined {
-    return typeof index === 'undefined' ? this.content : this.content[index];
+    return typeof index === 'undefined' ? this.streams : this.streams[index];
   }
 
   public getById(id: string): ILineLike | undefined {
-    return this.contentById[id];
+    return this.streamsById[id];
   }
 
   // tslint:disable:unified-signatures
@@ -98,7 +111,7 @@ export class NodeStream implements IStreamOfNode {
         };
       }
 
-      for (const line of this.content) {
+      for (const line of this.streams) {
         if (!line) { continue; }
         if (typeCheck(line) && classCheck(line)) {
           res.push(line);
@@ -121,36 +134,38 @@ export class NodeStream implements IStreamOfNode {
       handleError(new Error('the type of param is wrong'), 'stream.find', this.owner);
     }
 
-    return this.content.filter(fn);
+    return this.streams.filter(fn);
   }
 
   public del(line: ILineLike) {
-    const i = this.content.indexOf(line);
+    const i = this.streams.indexOf(line);
     if (!~i) { return; }
-    delete this.content[i];
-    this.wrappedContent && delete this.wrappedContent[i];
+    delete this.streams[i];
+    this.wrappedStreams && delete this.wrappedStreams[i];
     if (line.id) {
-      delete this.contentById[line.id];
+      delete this.streamsById[line.id];
     }
   }
 
-  public owner: INodeLike;
-  private content: Array<ILineLike | undefined> = [];
-  private contentById: ITypedDictionary<ILineLike> = {};
+  public readonly owner: INodeLike;
+  private streams: Array<ILineLike | undefined> = [];
+  private streamsById: ITypedDictionary<ILineLike> = {};
 
-  public wrappedContent: any;
+  public wrappedStreams: any[];
   private wrapper: (line: ILineLike) => any;
-  public wrap(wrapper?: (line: ILineLike) => any) {
-    wrapper && (this.wrappedContent = []) && (this.wrapper = wrapper);
+  public useWrap(wrapper?: ((line: ILineLike) => any), wrappedStreamsDefaultValue?: any) {
+    if (!wrapper) { return; }
+    this.wrappedStreams = wrappedStreamsDefaultValue || [];
+    this.wrapper = wrapper;
   }
-  constructor(owner: INodeLike, wrapper?: (line: ILineLike) => any) {
+  constructor(owner: INodeLike, wrapper?: (line: ILineLike) => any, wrappedStreamsDefaultValue?: any) {
     this.owner = owner;
-    this.wrap(wrapper);
+    this.useWrap(wrapper, wrappedStreamsDefaultValue);
   }
 }
 
 export class SingleStream<Owner extends IElementLike, Stream extends IElementLike> implements IElementStream {
-  public owner: Owner;
+  public readonly owner: Owner;
   public stream: Stream | undefined = void 0;
   constructor(owner: Owner) {
     this.owner = owner;

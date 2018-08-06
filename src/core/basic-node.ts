@@ -1,17 +1,23 @@
+import { warn } from './../shared/util/debug';
 import { Arrow, Pipe, Twpipe } from './line';
-import { getLinesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods } from './node-methods';
+import { linesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods } from './node-methods';
 import { NodeErrorStream, NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
   ILineHasDws, ILineHasUps, ILineLike,
-  ILineOptions, INodeHasDws, INodeHasDwsAndErrorReceiver,
-  INodeHasUps, INodeLike, INormalNodeCode,
-  IRawNodeCode, NodeRunningStage,
+  ILineOptions, INodeCodeDWS, INodeHasDws,
+  INodeHasDwsAndErrorReceiver, INodeHasUps, INodeLike,
+  INormalNodeCode, IRawNodeCode, NodeRunningStage,
 } from './types';
-import { applyMixins, copyAugment, handleError, isNode, isPipe, isTwpipe } from './util';
+import {
+  applyMixins, def, handleError,
+  isNode, isPipe, isTwpipe,
+  isValidArrayIndex,
+} from './util';
 import { deweld, weld } from './weld';
 
-export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
+export abstract class BasicNode implements
+  INodeHasDwsAndErrorReceiver,
   INodeHasUps,
   NodeDwsMethods,
   NodeDwsUpsMethods {
@@ -26,7 +32,7 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
   public arrow: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
   public pipe: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
-  public twpipe: <T extends (INodeHasUps & INodeHasDws)>(node: T, options?: ILineOptions) => T;
+  public twpipe: <T extends (INodeHasUps & INodeHasDws) >(node: T, options?: ILineOptions) => T;
   public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
   public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
   public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => BasicNode;
@@ -40,13 +46,7 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
   public parentNode: INodeLike | undefined = void 0;
   public upstream: NodeStream = new NodeStream(this);
   public downstream: [NodeStream, NodeErrorStream] = [
-    new NodeStream(this, line => {
-      const func: ICallableElementLike = ((data?: any) => {
-        line.run(data, this);
-      }) as ICallableElementLike;
-      func.origin = line;
-      return func;
-    }),
+    new NodeStream(this, toCallableDws, new NodeCodeDws()),
     new NodeErrorStream(this),
   ];
 
@@ -63,29 +63,19 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
 
   public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
   public readonly code: IRawNodeCode | INormalNodeCode;
-  constructor(code: IRawNodeCode  | INormalNodeCode, name?: string) {
+  constructor(code: IRawNodeCode | INormalNodeCode, name?: string) {
+    def(this.Out.wrappedStreams, 'origin', this.Out);
+
     this.code = code;
     this.name = name;
 
-    copyAugment(this.Out.wrappedContent, {
-      all: BasicNode.codeParamDws.all.bind(this),
-      ask: BasicNode.codeParamDws.ask.bind(this),
-      id: BasicNode.codeParamDws.id.bind(this),
-      dispense: BasicNode.codeParamDws.dispense.bind(this),
-    }, [
-      'all',
-      'ask',
-      'id',
-      'dispense',
-    ]);
-
-    for (const line of getLinesWaitingLink()) {
+    for (const line of linesWaitingLink) {
       weld(this.In, line.downstream);
       if (isTwpipe(line.type)) {
         weld(this.Out, line.downstream);
       }
     }
-    getLinesWaitingLink().length = 0;
+    linesWaitingLink.length = 0;
   }
 
   public setErrorReceiver(elem: ILineHasUps | INodeHasUps | null) {
@@ -120,78 +110,75 @@ export abstract class BasicNode implements INodeHasDwsAndErrorReceiver,
       handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
     }
   }
-  protected static codeParamDws = {
-    all(this: BasicNode, data?: any) {
-      for (const dws of (this.Out.get() as Array<ILineLike | undefined>)) {
-        dws && dws.run(data, this);
-      }
-    },
-    id(this: BasicNode, id: string) {
-      const dws = this.Out.getById(id);
-      if (!dws) { return; }
+}
 
-      const res = (data => {
-        dws.run(data, this);
+function toCallableDws(this: NodeStream, line: ILineLike) {
+  const fn: ICallableElementLike = ((data?: any) => {
+    line.run(data, this.owner);
+  }) as ICallableElementLike;
+  fn.origin = line;
+  return fn;
+}
+
+class NodeCodeDws extends Array<ICallableElementLike | undefined> implements INodeCodeDWS {
+  public origin: typeof BasicNode.prototype.Out;
+  public all(data?: any) {
+    this.forEach(dws => dws && dws(data));
+  }
+  public id(id: string) {
+    const dws = this.origin.getById(id);
+    if (!dws) {
+      if (process.env.NODE_ENV !== 'production') {
+        warn(`Node.codeParamDws.id: There is no downstream with ID '${id}'.`,
+          this.origin.owner);
+      }
+      return;
+    }
+
+    const res = (data => {
+      dws.run(data, this.origin.owner);
+    }) as ICallableElementLike;
+    res.origin = dws;
+    return res;
+  }
+  public ask(askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
+    const dws = this.origin.ask(askFor as any);
+    const res: ICallableElementLike[] = [];
+    if (!dws.length) {
+      return res;
+    }
+
+    dws.forEach(line => {
+      if (typeof data !== 'undefined') { line.run(data, this.origin.owner); }
+      const fn = (d => {
+        line.run(d, this.origin.owner);
       }) as ICallableElementLike;
-      res.origin = dws;
-      return res;
-    },
-    ask(this: BasicNode, askFor: string | string[] | ((line: ILineLike) => boolean), data?: any) {
-      const dws = this.Out.ask(askFor as any);
-      const res: ICallableElementLike[] = [];
-      if (!dws.length) {
-        return res;
+      fn.origin = line;
+      res.push(fn);
+    });
+
+    return res;
+  }
+  // tslint:disable-next-line:variable-name
+  public dispense(IdValue_or_IndexValue: IDictionary) {
+    let downstream: ILineLike | undefined;
+    const isIndex = isValidArrayIndex(Object.keys(IdValue_or_IndexValue)[0]);
+
+    for (const i of Object.keys(IdValue_or_IndexValue)) {
+      downstream = (
+        isIndex
+          ? this.origin.get(Number(i))
+          : this.origin.getById(i)
+      ) as ILineLike | undefined;
+
+      if (downstream) {
+        downstream.run(IdValue_or_IndexValue[i], this.origin.owner);
+      } else if (process.env.NODE_ENV !== 'production') {
+        warn(`Node.codeParamDws.dispense: There is no downstream with ID or index '${i}'.`,
+          this.origin.owner);
       }
-
-      dws.forEach(line => {
-        if (typeof data !== 'undefined') { line.run(data, this); }
-        const func = (d => {
-          line.run(d, this);
-        }) as ICallableElementLike;
-        func.origin = line;
-        res.push(func);
-      });
-
-      return res;
-    },
-    // tslint:disable-next-line:variable-name
-    dispense(this: BasicNode, IdValue_or_IndexValue: IDictionary) {
-      let downstream: ILineLike | undefined;
-      if (isNaN(Number(
-        Object.keys(IdValue_or_IndexValue)[0]))) {
-        // Identify 'keyValue' with ID-value type.
-        for (const id of Object.keys(IdValue_or_IndexValue)) {
-          downstream = this.Out.getById(id);
-
-          if (downstream) {
-            downstream.run(IdValue_or_IndexValue[id], this);
-          } else if (process.env.NODE_ENV !== 'production') {
-            handleError(
-              new Error(`There is no downstream with ID '${id}'.`),
-              'Node.codeParamDws.get',
-              this);
-          }
-        }
-      } else {
-        // Identify 'keyValue' with index-value type.
-
-        // for-in will skip those index(es) that don't have value
-        // tslint:disable-next-line:forin
-        for (const index in IdValue_or_IndexValue) {
-          downstream = this.Out.get(Number(index)) as ILineLike | undefined;
-
-          if (typeof downstream !== 'undefined') {
-            downstream.run(IdValue_or_IndexValue[index], this);
-          } else if (process.env.NODE_ENV !== 'production') {
-            handleError(
-              new Error(`There is no downstream at position ${index}.`),
-              'Node.codeParamDws.get',
-              this);
-          }
-        }
-      }
-    },
-  };
+    }
+  }
 }
 
 applyMixins(BasicNode, [NodeDwsMethods, NodeDwsUpsMethods]);
