@@ -1,11 +1,7 @@
 import { NodeDwsMethods } from './node-methods';
 import { LineStream, NodeErrorStream, NodeStream } from './stream';
 
-export interface IDictionary {
-  [index: string]: any;
-}
-
-export interface ITypedDictionary<T> {
+export interface IDictionary<T = any> {
   [index: string]: T | undefined;
 }
 
@@ -21,14 +17,14 @@ export interface ICallableElementLike {
  * Lowest bit: 0 - Node,    1 - Line
  *
  * For Node:
- *   1-th bit: 0 - Normal,  1 - Raw
+ *   1-th bit: 0 - Stateless,  1 - Stateful
  * For Line:
- *   1-th bit: 0 - Arrow,   1 - Some kinds of pipe
+ *   1-th bit: 0 - Arrow,   1 - Pipe-like
  *   0-th bit: 0 - one-way, 1 - two-way
  */
 export enum ElementType {
-  NormalNode = 0b000,
-  RawNode = 0b010,
+  RawNode = 0b00,
+  NormalNode = 0b10,
   Arrow = 0b001,
   Pipe = 0b011,
   Twpipe = 0b111,
@@ -44,12 +40,11 @@ export interface IElementLike {
   downstream?: IElementStream | IElementStream[];
 
   type: number;
-  _isEN: boolean;
 }
 
 export interface IWatchableElement {
   watchMe: (
-    expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
+    expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
     {
       deep,
@@ -78,11 +73,13 @@ export interface IElementStream {
   del: (elem: IElementLike) => void;
 }
 
-// tslint:disable-next-line:no-empty-interface
-export interface IStreamOfNode extends IElementStream { }
+export interface IStreamOfNode extends IElementStream {
+  readonly owner: INodeLike;
+}
 
-// tslint:disable-next-line:no-empty-interface
-export interface IStreamOfLine extends IElementStream { }
+export interface IStreamOfLine extends IElementStream {
+  readonly owner: ILineLike;
+}
 
 export interface INodeLike extends IElementLike {
   name: string | undefined;
@@ -90,7 +87,7 @@ export interface INodeLike extends IElementLike {
   upstream?: IStreamOfNode | IStreamOfNode[];
   downstream?: IStreamOfNode | IStreamOfNode[];
   destory?: () => void;
-  beforeDestory?: Array<(this: INodeLike, node: INodeLike) => void>;
+  ondestory?: Array<(this: INodeLike, node: INodeLike) => void>;
   destoryed?: Array<(this: INodeLike, node: INodeLike) => void>;
 }
 
@@ -101,7 +98,7 @@ export interface INodeHasUps extends INodeLike {
 
 export interface INodeHasDwsAndErrorReceiver extends INodeLike, NodeDwsMethods {
   Out: IStreamOfNode;
-  errorReceiver: IStreamOfNode;
+  Err: IStreamOfNode;
   downstream: [IStreamOfNode, NodeErrorStream];
 }
 
@@ -140,7 +137,7 @@ export interface INodeCodeDWS extends Array<ICallableElementLike | undefined> {
     askFor: string | string[] | ((line: ILineLike) => boolean),
     data?: any,
   ) => ICallableElementLike[];
-  id: (id: string) => ICallableElementLike;
+  id: (id: string) => ICallableElementLike | undefined;
   dispense: (IdValue_or_IndexValue: IDictionary) => void;
 }
 export interface INodeCodeUPS {

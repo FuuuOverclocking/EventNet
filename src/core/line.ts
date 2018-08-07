@@ -4,7 +4,6 @@ import { handleError, tip } from './util';
 import { weld } from './weld';
 
 export abstract class Line implements ILineHasUps, ILineHasDws {
-  public _isEN = true;
   public abstract type: ElementType;
   public readonly id: string | undefined;
   constructor(

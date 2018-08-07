@@ -10,7 +10,6 @@ import { handleError } from '../util';
 import { deweld, weld } from '../weld';
 
 export abstract class StareLine implements ILineLike {
-  public _isEN = true;
   public readonly id: string | undefined;
   public classes: string[] = [];
   public abstract type: ElementType;
@@ -212,10 +211,10 @@ export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
   ) {
     super(callback, { id, classes });
 
-    if (!upsTarget._isEN || !dwsTarget._isEN) {
-      // tslint:disable-next-line:quotemark
-      handleError(new Error("the upstream's and downstream's target must be EventNet Element"), 'StareTwpipe');
-    }
+    // if (!upsTarget._isEN || !dwsTarget._isEN) {
+    //   // tslint:disable-next-line:quotemark
+    //   handleError(new Error("the upstream's and downstream's target must be EventNet Element"), 'StareTwpipe');
+    // }
 
     let upsOldVal: any = void 0;
     let dwsOldVal: any = void 0;

@@ -24,7 +24,7 @@ export function isValidArrayIndex(val: any): boolean {
 export function remove(arr: any[], item: any): any[] | void {
   if (arr.length) {
     const index = arr.indexOf(item);
-    if (index > -1) {
+    if (~index) {
       return arr.splice(index, 1);
     }
   }
@@ -45,16 +45,16 @@ export function isNode(type: number) {
   return !(type & 1);
 }
 
-export function isRaw(type: number) {
-  return !!(isNode(type) && (type & 0b10));
-}
-
-export function isPipe(type: number) {
-  return !isNode(type) && (type & 0b10) && !(type & 0b100);
+export function isStateless(type: number) {
+  return isNode(type) && !(type & 0b10);
 }
 
 export function isPipeLike(type: number) {
   return !!(!isNode(type) && (type & 0b10));
+}
+
+export function isPipe(type: number) {
+  return !isNode(type) && (type & 0b10) && !(type & 0b100);
 }
 
 export function isTwpipe(type: number) {

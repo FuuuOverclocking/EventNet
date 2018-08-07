@@ -10,7 +10,7 @@ import { nextTick } from './util';
 
 export class RawNode extends BasicNode {
   public type = ElementType.RawNode;
-  public code: IRawNodeCode;
+  public readonly code: IRawNodeCode;
   public sync: boolean;
   constructor(code: IRawNodeCode, sync: boolean = true, name?: string) {
     super(code, name);
@@ -18,13 +18,10 @@ export class RawNode extends BasicNode {
   }
 
   public destory() {
-    for (const fn of this.beforeDestory) {
+    for (const fn of this.ondestory) {
       fn.call(this, this);
     }
-
-    for (const fn of this.destoryed) {
-      fn.call(this, this);
-    }
+    ////////////////////////////////////////////
   }
 
   public run(data?: any, caller?: ILineHasDws): any | Promise<any> {

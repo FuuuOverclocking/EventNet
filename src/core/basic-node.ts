@@ -22,25 +22,6 @@ export abstract class BasicNode implements
   NodeDwsMethods,
   NodeDwsUpsMethods {
 
-  public _isEN = true;
-
-  // mixin methods
-  // tslint:disable:max-line-length
-  public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
-  public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
-  public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
-  public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
-  public arrow: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
-  public pipe: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
-  public twpipe: <T extends (INodeHasUps & INodeHasDws) >(node: T, options?: ILineOptions) => T;
-  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
-  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
-  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => BasicNode;
-  public arrowNext: (options?: ILineOptions) => BasicNode;
-  public pipeNext: (options?: ILineOptions) => BasicNode;
-  public twpipeNext: (options?: ILineOptions) => BasicNode;
-  // tslint:enable:max-line-length
-
   public readonly name: string | undefined;
   public abstract type: ElementType;
   public parentNode: INodeLike | undefined = void 0;
@@ -55,10 +36,14 @@ export abstract class BasicNode implements
   public Out: NodeStream = this.downstream[0];
 
   // the error stream of node
-  public errorReceiver = this.downstream[1];
+  public Err: NodeErrorStream = this.downstream[1];
 
-  public beforeDestory: Array<(this: BasicNode, node: BasicNode) => void> = [];
-  public destoryed: Array<(this: BasicNode, node: BasicNode) => void> = [];
+  public ondestory: Array<(this: BasicNode, node: BasicNode) => void> = [];
+  /**
+   * Destory the Node
+   * execute all the functions in the array `ondestory`
+   * delete all the lines in the up/downstream
+   */
   public abstract destory(): void;
 
   public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
@@ -78,10 +63,10 @@ export abstract class BasicNode implements
     linesWaitingLink.length = 0;
   }
 
-  public setErrorReceiver(elem: ILineHasUps | INodeHasUps | null) {
-    const original = this.errorReceiver.get();
+  public setErrStream(elem: ILineHasUps | INodeHasUps | null) {
+    const original = this.Err.get();
     if (original) {
-      deweld(this.errorReceiver, original.upstream);
+      deweld(this.Err, original.upstream);
       if (isTwpipe(original.type)) {
         deweld(this.In, original.upstream);
       }
@@ -92,24 +77,42 @@ export abstract class BasicNode implements
     }
     if (isNode(elem.type)) {
       const pipe = new Pipe(null, elem as INodeHasUps, { classes: 'error' });
-      weld(this.errorReceiver, pipe.upstream);
+      weld(this.Err, pipe.upstream);
     } else if (isPipe(elem.type)) {
-      weld(this.errorReceiver, (elem as ILineHasUps).upstream);
+      weld(this.Err, (elem as ILineHasUps).upstream);
     } else if (isTwpipe(elem.type)) {
-      weld(this.errorReceiver, (elem as ILineHasUps).upstream);
+      weld(this.Err, (elem as ILineHasUps).upstream);
       weld(this.In, (elem as ILineHasUps).upstream);
     } else {
       handleError(new Error('errorReceiver must be assigned to Node, Pipe or Twpipe'), 'Node.setErrorReceiver', this);
     }
   }
   public _errorHandler(when: NodeRunningStage, what?: any) {
-    const er = this.errorReceiver.get();
+    const er = this.Err.get();
     if (er) {
       er.run({ when, what }, this);
     } else {
       handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
     }
   }
+
+  // mixin methods
+  // tslint:disable:max-line-length
+  public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
+  public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
+  public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
+  public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
+  public arrow: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
+  public pipe: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
+  public twpipe: <T extends (INodeHasUps & INodeHasDws) >(node: T, options?: ILineOptions) => T;
+  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
+  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
+  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => BasicNode;
+  public arrowNext: (options?: ILineOptions) => BasicNode;
+  public pipeNext: (options?: ILineOptions) => BasicNode;
+  public twpipeNext: (options?: ILineOptions) => BasicNode;
+  // tslint:enable:max-line-length
+
 }
 
 function toCallableDws(this: NodeStream, line: ILineLike) {

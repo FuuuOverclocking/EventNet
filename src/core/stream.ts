@@ -1,25 +1,10 @@
 import {
-  ElementType, IElementLike, IElementStream,
-  ILineHasUps, ILineLike, INodeHasDwsAndErrorReceiver,
-  INodeLike,
-  IStreamOfLine,
+  IDictionary, IElementLike,
+  IElementStream, ILineHasUps, ILineLike,
+  INodeHasDwsAndErrorReceiver, INodeLike, IStreamOfLine,
   IStreamOfNode,
-  ITypedDictionary,
 } from './types';
 import { handleError, isPipeLike, isTwpipe } from './util';
-class F {
-  constructor() {
-    this.abc = 'abc';
-    const fn = () => {
-      console.log(this);
-    };
-    fn.origin = this;
-    return fn;
-  }
-}
-
-const fff = new F();
-fff();
 
 export class NodeStream implements IStreamOfNode {
   public add(line: ILineLike) {
@@ -149,7 +134,7 @@ export class NodeStream implements IStreamOfNode {
 
   public readonly owner: INodeLike;
   private streams: Array<ILineLike | undefined> = [];
-  private streamsById: ITypedDictionary<ILineLike> = {};
+  private streamsById: IDictionary<ILineLike> = {};
 
   public wrappedStreams: any[];
   private wrapper: (line: ILineLike) => any;

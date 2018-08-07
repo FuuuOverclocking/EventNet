@@ -25,7 +25,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
 
   public type = ElementType.NormalNode;
 
-  public code: INormalNodeCode;
+  public readonly code: INormalNodeCode;
 
   public state: IDictionary;
   public watchMe(
@@ -58,20 +58,17 @@ export class NormalNode extends BasicNode implements IWatchableElement {
   }
 
   public destory() {
-    for (const fn of this.beforeDestory) {
+    for (const fn of this.ondestory) {
       fn.call(this, this);
     }
 
+    ///////////////////////////////////////////////
     for (const watcher of this._watchers) {
       watcher && remove(this._watchers, watcher);
       watcher.teardown();
     }
 
     this.state = null as any;
-
-    for (const fn of this.destoryed) {
-      fn.call(this, this);
-    }
   }
 
   private _attrs: {
