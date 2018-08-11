@@ -31,6 +31,9 @@ export enum ElementType {
 }
 
 export interface IElementLike {
+  // Unique Identifier
+  uid: number;
+
   // the method to run the element
   run: (data?: any, caller?: IElementLike) => any;
 
@@ -40,9 +43,27 @@ export interface IElementLike {
   downstream?: IElementStream | IElementStream[];
 
   type: number;
+
+  clone?: () => IElementLike;
+  destroy?: () => void;
+  state?: IDictionary;
+  watchMe?: (
+    expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
+    callback: (newVal: any, oldVal: any) => void,
+    {
+      deep,
+      sync,
+      immediate,
+    }: {
+      deep: boolean,
+      sync: boolean,
+      immediate: boolean,
+    },
+  ) => () => void;
 }
 
 export interface IWatchableElement {
+  state: IDictionary;
   watchMe: (
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
@@ -82,13 +103,11 @@ export interface IStreamOfLine extends IElementStream {
 }
 
 export interface INodeLike extends IElementLike {
-  name: string | undefined;
-  parentNode: INodeLike | undefined;
+  parent: INodeLike | undefined;
   upstream?: IStreamOfNode | IStreamOfNode[];
   downstream?: IStreamOfNode | IStreamOfNode[];
   destory?: () => void;
   ondestory?: Array<(this: INodeLike, node: INodeLike) => void>;
-  destoryed?: Array<(this: INodeLike, node: INodeLike) => void>;
 }
 
 export interface INodeHasUps extends INodeLike {
@@ -181,7 +200,7 @@ export interface IAttrFuncCondition {
 
 export interface ILineOptions {
   id?: string;
-  classes?: string | string[];
+  classes?: string[];
 }
 
 export interface ISimpleSet<T> {

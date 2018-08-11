@@ -13,12 +13,6 @@ export const linesWaitingLink: ILineHasDws[] = [];
 export abstract class NodeUpsMethods { }
 
 export abstract class NodeDwsMethods implements INodeHasDws {
-  public abstract Out: IStreamOfNode;
-  public abstract downstream: IStreamOfNode | IStreamOfNode[];
-  public abstract name: string | undefined;
-  public abstract parentNode: INodeLike | undefined;
-  public abstract run(data?: any, caller?: IElementLike): any;
-  public abstract type: number;
   public createLine(node: INodeHasUps, options: any = {}, type: ElementType) {
     if (isPipeLike(type)) {
       if (isTwpipe(type)) {
@@ -64,27 +58,16 @@ export abstract class NodeDwsMethods implements INodeHasDws {
     linesWaitingLink.push(this.createPipe(null, options));
     return this;
   }
+
+  public abstract uid: number;
+  public abstract Out: IStreamOfNode;
+  public abstract downstream: IStreamOfNode | IStreamOfNode[];
+  public abstract parent: INodeLike | undefined;
+  public abstract run(data?: any, caller?: IElementLike): any;
+  public abstract type: number;
 }
 
 export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
-  public abstract In: IStreamOfNode;
-  public abstract Out: IStreamOfNode;
-  public abstract upstream: IStreamOfNode | IStreamOfNode[];
-  public abstract downstream: IStreamOfNode | IStreamOfNode[];
-  public abstract name: string | undefined;
-  public abstract parentNode: INodeLike | undefined;
-  public abstract run(data?: any, caller?: IElementLike): any;
-  public abstract type: number;
-  public abstract createLine(node: INodeHasUps, options: any, type: ElementType): Arrow | Pipe | Twpipe;
-  public abstract createArrow(node: INodeHasUps | null | undefined, options?: ILineOptions): Arrow;
-  public abstract createPipe(node: INodeHasUps | null | undefined, options?: ILineOptions): Pipe;
-  public abstract arrow<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
-  public abstract pipe<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
-  public abstract alsoArrow(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
-  public abstract alsoPipe(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
-  public abstract arrowNext(options?: ILineOptions): INodeHasDws & INodeHasUps;
-  public abstract pipeNext(options?: ILineOptions): INodeHasDws & INodeHasUps;
-
   public createTwpipe(node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) {
     const line = new Twpipe(this, node, options);
     weld(this.Out, line.upstream);
@@ -103,4 +86,22 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
     linesWaitingLink.push(this.createTwpipe(null, options));
     return this;
   }
+
+  public abstract uid: number;
+  public abstract In: IStreamOfNode;
+  public abstract Out: IStreamOfNode;
+  public abstract upstream: IStreamOfNode | IStreamOfNode[];
+  public abstract downstream: IStreamOfNode | IStreamOfNode[];
+  public abstract parent: INodeLike | undefined;
+  public abstract run(data?: any, caller?: IElementLike): any;
+  public abstract type: number;
+  public abstract createLine(node: INodeHasUps, options: any, type: ElementType): Arrow | Pipe | Twpipe;
+  public abstract createArrow(node: INodeHasUps | null | undefined, options?: ILineOptions): Arrow;
+  public abstract createPipe(node: INodeHasUps | null | undefined, options?: ILineOptions): Pipe;
+  public abstract arrow<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
+  public abstract pipe<T extends INodeHasUps>(node: T, options?: ILineOptions): T;
+  public abstract alsoArrow(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
+  public abstract alsoPipe(node: INodeHasUps, options?: ILineOptions): INodeHasDws & INodeHasUps;
+  public abstract arrowNext(options?: ILineOptions): INodeHasDws & INodeHasUps;
+  public abstract pipeNext(options?: ILineOptions): INodeHasDws & INodeHasUps;
 }

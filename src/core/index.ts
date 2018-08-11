@@ -46,30 +46,33 @@ export function nn(attrs: any, state?: any, code?: any) {
 /**
  * Create a EventNet RawNode.
  * @param {Function} code set the code of Node
- * @param {boolean} sync whether the Node running synchronously or asynchronously
- * @param {string} name set the name of Node
  * @returns {RawNode} a new EventNet RawNode
  */
-export function raw(code: IRawNodeCode, sync?: boolean, name?: string): RawNode;
+export function raw(code: IRawNodeCode): RawNode;
+/**
+ * Create a EventNet RawNode.
+ * @param {boolean} sync whether the Node running synchronously or asynchronously
+ * @param {Function} code set the code of Node
+ * @returns {RawNode} a new EventNet RawNode
+ */
+export function raw(sync: boolean, code: IRawNodeCode): RawNode;
 
 /**
  * Create a EventNet RawNode.
  * @param {boolean} sync whether the Node running synchronously or asynchronously
- * @param {string} name set the name of Node
  * @param {Function} code set the code of Node
  * @returns {RawNode} a new EventNet RawNode
  */
-export function raw({ sync, name }: {sync?: boolean, name?: string}, code: IRawNodeCode): RawNode;
+// tslint:disable-next-line:unified-signatures
+export function raw({ sync }: { sync?: boolean }, code: IRawNodeCode): RawNode;
 
-export function raw(arg1: any, arg2?: any, arg3?: any): RawNode {
+export function raw(arg1: any, arg2?: any): RawNode {
   if (typeof arg1 === 'function') {
-    if (typeof arg2 === 'undefined') {
-      arg2 = true;
-    }
-    return new RawNode(arg1, arg2, arg3);
+    return new RawNode({ sync: true }, arg1);
+  } else if (typeof arg1 === 'boolean') {
+    return new RawNode({ sync: arg1 }, arg2);
   } else {
-    const { sync = true, name } = arg1;
-    return new RawNode(arg2, sync, name);
+    return new RawNode(arg1, arg2);
   }
 }
 

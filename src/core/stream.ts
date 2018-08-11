@@ -125,10 +125,10 @@ export class NodeStream implements IStreamOfNode {
   public del(line: ILineLike) {
     const i = this.streams.indexOf(line);
     if (!~i) { return; }
-    delete this.streams[i];
+    this.streams[i] = void 0;
     this.wrappedStreams && delete this.wrappedStreams[i];
     if (line.id) {
-      delete this.streamsById[line.id];
+      this.streamsById[line.id] = void 0;
     }
   }
 

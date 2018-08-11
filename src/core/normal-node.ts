@@ -1,31 +1,37 @@
 import { _attrsStore as attrsStore, getAttrDefinition } from '.';
 import { BasicNode } from './basic-node';
-import { StareArrow, StarePipe } from './lines/stare-line';
 import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
-  ElementType, IAttrFuncCondition, ICallableElementLike,
-  IDictionary, ILineHasDws, ILineOptions,
-  INodeCodeDWS, INodeHasUps, INormalNodeCode,
+  ElementType, IAttrFuncCondition,
+  IDictionary, ILineHasDws,
+  INodeCodeDWS, INormalNodeCode,
   IWatchableElement, NodeRunningStage,
 } from './types';
-import { handleError, isObject, nextTick, remove, tip } from './util';
-import { weld } from './weld';
+import { handleError, isObject, remove, tip } from './util';
 
 // The default state of each new NormalNode.
 // The states of Node created by calling nn() is the result
 // of assigning parameter `states` to the default state.
 export const defaultState = {
+  // the value of `data` won't be watched
   data: {},
+
+  // record how many times the node has run
   runningTimes: 0,
+
+  // how many node now is running
   running: 0,
 };
+
+const p = Promise.resolve();
 
 export class NormalNode extends BasicNode implements IWatchableElement {
 
   public type = ElementType.NormalNode;
 
   public readonly code: INormalNodeCode;
+
 
   public state: IDictionary;
   public watchMe(
@@ -45,30 +51,34 @@ export class NormalNode extends BasicNode implements IWatchableElement {
       callback.call(this.state, value, value);
     }
 
-    return () => {
-      watcher && remove(this._watchers, watcher);
+    const deconstructor = () => {
+      if (!watcher) { return; }
+      remove(this._watchers, watcher);
       watcher.teardown();
       watcher = null as any;
     };
+    this.ondestory.push(deconstructor);
+    return deconstructor;
   }
   private _watchers: Watcher[] = [];
   public get watchers() {
-    const copies = this._watchers.slice();
-    return copies;
+    return this._watchers.slice();
   }
+
+
+  public clone(): NormalNode {
+    const clonedNode = new NormalNode(this.attrs, Object.assign({}, this.state), this.code);
+    return clonedNode;
+  }
+
 
   public destory() {
     for (const fn of this.ondestory) {
       fn.call(this, this);
     }
 
-    ///////////////////////////////////////////////
-    for (const watcher of this._watchers) {
-      watcher && remove(this._watchers, watcher);
-      watcher.teardown();
-    }
-
     this.state = null as any;
+    ////////////////////////////////////////////
   }
 
   private _attrs: {
@@ -78,9 +88,8 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     afterSequence: Array<{ name: string, value: any, priority: number }>;
   };
   public get attrs(): IDictionary {
-    // Only the clone with its own property is exposed,
-    // so modifying `attr` is invalid.
-    // The inherited property is not exposed.
+    // Clone node's own attrs and return,
+    // the inherited attrs are not exposed.
     return Object.assign({}, this._attrs.own);
   }
   public get allAttrs(): IDictionary {
@@ -135,19 +144,19 @@ export class NormalNode extends BasicNode implements IWatchableElement {
   }
 
   constructor(attrs: IDictionary, state: IDictionary, code: INormalNodeCode) {
-    super(code, attrs.name);
+    super(code);
     if (process.env.NODE_ENV !== 'production') {
       if (typeof attrs.sync !== 'undefined' && typeof attrs.sync !== 'boolean') {
         handleError(new Error('Attribution \'sync\' must be set to true or false.'), 'NodeConstructor');
       }
-      for (const name of Object.keys(attrs)) {
-        if (!getAttrDefinition(name)) {
+      for (const attrName of Object.keys(attrs)) {
+        if (!getAttrDefinition(attrName)) {
           tip(`NodeConstructor: Attr '${
-            name
+            attrName
             }' has not been installed. It should be installed before the node runs.`);
-        } else if (attrsStore.typed[name] && typeof attrs[name] !== attrsStore.typed[name]) {
+        } else if (attrsStore.typed[attrName] && typeof attrs[attrName] !== attrsStore.typed[attrName]) {
           handleError(new Error(
-            `EventNet.Node: The type of attribution '${name}' must be ${attrsStore.typed[name]}.`,
+            `EventNet.Node: The type of attribution '${attrName}' must be ${attrsStore.typed[attrName]}.`,
           ), 'NodeConstructor');
         }
       }
@@ -169,7 +178,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
   public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
     if (this._attrs.own.sync) {
       try {
-        return this._codeSync(data, caller);
+        return this.codeSync(data, caller);
       } catch (error) {
         if (isObject(error) && typeof error.when !== 'undefined') {
           //////////////////////////////////////////////////////////////
@@ -182,8 +191,8 @@ export class NormalNode extends BasicNode implements IWatchableElement {
         }
       }
     } else {
-      return nextTick().then(() => {
-        return this._codeAsync(data, caller);
+      return p.then(() => {
+        return this.codeAsync(data, caller);
       }).catch(error => {
         if (typeof error.when !== 'undefined') {
           //////////////////////////////////////////////////////////////
@@ -200,75 +209,75 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     // Try-catch will copy all the variables in the current scope.
   }
 
-  public stareArrow(
-    node: INodeHasUps,
-    expOrFn: string | (() => any),
-    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-    {
-      deep = false,
-      sync = false,
-      immediate = false,
-    } = {},
-    { id, classes }: ILineOptions = {},
-  ) {
-    const line = new StareArrow(
-      this,
-      NormalNode.prototype.watchMe,
-      expOrFn,
-      callback,
-      { deep, sync, immediate },
-      { id, classes },
-    );
-    weld(line.downstream, node.In);
-    return node;
-  }
+  // public stareArrow(
+  //   node: INodeHasUps,
+  //   expOrFn: string | (() => any),
+  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+  //   {
+  //     deep = false,
+  //     sync = false,
+  //     immediate = false,
+  //   } = {},
+  //   { id, classes }: ILineOptions = {},
+  // ) {
+  //   const line = new StareArrow(
+  //     this,
+  //     NormalNode.prototype.watchMe,
+  //     expOrFn,
+  //     callback,
+  //     { deep, sync, immediate },
+  //     { id, classes },
+  //   );
+  //   weld(line.downstream, node.In);
+  //   return node;
+  // }
 
-  public starePipe(
-    node: INodeHasUps,
-    expOrFn: string | (() => any),
-    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-    {
-      deep = false,
-      sync = false,
-      immediate = false,
-    } = {},
-    { id, classes }: ILineOptions = {},
-  ) {
-    const line = new StarePipe(
-      this,
-      NormalNode.prototype.watchMe,
-      expOrFn,
-      callback,
-      { deep, sync, immediate },
-      { id, classes },
-    );
-    weld(line.downstream, node.In);
-    return node;
-  }
+  // public starePipe(
+  //   node: INodeHasUps,
+  //   expOrFn: string | (() => any),
+  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+  //   {
+  //     deep = false,
+  //     sync = false,
+  //     immediate = false,
+  //   } = {},
+  //   { id, classes }: ILineOptions = {},
+  // ) {
+  //   const line = new StarePipe(
+  //     this,
+  //     NormalNode.prototype.watchMe,
+  //     expOrFn,
+  //     callback,
+  //     { deep, sync, immediate },
+  //     { id, classes },
+  //   );
+  //   weld(line.downstream, node.In);
+  //   return node;
+  // }
 
-  public stareTwpipe(
-    node: INodeHasUps,
-    expOrFn: string | (() => any),
-    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-    {
-      deep = false,
-      sync = false,
-      immediate = false,
-    } = {},
-    { id, classes }: ILineOptions = {},
-  ) {
-    const line = new StarePipe(
-      this,
-      NormalNode.prototype.watchMe,
-      expOrFn,
-      callback,
-      { deep, sync, immediate },
-      { id, classes },
-    );
-    weld(line.downstream, node.In);
-  }
+  // public stareTwpipe(
+  //   node: INodeHasUps,
+  //   expOrFn: string | (() => any),
+  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+  //   {
+  //     deep = false,
+  //     sync = false,
+  //     immediate = false,
+  //   } = {},
+  //   { id, classes }: ILineOptions = {},
+  // ) {
+  //   const line = new StarePipe(
+  //     this,
+  //     NormalNode.prototype.watchMe,
+  //     expOrFn,
+  //     callback,
+  //     { deep, sync, immediate },
+  //     { id, classes },
+  //   );
+  //   weld(line.downstream, node.In);
+  // }
 
-  private async _codeAsync(data?: any, caller?: ILineHasDws) {
+  private async codeAsync(data?: any, caller?: ILineHasDws) {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -347,7 +356,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
 
     return result;
   }
-  private _codeSync(data?: any, caller?: ILineHasDws): any {
+  private codeSync(data?: any, caller?: ILineHasDws): any {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;

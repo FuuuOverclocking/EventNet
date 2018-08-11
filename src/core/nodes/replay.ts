@@ -1,18 +1,19 @@
+import { getElementProducer } from '../element';
 import { Arrow, Pipe } from '../line';
 import { NodeDwsMethods } from '../node-methods';
 import { RawNode } from '../raw-node';
 import { ILineOptions, INodeHasUps } from '../types';
+import { IRawNodeCode } from '../types';
 import { handleError } from '../util';
-import { IRawNodeCode } from './../types';
 
 const redistCode: IRawNodeCode = (dws, ups, me) => {
-  (me.origin as RedistNode).upsDataSequence.push(ups.data);
+  (me.origin as ReplayNode).upsDataSequence.push(ups.data);
   dws.all(ups.data);
 };
 
-export class RedistNode extends RawNode {
+export class ReplayNode extends RawNode {
   constructor() {
-    super(redistCode, true);
+    super({ sync: true }, redistCode);
   }
   public upsDataSequence: any[] = [];
   public createArrow: (node: INodeHasUps, options?: ILineOptions) => Arrow;
@@ -25,7 +26,7 @@ export class RedistNode extends RawNode {
   public alsoTwpipe: () => never;
   public twpipeNext: () => never;
 }
-RedistNode.prototype.createArrow = function(this: RedistNode, node: INodeHasUps, options?: ILineOptions) {
+ReplayNode.prototype.createArrow = function(this: ReplayNode, node: INodeHasUps, options?: ILineOptions) {
   if (!node) {
     process.env.NODE_ENV !== 'production' &&
       handleError(new Error('the target node must be designated'), 'RedistNode.createArrow');
@@ -37,7 +38,7 @@ RedistNode.prototype.createArrow = function(this: RedistNode, node: INodeHasUps,
   }
   return line;
 };
-RedistNode.prototype.createPipe = function(this: RedistNode, node: INodeHasUps, options?: ILineOptions) {
+ReplayNode.prototype.createPipe = function(this: ReplayNode, node: INodeHasUps, options?: ILineOptions) {
   if (!node) {
     process.env.NODE_ENV !== 'production' &&
       handleError(new Error('the target node must be designated'), 'RedistNode.createPipe');
@@ -48,15 +49,17 @@ RedistNode.prototype.createPipe = function(this: RedistNode, node: INodeHasUps, 
   }
   return line;
 };
-RedistNode.prototype.arrowNext =
-  RedistNode.prototype.pipeNext =
-  RedistNode.prototype.createTwpipe =
-  RedistNode.prototype.twpipe =
-  RedistNode.prototype.alsoTwpipe =
-  RedistNode.prototype.twpipeNext =
+ReplayNode.prototype.arrowNext =
+  ReplayNode.prototype.pipeNext =
+  ReplayNode.prototype.createTwpipe =
+  ReplayNode.prototype.twpipe =
+  ReplayNode.prototype.alsoTwpipe =
+  ReplayNode.prototype.twpipeNext =
   () => {
     handleError(new Error('the method "arrowNext", "pipeNext", "createTwpipe",' +
       ' "twpipe", "alsoTwpipe", "twpipeNext" is forbidden to use'), 'RedistNode');
     throw new Error('the method "arrowNext", "pipeNext", "createTwpipe",' +
       ' "twpipe", "alsoTwpipe", "twpipeNext" is forbidden to use');
   };
+
+export const replay = getElementProducer(() => new ReplayNode(), 'Replay Node');

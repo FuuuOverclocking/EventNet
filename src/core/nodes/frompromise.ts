@@ -1,13 +1,12 @@
+import { getElementProducer } from '../element';
 import { NodeRunningStage } from '../types';
-import { RedistNode } from './redist';
+import { ReplayNode } from './replay';
 
-export function fromPromise(promiseOrFn: Promise<any> | (() => Promise<any>)) {
-  const pm = typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn;
-  const rdn = new RedistNode();
-
-  pm.then(
+export const fromPromise = getElementProducer((p: Promise<any>) => {
+  const rdn = new ReplayNode();
+  p.then(
     val => rdn.run(val),
     e => rdn._errorHandler(NodeRunningStage.code, e),
   );
   return rdn;
-}
+}, 'fromPromise Node');

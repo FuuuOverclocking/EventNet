@@ -1,204 +1,143 @@
-import { isObject } from 'util';
-import { NormalNode } from '..';
-import { LineStream } from '../stream';
+import { getElementProducer } from '../element';
+import { NormalNode } from '../normal-node';
 import {
-  ElementType, ICallableElementLike, IElementLike,
-  ILineHasDws, ILineHasUps, ILineLike,
-  ILineOptions, INodeHasDws, INodeHasUps, INodeLike, IWatchableElement,
+  ElementType,
+  ICallableElementLike,
+  IDictionary,
+  ILineHasDws,
+  ILineHasUps,
+  ILineOptions,
+  INodeHasUps,
+  IWatchableElement,
 } from '../types';
-import { handleError } from '../util';
-import { deweld, weld } from '../weld';
+import { handleError, isPipe } from '../util';
+import { weld } from '../weld';
+import { Arrow, Pipe, Twpipe } from './../line';
 
-export abstract class StareLine implements ILineLike {
-  public readonly id: string | undefined;
-  public classes: string[] = [];
-  public abstract type: ElementType;
-  public abstract run(data:
-    /* For arrow and pipe */
-    [any, any] |
-    /* For two-way pipe */
-    [any, any, any, any],
-  ): void;
-  public readonly callback:
-    /* For arrow and pipe */
-    ((newVal: any,
-      dws: ICallableElementLike | null,
-      oldVal: any,
-    ) => any) |
-    /* For two-way pipe */
-    ((upsNewVal: any,
-      dwsNewVal: any,
-      ups: ICallableElementLike | null,
-      dws: ICallableElementLike | null,
-      upsOldVal: any,
-      dwsOldVal: any,
-    ) => void);
-
-  constructor(
-    callback:
-      /* For arrow and pipe */
-      ((newVal: any,
-        dws: ICallableElementLike | null,
-        oldVal: any,
-      ) => any) |
-      /* For two-way pipe */
-      ((upsNewVal: any,
-        dwsNewVal: any,
-        ups: ICallableElementLike | null,
-        dws: ICallableElementLike | null,
-        upsOldVal: any,
-        dwsOldVal: any,
-      ) => void),
-    { id, classes }: ILineOptions = {},
-  ) {
-    this.id = id;
-    this.classes = classes ?
-      Array.isArray(classes) ?
-        classes : [classes]
-      : [];
-    this.callback = callback;
-  }
-}
-
-
-// arrow, pipe on destory: deweld its downstream
-export class StareArrow extends StareLine implements ILineHasDws {
-  public type = ElementType.Arrow;
-  public downstream: LineStream = new LineStream(this);
-  public readonly callback:
-    /* For arrow and pipe */
-    ((newVal: any,
-      dws: ICallableElementLike | null,
-      oldVal: any,
-    ) => any);
-
-  constructor(
-    target: any,
-    watchMethod: typeof NormalNode.prototype.watchMe,
-    expOrFn: string | (() => any),
-    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+export const stareArrow = getElementProducer<
+  ILineHasDws,
+  [
+    IWatchableElement,
+    string | ((this: IDictionary, target: IDictionary) => any),
+    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+    {
+      deep?: boolean,
+      sync?: boolean,
+      immediate?: boolean,
+    },
+    ILineOptions
+  ]
+  >((
+    target: IWatchableElement,
+    expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
+    callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any =
+      (newVal, dws) => dws && dws(),
     {
       deep = false,
       sync = false,
       immediate = false,
     } = {},
     { id, classes }: ILineOptions = {},
-  ) {
-    super(callback, { id, classes });
-    watchMethod.call(target, expOrFn, (newVal: any, oldVal: any) => {
-      this.run([newVal, oldVal]);
+  ) => {
+    const line = new Arrow(null, null, { id, classes });
+
+    target.watchMe(expOrFn, (newVal: any, oldVal: any) => {
+      let dws: ICallableElementLike | undefined;
+      if (line.downstream.stream) {
+        // tslint:disable-next-line:only-arrow-functions
+        dws = (function() {
+          if (process.env.NODE_ENV !== 'production' && arguments.length) {
+            handleError(new Error(`data '${
+              String(arguments[0]).length > 20 ?
+                String(arguments[0]).substr(0, 20) + '...' : String(arguments[0])
+              }' can not pass through StareArrow, replace with StarePipe`), 'StareArrow', line);
+          }
+          line.downstream.stream!.run(void 0, line);
+        }) as ICallableElementLike;
+        dws.origin = line.downstream.stream;
+      }
+      const result = callback(newVal, dws, oldVal);
+      if (process.env.NODE_ENV !== 'production' && typeof result !== 'undefined' && result !== null) {
+        handleError(new Error(`data '${
+          String(result).length > 20 ?
+            String(result).substr(0, 20) + '...' : String(result)
+          }' can not pass through StareArrow, replace with StarePipe`), 'StareArrow', line);
+      }
+
     }, { deep, sync, immediate });
 
-    if (isObject(target) && target._isEN) {
-      (target as INodeLike).destoryed!.push(() => {
-        this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
-      });
-    }
-  }
+    return line;
+  }, 'stareArrow');
 
-  public run(data: [any, any]) {
-    let dws: ICallableElementLike | null = null;
-    if (this.downstream.stream) {
-      const that = this;
-      // tslint:disable-next-line:only-arrow-functions
-      dws = (function() {
-        if (process.env.NODE_ENV !== 'production' && arguments.length) {
-          handleError(new Error(`data '${
-            String(arguments[0]).length > 20 ?
-              String(arguments[0]).substr(0, 20) + '...' : String(arguments[0])
-            }' can not pass through StareArrow, replace with StarePipe`), 'StareArrow', that);
-        }
-        that.downstream.stream!.run(void 0, that);
-      }) as ICallableElementLike;
-      dws.origin = this.downstream.stream;
-    }
-    const result = this.callback(data[0], dws, data[1]);
-    if (process.env.NODE_ENV !== 'production' && typeof result !== 'undefined' && result !== null) {
-      handleError(new Error(`data '${
-        String(result).length > 20 ?
-          String(result).substr(0, 20) + '...' : String(result)
-        }' can not pass through StareArrow, replace with StarePipe`), 'StareArrow', this);
-    }
-  }
-}
-
-export class StarePipe extends StareLine implements ILineHasDws {
-  public type = ElementType.Pipe;
-  public downstream: LineStream = new LineStream(this);
-  public readonly callback:
-    /* For arrow and pipe */
-    ((newVal: any,
-      dws: ICallableElementLike | null,
-      oldVal: any,
-    ) => any);
-
-  constructor(
-    target: any,
-    watchMethod: typeof NormalNode.prototype.watchMe,
-    expOrFn: string | (() => any),
-    callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
+export const starePipe = getElementProducer<
+  ILineHasDws,
+  [
+    IWatchableElement,
+    string | ((this: IDictionary, target: IDictionary) => any),
+    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+    {
+      deep?: boolean,
+      sync?: boolean,
+      immediate?: boolean,
+    },
+    ILineOptions
+  ]
+  >((
+    target: IWatchableElement,
+    expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
+    callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any =
+      (newVal, dws) => dws && dws(newVal),
     {
       deep = false,
       sync = false,
       immediate = false,
     } = {},
     { id, classes }: ILineOptions = {},
-  ) {
-    super(callback, { id, classes });
-    watchMethod.call(target, expOrFn, (newVal: any, oldVal: any) => {
-      this.run([newVal, oldVal]);
+  ) => {
+    const line = new Pipe(null, null, { id, classes });
+
+    target.watchMe(expOrFn, (newVal: any, oldVal: any) => {
+      let dws: ICallableElementLike | undefined;
+      if (line.downstream.stream) {
+        dws = ((d: any) => {
+          line.downstream.stream!.run(d, line);
+        }) as ICallableElementLike;
+        dws.origin = line.downstream.stream;
+      }
+      const result = callback(newVal, dws, oldVal);
+      if (typeof result !== 'undefined' && line.downstream.stream) {
+        line.downstream.stream!.run(result, line);
+      }
     }, { deep, sync, immediate });
 
-    if (isObject(target) && target._isEN) {
-      (target as INodeLike).destoryed!.push(() => {
-        this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
-      });
-    }
-  }
+    return line;
+  }, 'starePipe');
 
-  public run(data: [any, any]) {
-    let dws: ICallableElementLike | null = null;
-    if (this.downstream.stream) {
-      // tslint:disable-next-line:only-arrow-functions
-      dws = ((d: any) => {
-        this.downstream.stream!.run(d, this);
-      }) as ICallableElementLike;
-      dws.origin = this.downstream.stream;
-    }
-    const result = this.callback(data[0], dws, data[1]);
-    if (typeof result !== 'undefined' && this.downstream.stream) {
-      this.downstream.stream!.run(result, this);
-    }
-  }
-}
-
-// the upstream's and downstream's target must be EventNet Watchable Element
-// call the constructor will build the connection, different from others
-// twpipe on destory: deweld both side
-export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
-  public type = ElementType.Pipe;
-  public upstream: LineStream = new LineStream(this);
-  public downstream: LineStream = new LineStream(this);
-  public readonly callback:
-    /* For two-way pipe */
-    ((upsNewVal: any,
-      dwsNewVal: any,
-      ups: ICallableElementLike | null,
-      dws: ICallableElementLike | null,
-      upsOldVal: any,
-      dwsOldVal: any,
-    ) => void);
-
-  constructor(
+export const stareTwpipe = getElementProducer<
+  ILineHasUps & ILineHasDws,
+  [
+    IWatchableElement & INodeHasUps,
+    string | ((this: IDictionary, target: IDictionary) => any),
+    IWatchableElement & INodeHasUps,
+    string | ((this: IDictionary, target: IDictionary) => any),
+    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+    {
+      deep?: boolean,
+      sync?: boolean,
+      immediate?: boolean,
+    },
+    ILineOptions
+  ]
+  >((
     upsTarget: IWatchableElement & INodeHasUps,
-    upsExpOrFn: string | (() => any),
+    upsExpOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     dwsTarget: IWatchableElement & INodeHasUps,
-    dwsExpOrFn: string | (() => any),
+    dwsExpOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (
       upsNewVal: any,
       dwsNewVal: any,
-      ups: ICallableElementLike | null,
-      dws: ICallableElementLike | null,
+      ups: ICallableElementLike | undefined,
+      dws: ICallableElementLike | undefined,
       upsOldVal: any,
       dwsOldVal: any,
     ) => void,
@@ -208,57 +147,98 @@ export class StareTwpipe extends StareLine implements ILineHasDws, ILineHasUps {
       immediate = false,
     } = {},
     { id, classes }: ILineOptions = {},
-  ) {
-    super(callback, { id, classes });
-
-    // if (!upsTarget._isEN || !dwsTarget._isEN) {
-    //   // tslint:disable-next-line:quotemark
-    //   handleError(new Error("the upstream's and downstream's target must be EventNet Element"), 'StareTwpipe');
-    // }
+  ) => {
+    const line = new Twpipe(null, null, { id, classes });
+    weld(line.upstream, upsTarget.In);
+    weld(line.downstream, dwsTarget.In);
 
     let upsOldVal: any = void 0;
     let dwsOldVal: any = void 0;
 
+    const run = (upsValue: any, dwsValue: any, upsOldValue: any, dwsOldValue: any) => {
+      let dws: ICallableElementLike | undefined;
+      if (line.downstream.stream) {
+        // tslint:disable-next-line:only-arrow-functions
+        dws = ((d: any) => {
+          line.downstream.stream!.run(d, line);
+        }) as ICallableElementLike;
+        dws.origin = line.downstream.stream;
+      }
+      let ups: ICallableElementLike | undefined;
+      if (line.upstream.stream) {
+        // tslint:disable-next-line:only-arrow-functions
+        ups = ((d: any) => {
+          line.upstream.stream!.run(d, line);
+        }) as ICallableElementLike;
+        ups.origin = line.upstream.stream;
+      }
+
+      callback(upsValue, dwsValue, ups, dws, upsOldValue, dwsOldValue);
+    };
+
     upsTarget.watchMe(upsExpOrFn, (newVal: any, oldVal: any) => {
-      this.run([newVal, void 0, oldVal, dwsOldVal]);
+      run(newVal, void 0, oldVal, dwsOldVal);
       upsOldVal = newVal;
     }, { deep, sync, immediate });
     dwsTarget.watchMe(dwsExpOrFn, (newVal: any, oldVal: any) => {
-      this.run([void 0, newVal, upsOldVal, oldVal]);
+      run(void 0, newVal, upsOldVal, oldVal);
       dwsOldVal = newVal;
     }, { deep, sync, immediate });
+  }, 'stareTwpipe');
 
-    upsTarget.destoryed && upsTarget.destoryed.push(() => {
-      this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
-      this.upstream.stream && deweld(this.upstream, (this.upstream.stream as INodeHasDws).Out);
-    });
-    dwsTarget.destoryed && dwsTarget.destoryed.push(() => {
-      this.downstream.stream && deweld(this.downstream, (this.downstream.stream as INodeHasUps).In);
-      this.upstream.stream && deweld(this.upstream, (this.upstream.stream as INodeHasDws).Out);
-    });
-
-    weld(this.upstream, upsTarget.In);
-    weld(this.downstream, dwsTarget.In);
-  }
-
-  public run(data: [any, any, any, any]) {
-    let dws: ICallableElementLike | null = null;
-    if (this.downstream.stream) {
-      // tslint:disable-next-line:only-arrow-functions
-      dws = ((d: any) => {
-        this.downstream.stream!.run(d, this);
-      }) as ICallableElementLike;
-      dws.origin = this.downstream.stream;
-    }
-    let ups: ICallableElementLike | null = null;
-    if (this.upstream.stream) {
-      // tslint:disable-next-line:only-arrow-functions
-      ups = ((d: any) => {
-        this.upstream.stream!.run(d, this);
-      }) as ICallableElementLike;
-      ups.origin = this.upstream.stream;
-    }
-
-    this.callback(data[0], data[1], ups, dws, data[2], data[3]);
+declare module '../normal-node' {
+  // tslint:disable-next-line:interface-name
+  interface NormalNode {
+    createStareLine: typeof createStareLine;
+    createStareArrow: typeof createStareArrow;
+    createStarePipe: typeof createStarePipe;
   }
 }
+
+function createStareLine(
+  this: NormalNode,
+  type: ElementType,
+  node: INodeHasUps,
+  expOrFn: string | (() => any),
+  callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+  {
+    deep = false,
+    sync = false,
+    immediate = false,
+  } = {},
+  { id, classes }: ILineOptions = {},
+) {
+  const ctor = isPipe(type) ? starePipe : stareArrow;
+  const line = ctor(
+    this,
+    expOrFn,
+    callback,
+    { deep, sync, immediate },
+    { id, classes },
+  );
+  weld(line.downstream, node.In);
+  return line;
+}
+
+export const [createStareArrow, createStarePipe] =
+((types: number[], fn) => [fn(types[0]), fn(types[1])])
+(
+  [ElementType.Arrow, ElementType.Pipe],
+  (t: ElementType) => function(
+    this: NormalNode,
+    node: INodeHasUps,
+    expOrFn: string | (() => any),
+    callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+    {
+      deep = false,
+      sync = false,
+      immediate = false,
+    } = {},
+    { id, classes }: ILineOptions = {},
+  ) {
+    return this.createStareLine(t, node, expOrFn, callback, { deep, sync, immediate }, { id, classes });
+  });
+
+NormalNode.prototype.createStareLine = createStareLine;
+NormalNode.prototype.createStareArrow = createStareArrow;
+NormalNode.prototype.createStarePipe = createStarePipe;

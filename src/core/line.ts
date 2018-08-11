@@ -1,9 +1,11 @@
+import { getUid } from './element';
 import { LineStream } from './stream';
 import { ElementType, ILineHasDws, ILineHasUps, ILineOptions, INodeHasDws, INodeHasUps, INodeLike } from './types';
 import { handleError, tip } from './util';
 import { weld } from './weld';
 
 export abstract class Line implements ILineHasUps, ILineHasDws {
+  public uid = getUid();
   public abstract type: ElementType;
   public readonly id: string | undefined;
   constructor(
@@ -12,10 +14,7 @@ export abstract class Line implements ILineHasUps, ILineHasDws {
     { id, classes }: ILineOptions = {},
   ) {
     this.id = id;
-    this.classes = classes ?
-      Array.isArray(classes) ?
-        classes : [classes]
-      : [];
+    this.classes = classes || [];
     ups && weld(ups.Out, this.upstream);
     dws && weld(dws.In, this.downstream);
   }
