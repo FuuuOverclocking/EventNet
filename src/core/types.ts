@@ -1,16 +1,11 @@
 import { NodeDwsMethods } from './node-methods';
-import { LineStream, NodeErrorStream, NodeStream } from './stream';
+import { NodeErrorStream } from './stream';
 
 export interface IDictionary<T = any> {
   [index: string]: T | undefined;
 }
 
 export type IPrimitive = 'string' | 'number' | 'boolean' | 'symbol';
-
-export interface ICallableElementLike {
-  (data?: any): void;
-  origin: IElementLike;
-}
 
 /**
  * ElementType
@@ -30,12 +25,14 @@ export enum ElementType {
   Twpipe = 0b111,
 }
 
+export type IUnaryFunction<T, R> = (source: T) => R;
+
 export interface IElementLike {
   // Unique Identifier
   uid: number;
 
   // the method to run the element
-  run: (data?: any, caller?: IElementLike) => any;
+  run(data?: any, caller?: IElementLike): any;
 
   // the stream of element
   // the element must have one of them
@@ -44,10 +41,15 @@ export interface IElementLike {
 
   type: number;
 
-  clone?: () => IElementLike;
-  destroy?: () => void;
+  thread(): this;
+  thread<A>(op1: IUnaryFunction<this, A>): A;
+  thread<A, B>(op1: IUnaryFunction<this, A>, op2: IUnaryFunction<A, B>): B;
+  /////////////////////////////////////////////////////////////////////////
+
+  clone?(): IElementLike;
+  destroy?(): void;
   state?: IDictionary;
-  watchMe?: (
+  watchMe?(
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
     {
@@ -55,11 +57,16 @@ export interface IElementLike {
       sync,
       immediate,
     }: {
-      deep: boolean,
-      sync: boolean,
-      immediate: boolean,
-    },
-  ) => () => void;
+        deep: boolean,
+        sync: boolean,
+        immediate: boolean,
+      },
+  ): () => void;
+}
+
+export interface ICallableElementLike {
+  (data?: any): void;
+  origin: IElementLike;
 }
 
 export interface IWatchableElement {
@@ -72,10 +79,10 @@ export interface IWatchableElement {
       sync,
       immediate,
     }: {
-      deep: boolean,
-      sync: boolean,
-      immediate: boolean,
-    },
+        deep: boolean,
+        sync: boolean,
+        immediate: boolean,
+      },
   ) => () => void;
 }
 
@@ -92,6 +99,9 @@ export interface IElementStream {
 
   // delete the element from stream
   del: (elem: IElementLike) => void;
+
+  // clear all elements in the stream
+  clear(): void;
 }
 
 export interface IStreamOfNode extends IElementStream {
@@ -115,7 +125,7 @@ export interface INodeHasUps extends INodeLike {
   upstream: IStreamOfNode | IStreamOfNode[];
 }
 
-export interface INodeHasDwsAndErrorReceiver extends INodeLike, NodeDwsMethods {
+export interface INodeHasDwsAndErrorStream extends INodeLike, NodeDwsMethods {
   Out: IStreamOfNode;
   Err: IStreamOfNode;
   downstream: [IStreamOfNode, NodeErrorStream];

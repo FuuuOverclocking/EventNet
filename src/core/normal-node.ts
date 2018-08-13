@@ -1,5 +1,5 @@
 import { _attrsStore as attrsStore, getAttrDefinition } from '.';
-import { BasicNode } from './basic-node';
+import { BasicNode } from './node';
 import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
@@ -51,14 +51,12 @@ export class NormalNode extends BasicNode implements IWatchableElement {
       callback.call(this.state, value, value);
     }
 
-    const deconstructor = () => {
+    return () => {
       if (!watcher) { return; }
       remove(this._watchers, watcher);
       watcher.teardown();
       watcher = null as any;
     };
-    this.ondestory.push(deconstructor);
-    return deconstructor;
   }
   private _watchers: Watcher[] = [];
   public get watchers() {
@@ -319,7 +317,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = await this.code(
-      this.Out.wrappedStreams as INodeCodeDWS,
+      this.Out.wrappedElements as INodeCodeDWS,
       { data, caller },
       {
         origin: this,
@@ -398,7 +396,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = this.code(
-      this.Out.wrappedStreams as INodeCodeDWS,
+      this.Out.wrappedElements as INodeCodeDWS,
       { data, caller },
       {
         origin: this,

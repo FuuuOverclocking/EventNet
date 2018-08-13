@@ -1,12 +1,12 @@
 import { getElementProducer } from '../element';
 import { NodeRunningStage } from '../types';
-import { ReplayNode } from './replay';
+import { replay } from './replay';
 
 export const fromPromise = getElementProducer((p: Promise<any>) => {
-  const rdn = new ReplayNode();
+  const node = replay();
   p.then(
-    val => rdn.run(val),
-    e => rdn._errorHandler(NodeRunningStage.code, e),
+    val => node.run(val),
+    e => node._errorHandler(NodeRunningStage.code, e),
   );
-  return rdn;
+  return node;
 }, 'fromPromise Node');

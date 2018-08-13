@@ -1,18 +1,18 @@
-import { getUid } from './element';
+import { Element, getUid } from './element';
 import { LineStream } from './stream';
-import { ElementType, ILineHasDws, ILineHasUps, ILineOptions, INodeHasDws, INodeHasUps, INodeLike } from './types';
+import { ElementType, ILineHasDws, ILineHasUps, ILineOptions, INodeHasDws, INodeHasUps } from './types';
 import { handleError, tip } from './util';
 import { weld } from './weld';
 
-export abstract class Line implements ILineHasUps, ILineHasDws {
-  public uid = getUid();
-  public abstract type: ElementType;
+export abstract class Line extends Element implements ILineHasUps, ILineHasDws {
+  public abstract type: number;
   public readonly id: string | undefined;
   constructor(
     ups: INodeHasDws | null | undefined,
     dws: INodeHasUps | null | undefined,
     { id, classes }: ILineOptions = {},
   ) {
+    super();
     this.id = id;
     this.classes = classes || [];
     ups && weld(ups.Out, this.upstream);
@@ -34,21 +34,20 @@ export class Arrow extends Line {
   public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
-        handleError(new Error(`data '${
+        tip(`data '${
           String(data).length > 20 ?
             String(data).substr(0, 20) + '...' : String(data)
-          }' can not pass through Arrow, replace with Pipe`), 'Arrow', this);
-        return;
+          }' can not pass through Arrow, replace with Pipe`, this);
       }
-      if (!this.downstream.stream) {
+      if (!this.downstream.element) {
         tip('the downstream of the arrow below is null', this);
         return;
       }
-      if (caller !== this.upstream.stream) {
-        tip('the arrow below is not called by its upstream, however, it still runs', this);
+      if (caller !== this.upstream.element) {
+        tip('the arrow below is activited but not called by its upstream', this);
       }
     }
-    this.downstream.stream && this.downstream.stream.run(void 0, this);
+    this.downstream.element && this.downstream.element.run(void 0, this);
   }
 }
 
@@ -56,15 +55,15 @@ export class Pipe extends Line {
   public type = ElementType.Pipe;
   public run(data: any, caller: INodeHasDws) {
     if (process.env.NODE_ENV !== 'production') {
-      if (!this.downstream.stream) {
+      if (!this.downstream.element) {
         tip('the downstream of the pipe below is null', this);
         return;
       }
-      if (caller !== this.upstream.stream) {
+      if (caller !== this.upstream.element) {
         tip('the pipe below is not called by its upstream, however, it still runs', this);
       }
     }
-    this.downstream.stream && this.downstream.stream.run(data, this);
+    this.downstream.element && this.downstream.element.run(data, this);
   }
 }
 
@@ -81,21 +80,21 @@ export class Twpipe extends Line {
   }
   public run(data: any, caller: INodeHasDws & INodeHasUps) {
     if (process.env.NODE_ENV !== 'production') {
-      if (!this.downstream.stream || !this.upstream.stream) {
+      if (!this.downstream.element || !this.upstream.element) {
         tip('the downstream or the upstream of the two-way pipe below is null', this);
         return;
       }
-      if (caller !== this.upstream.stream && caller !== this.downstream.stream) {
+      if (caller !== this.upstream.element && caller !== this.downstream.element) {
         handleError(new Error('the caller is neither upstream nor downstream'), 'Twpipe', this);
         return;
       }
     }
 
-    if (this.upstream.stream && this.downstream.stream) {
-      if (caller === this.upstream.stream) {
-        this.downstream.stream.run(data, this);
-      } else if (caller === this.downstream.stream) {
-        this.upstream.stream.run(data, this);
+    if (this.upstream.element && this.downstream.element) {
+      if (caller === this.upstream.element) {
+        this.downstream.element.run(data, this);
+      } else if (caller === this.downstream.element) {
+        this.upstream.element.run(data, this);
       }
     }
   }

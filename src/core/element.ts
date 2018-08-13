@@ -1,4 +1,4 @@
-import { IElementLike, ILineLike, INodeLike } from './types';
+import { IElementLike, ILineLike, INodeLike, IUnaryFunction } from './types';
 import { handleError, isObject } from './util';
 
 // uid should start at 1, as 0 is a falsy value
@@ -7,9 +7,29 @@ export function getUid() {
   return ++globalElementUid;
 }
 
+export abstract class Element implements IElementLike {
+  public uid = getUid();
+  public abstract run(data?: any, caller?: IElementLike): any;
+  public abstract type: number;
+
+  public thread(): this;
+  public thread<A>(op1: IUnaryFunction<this, A>): A;
+  public thread<A, B>(op1: IUnaryFunction<this, A>, op2: IUnaryFunction<A, B>): B;
+
+  public thread(...fns: Array<IUnaryFunction<any, any>>) {
+    if (!fns.length) {
+      return this;
+    }
+    if (fns.length === 1) {
+      return fns[0](this);
+    }
+
+    return fns.reduce((prev: any, fn: IUnaryFunction<any, any>) => fn(prev), this);
+  }
+}
 
 export function getElementProducer<type extends INodeLike | ILineLike, T extends any[]>(
-  fn: (...args: T) => any,
+  fn: (...args: T) => type,
   name: string,
 ): (...args: T) => type;
 

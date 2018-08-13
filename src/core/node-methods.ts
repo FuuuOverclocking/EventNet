@@ -1,5 +1,5 @@
 import { Arrow, Pipe, Twpipe } from './line';
-import { NodeErrorStream, NodeStream } from './stream';
+import { Node } from './node';
 import {
   ElementType, IElementLike, IElementStream,
   ILineHasDws, ILineOptions, INodeHasDws,
@@ -10,9 +10,12 @@ import { weld } from './weld';
 
 export const linesWaitingLink: ILineHasDws[] = [];
 
-export abstract class NodeUpsMethods { }
+export abstract class NodeUpsMethods extends Node implements INodeHasUps {
+  public abstract In: IStreamOfNode;
+  public abstract upstream: IStreamOfNode | IStreamOfNode[];
+}
 
-export abstract class NodeDwsMethods implements INodeHasDws {
+export abstract class NodeDwsMethods extends Node implements INodeHasDws {
   public createLine(node: INodeHasUps, options: any = {}, type: ElementType) {
     if (isPipeLike(type)) {
       if (isTwpipe(type)) {
@@ -59,15 +62,13 @@ export abstract class NodeDwsMethods implements INodeHasDws {
     return this;
   }
 
-  public abstract uid: number;
   public abstract Out: IStreamOfNode;
   public abstract downstream: IStreamOfNode | IStreamOfNode[];
-  public abstract parent: INodeLike | undefined;
-  public abstract run(data?: any, caller?: IElementLike): any;
-  public abstract type: number;
 }
 
-export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
+export abstract class NodeDwsUpsMethods extends Node implements
+  NodeUpsMethods,
+  NodeDwsMethods {
   public createTwpipe(node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) {
     const line = new Twpipe(this, node, options);
     weld(this.Out, line.upstream);
@@ -87,14 +88,10 @@ export abstract class NodeDwsUpsMethods implements INodeHasDws, INodeHasUps {
     return this;
   }
 
-  public abstract uid: number;
   public abstract In: IStreamOfNode;
   public abstract Out: IStreamOfNode;
   public abstract upstream: IStreamOfNode | IStreamOfNode[];
   public abstract downstream: IStreamOfNode | IStreamOfNode[];
-  public abstract parent: INodeLike | undefined;
-  public abstract run(data?: any, caller?: IElementLike): any;
-  public abstract type: number;
   public abstract createLine(node: INodeHasUps, options: any, type: ElementType): Arrow | Pipe | Twpipe;
   public abstract createArrow(node: INodeHasUps | null | undefined, options?: ILineOptions): Arrow;
   public abstract createPipe(node: INodeHasUps | null | undefined, options?: ILineOptions): Pipe;

@@ -1,14 +1,14 @@
 import { warn } from '../shared/util/debug';
-import { getUid } from './element';
+import { Element } from './element';
 import { Arrow, Pipe, Twpipe } from './line';
-import { linesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods } from './node-methods';
+import { linesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods, NodeUpsMethods } from './node-methods';
 import { NodeErrorStream, NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
   ILineHasDws, ILineHasUps, ILineLike,
-  ILineOptions, INodeCodeDWS, INodeHasDws,
-  INodeHasDwsAndErrorReceiver, INodeHasUps, INodeLike,
-  INormalNodeCode, IRawNodeCode, NodeRunningStage,
+  ILineOptions,
+  INodeCodeDWS, INodeHasDws, INodeHasDwsAndErrorStream,
+  INodeHasUps, INodeLike, INormalNodeCode, IRawNodeCode, NodeRunningStage,
 } from './types';
 import {
   applyMixins, def, handleError,
@@ -17,15 +17,24 @@ import {
 } from './util';
 import { deweld, weld } from './weld';
 
-export abstract class BasicNode implements
-  INodeHasDwsAndErrorReceiver,
+/**
+ * The ancestor of all the nodes.
+ * Add methods to its prototype when need to patch.
+ */
+export abstract class Node extends Element implements INodeLike {
+  public parent: INodeLike | undefined = void 0;
+  public abstract type: number;
+}
+
+export abstract class BasicNode extends Node implements
+  INodeHasDwsAndErrorStream,
   INodeHasUps,
+  NodeUpsMethods,
   NodeDwsMethods,
   NodeDwsUpsMethods {
 
-  public uid = getUid();
   public abstract type: ElementType;
-  public parent: INodeLike | undefined = void 0;
+
   public upstream: NodeStream = new NodeStream(this);
   public downstream: [NodeStream, NodeErrorStream] = [
     new NodeStream(this, toCallableDws, new NodeCodeDws()),
@@ -42,18 +51,28 @@ export abstract class BasicNode implements
   public ondestory: Array<(this: BasicNode, node: BasicNode) => void> = [];
   /**
    * Destory the Node
-   * execute all the functions in the array `ondestory`
-   * then delete all the lines in the up/downstream
+   * execute all the functions in the array `ondestory`, then
+   * 1. release the resources it using
+   * 2. (if is stateful element)
+   *    this.state = null
+   * 3. (if is watch-able element)
+   *    clear this._watchers by using this._watchers.teardown()
+   * 4. (if has upstream)
+   *    delete from its upstream, check if the upstream is isolate ? The upstream has destroy ? Destroy()
+   * 5. (if has downstream) the same with what mentioned above
    */
   public abstract destory(): void;
 
   public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
   public readonly code: IRawNodeCode | INormalNodeCode;
   constructor(code: IRawNodeCode | INormalNodeCode) {
-    def(this.Out.wrappedStreams, 'origin', this.Out);
+    super();
+
+    def(this.Out.wrappedElements, 'origin', this.Out);
 
     this.code = code;
 
+    // all types of Node with upstream(s), should contain the following lines in its constructor
     for (const line of linesWaitingLink) {
       weld(this.In, line.downstream);
       if (isTwpipe(line.type)) {
@@ -61,6 +80,7 @@ export abstract class BasicNode implements
       }
     }
     linesWaitingLink.length = 0;
+    // all types of Node with upstream(s), should contain the lines abov in its constructor
   }
 
   public setErrStream(elem: ILineHasUps | INodeHasUps | null) {
@@ -99,11 +119,11 @@ export abstract class BasicNode implements
   public abstract clone(): BasicNode;
 
   /**
-   * Return a function that clone the node and run it with the given data when called
-   * the function has a static property `origin` which point at this origin node
+   * Return a function that firstly clone the node then run it with the given data when called
+   * the function has a static property `origin` which pointed at this original node
    * @returns {ICallableElementLike}
    */
-  public toFunc(): ICallableElementLike {
+  public toIndepFunc(): ICallableElementLike {
     const fn = ((data?: any) => {
       const clonedNode = this.clone();
       return clonedNode.run(data);
@@ -111,7 +131,9 @@ export abstract class BasicNode implements
     fn.origin = this;
     return fn;
   }
-  // mixin methods
+
+
+  // mixin method
   // tslint:disable:max-line-length
   public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
   public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
@@ -130,6 +152,9 @@ export abstract class BasicNode implements
 
 }
 
+// mixin methods
+applyMixins(BasicNode, [NodeUpsMethods, NodeDwsMethods, NodeDwsUpsMethods]);
+
 function toCallableDws(this: NodeStream, line: ILineLike) {
   const fn = ((data?: any) => {
     line.run(data, this.owner);
@@ -139,7 +164,7 @@ function toCallableDws(this: NodeStream, line: ILineLike) {
 }
 
 class NodeCodeDws extends Array<ICallableElementLike | undefined> implements INodeCodeDWS {
-  public origin: typeof BasicNode.prototype.Out;
+  public origin: NodeStream;
   public all(data?: any) {
     this.forEach(dws => dws && dws(data));
   }
@@ -198,5 +223,3 @@ class NodeCodeDws extends Array<ICallableElementLike | undefined> implements INo
     }
   }
 }
-
-applyMixins(BasicNode, [NodeDwsMethods, NodeDwsUpsMethods]);

@@ -13,7 +13,7 @@ import {
 import { handleError, isPipe } from '../util';
 import { weld } from '../weld';
 import { Arrow, Pipe, Twpipe } from './../line';
-
+function abc({a = false} = {}) {}
 export const stareArrow = getElementProducer<
   ILineHasDws,
   [
@@ -24,8 +24,8 @@ export const stareArrow = getElementProducer<
       deep?: boolean,
       sync?: boolean,
       immediate?: boolean,
-    },
-    ILineOptions
+    }?,
+    ILineOptions?
   ]
   >((
     target: IWatchableElement,
@@ -43,7 +43,7 @@ export const stareArrow = getElementProducer<
 
     target.watchMe(expOrFn, (newVal: any, oldVal: any) => {
       let dws: ICallableElementLike | undefined;
-      if (line.downstream.stream) {
+      if (line.downstream.element) {
         // tslint:disable-next-line:only-arrow-functions
         dws = (function() {
           if (process.env.NODE_ENV !== 'production' && arguments.length) {
@@ -52,9 +52,9 @@ export const stareArrow = getElementProducer<
                 String(arguments[0]).substr(0, 20) + '...' : String(arguments[0])
               }' can not pass through StareArrow, replace with StarePipe`), 'StareArrow', line);
           }
-          line.downstream.stream!.run(void 0, line);
+          line.downstream.element!.run(void 0, line);
         }) as ICallableElementLike;
-        dws.origin = line.downstream.stream;
+        dws.origin = line.downstream.element;
       }
       const result = callback(newVal, dws, oldVal);
       if (process.env.NODE_ENV !== 'production' && typeof result !== 'undefined' && result !== null) {
@@ -98,15 +98,15 @@ export const starePipe = getElementProducer<
 
     target.watchMe(expOrFn, (newVal: any, oldVal: any) => {
       let dws: ICallableElementLike | undefined;
-      if (line.downstream.stream) {
+      if (line.downstream.element) {
         dws = ((d: any) => {
-          line.downstream.stream!.run(d, line);
+          line.downstream.element!.run(d, line);
         }) as ICallableElementLike;
-        dws.origin = line.downstream.stream;
+        dws.origin = line.downstream.element;
       }
       const result = callback(newVal, dws, oldVal);
-      if (typeof result !== 'undefined' && line.downstream.stream) {
-        line.downstream.stream!.run(result, line);
+      if (typeof result !== 'undefined' && line.downstream.element) {
+        line.downstream.element!.run(result, line);
       }
     }, { deep, sync, immediate });
 
@@ -120,13 +120,20 @@ export const stareTwpipe = getElementProducer<
     string | ((this: IDictionary, target: IDictionary) => any),
     IWatchableElement & INodeHasUps,
     string | ((this: IDictionary, target: IDictionary) => any),
-    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
+    (
+      upsNewVal: any,
+      dwsNewVal: any,
+      ups: ICallableElementLike | undefined,
+      dws: ICallableElementLike | undefined,
+      upsOldVal: any,
+      dwsOldVal: any,
+    ) => void,
     {
       deep?: boolean,
       sync?: boolean,
       immediate?: boolean,
-    },
-    ILineOptions
+    }?,
+    ILineOptions?
   ]
   >((
     upsTarget: IWatchableElement & INodeHasUps,
@@ -157,20 +164,20 @@ export const stareTwpipe = getElementProducer<
 
     const run = (upsValue: any, dwsValue: any, upsOldValue: any, dwsOldValue: any) => {
       let dws: ICallableElementLike | undefined;
-      if (line.downstream.stream) {
+      if (line.downstream.element) {
         // tslint:disable-next-line:only-arrow-functions
         dws = ((d: any) => {
-          line.downstream.stream!.run(d, line);
+          line.downstream.element!.run(d, line);
         }) as ICallableElementLike;
-        dws.origin = line.downstream.stream;
+        dws.origin = line.downstream.element;
       }
       let ups: ICallableElementLike | undefined;
-      if (line.upstream.stream) {
+      if (line.upstream.element) {
         // tslint:disable-next-line:only-arrow-functions
         ups = ((d: any) => {
-          line.upstream.stream!.run(d, line);
+          line.upstream.element!.run(d, line);
         }) as ICallableElementLike;
-        ups.origin = line.upstream.stream;
+        ups.origin = line.upstream.element;
       }
 
       callback(upsValue, dwsValue, ups, dws, upsOldValue, dwsOldValue);

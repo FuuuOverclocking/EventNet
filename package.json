@@ -23,6 +23,7 @@
   "homepage": "https://eventnet.justlog.xyz/",
   "dependencies": {
     "@types/debug": "0.0.30",
+    "@types/ws": "^5.1.2",
     "debug": "^3.1.0",
     "ws": "^6.0.0"
   },

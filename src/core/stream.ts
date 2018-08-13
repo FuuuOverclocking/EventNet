@@ -1,36 +1,35 @@
 import {
-  IDictionary, IElementLike,
-  IElementStream, ILineHasUps, ILineLike,
-  INodeHasDwsAndErrorReceiver, INodeLike, IStreamOfLine,
-  IStreamOfNode,
+  IDictionary, IElementLike, IElementStream,
+  ILineHasUps, ILineLike, INodeHasDwsAndErrorStream,
+  INodeLike, IStreamOfLine, IStreamOfNode,
 } from './types';
 import { handleError, isPipeLike, isTwpipe } from './util';
 
 export class NodeStream implements IStreamOfNode {
   public add(line: ILineLike) {
-    if (~this.streams.indexOf(line)) {
+    if (~this.elements.indexOf(line)) {
       return;
     }
 
-    this.streams.push(line);
+    this.elements.push(line);
 
-    this.wrappedStreams && this.wrappedStreams.push(this.wrapper(line));
+    this.wrappedElements && this.wrappedElements.push(this.wrapper(line));
 
     if (typeof line.id !== 'undefined') {
-      if (process.env.NODE_ENV !== 'production' && typeof this.streamsById[line.id] !== 'undefined') {
+      if (process.env.NODE_ENV !== 'production' && typeof this.elementsById[line.id] !== 'undefined') {
         handleError('The stream of the same id already exists.', 'stream.add', this.owner);
       }
 
-      this.streamsById[line.id] = line;
+      this.elementsById[line.id] = line;
     }
   }
 
   public get(index?: number): ILineLike | Array<ILineLike | undefined> | undefined {
-    return typeof index === 'undefined' ? this.streams : this.streams[index];
+    return typeof index === 'undefined' ? this.elements : this.elements[index];
   }
 
   public getById(id: string): ILineLike | undefined {
-    return this.streamsById[id];
+    return this.elementsById[id];
   }
 
   // tslint:disable:unified-signatures
@@ -96,7 +95,7 @@ export class NodeStream implements IStreamOfNode {
         };
       }
 
-      for (const line of this.streams) {
+      for (const line of this.elements) {
         if (!line) { continue; }
         if (typeCheck(line) && classCheck(line)) {
           res.push(line);
@@ -119,52 +118,60 @@ export class NodeStream implements IStreamOfNode {
       handleError(new Error('the type of param is wrong'), 'stream.find', this.owner);
     }
 
-    return this.streams.filter(fn);
+    return this.elements.filter(fn);
   }
 
   public del(line: ILineLike) {
-    const i = this.streams.indexOf(line);
+    const i = this.elements.indexOf(line);
     if (!~i) { return; }
-    this.streams[i] = void 0;
-    this.wrappedStreams && delete this.wrappedStreams[i];
+    this.elements[i] = void 0;
+    this.wrappedElements && delete this.wrappedElements[i];
     if (line.id) {
-      this.streamsById[line.id] = void 0;
+      this.elementsById[line.id] = void 0;
     }
+  }
+  public clear() {
+    this.elements.length = 0;
+    this.wrappedElements.length = 0;
+    this.elementsById = {};
   }
 
   public readonly owner: INodeLike;
-  private streams: Array<ILineLike | undefined> = [];
-  private streamsById: IDictionary<ILineLike> = {};
+  private elements: Array<ILineLike | undefined> = [];
+  private elementsById: IDictionary<ILineLike> = {};
 
-  public wrappedStreams: any[];
+  public wrappedElements: any[];
   private wrapper: (line: ILineLike) => any;
-  public useWrap(wrapper?: ((line: ILineLike) => any), wrappedStreamsDefaultValue?: any) {
+  public useWrap(wrapper?: ((line: ILineLike) => any), wrappedElementsDefaultValue?: any) {
     if (!wrapper) { return; }
-    this.wrappedStreams = wrappedStreamsDefaultValue || [];
+    this.wrappedElements = wrappedElementsDefaultValue || [];
     this.wrapper = wrapper;
   }
-  constructor(owner: INodeLike, wrapper?: (line: ILineLike) => any, wrappedStreamsDefaultValue?: any) {
+  constructor(owner: INodeLike, wrapper?: (line: ILineLike) => any, wrappedElementsDefaultValue?: any) {
     this.owner = owner;
-    this.useWrap(wrapper, wrappedStreamsDefaultValue);
+    this.useWrap(wrapper, wrappedElementsDefaultValue);
   }
 }
 
 export class SingleStream<Owner extends IElementLike, Stream extends IElementLike> implements IElementStream {
   public readonly owner: Owner;
-  public stream: Stream | undefined = void 0;
+  public element: Stream | undefined = void 0;
   constructor(owner: Owner) {
     this.owner = owner;
   }
 
   public add(node: Stream) {
-    this.stream = node;
+    this.element = node;
   }
   public get() {
-    return this.stream;
+    return this.element;
   }
   public del(node: Stream) {
-    this.stream === node && (this.stream = void 0);
+    this.element === node && (this.element = void 0);
+  }
+  public clear() {
+    this.element = void 0;
   }
 }
 export class LineStream extends SingleStream<ILineLike, INodeLike> implements IStreamOfLine { }
-export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorReceiver, ILineHasUps> implements IStreamOfNode { }
+export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorStream, ILineHasUps> implements IStreamOfNode { }

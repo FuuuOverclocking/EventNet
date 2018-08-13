@@ -1,4 +1,4 @@
-import { BasicNode } from './basic-node';
+import { BasicNode } from './node';
 import {
   ElementType,
   ILineHasDws,
@@ -6,7 +6,6 @@ import {
   IRawNodeCode,
   NodeRunningStage,
 } from './types';
-import { nextTick } from './util';
 
 const p = Promise.resolve();
 
@@ -35,7 +34,7 @@ export class RawNode extends BasicNode {
     if (this.sync) {
       try {
         return this.code(
-          this.Out.wrappedStreams as INodeCodeDWS,
+          this.Out.wrappedElements as INodeCodeDWS,
           { data, caller },
           { origin: this },
         );
@@ -45,7 +44,7 @@ export class RawNode extends BasicNode {
     } else {
       return p.then(() => {
         return this.code(
-          this.Out.wrappedStreams as INodeCodeDWS,
+          this.Out.wrappedElements as INodeCodeDWS,
           { data, caller },
           { origin: this },
         );

@@ -5,24 +5,26 @@
     ],
     "jsRules": {},
     "rules": {
+        "arrow-parens": [true, "ban-single-arg-parens"],
         "indent": [true, "spaces", 2],
-        "no-empty": false,
-        "no-console": false,
+        "interface-name": false,
         "max-classes-per-file": false,
         "member-ordering": false,
+        "no-bitwise": false,
+        "no-empty": false,
+        "no-conditional-assignment": false,
         "no-consecutive-blank-lines": [
             true,
             2
         ],
-        "no-conditional-assignment": false,
-        "no-bitwise": false,
+        "no-console": false,
+        "no-empty-interface": false,
         "no-unused-expression": false,
         "object-literal-sort-keys": false,
         "quotemark": [
             true,
             "single"
         ],
-        "arrow-parens": [true, "ban-single-arg-parens"],
         "variable-name": false
     },
     "rulesDirectory": []
