@@ -1,7 +1,7 @@
 /**
- * EventNet
- * Created by X.Y.Z. at March 3rd, 2018.
- * @version 0.0.2
+ * EventNet 0.1.0
+ * (c) 2018 X.Y.Z.
+ * Released under the MIT License.
  */
 export { Element, getElementProducer } from './element';
 export { weld, deweld } from './weld';

@@ -1,6 +1,6 @@
 {
   "name": "eventnet",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Not just about flow design.",
   "main": "lib/eventnet.min.js",
   "repository": {
