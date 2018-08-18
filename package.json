@@ -1,8 +1,9 @@
 {
   "name": "eventnet",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Not just about flow design.",
   "main": "lib/index.js",
+  "typings": "lib/index.d.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xyzingh/EventNet.git"
