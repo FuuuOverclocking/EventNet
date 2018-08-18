@@ -1,5 +1,5 @@
 /**
- * EventNet 0.1.1
+ * EventNet 0.1.2
  * (c) 2018 X.Y.Z.
  * Released under the MIT License.
  */
