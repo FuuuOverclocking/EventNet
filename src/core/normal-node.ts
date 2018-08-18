@@ -1,12 +1,13 @@
 import { _attrsStore as attrsStore, getAttrDefinition } from '.';
+import { getElementProducer } from './element';
 import { BasicNode } from './node';
 import { Observer } from './observer';
 import { Watcher } from './observer/watcher';
 import {
   ElementType, IAttrFuncCondition,
-  IDictionary, ILineHasDws,
-  INodeCodeDWS, INormalNodeCode,
-  IWatchableElement, NodeRunningStage,
+  IDictionary,
+  ILineLike, INodeCodeDWS,
+  INormalNodeCode, IWatchableElement, NodeRunningStage,
 } from './types';
 import { handleError, isObject, remove, tip } from './util';
 
@@ -26,6 +27,41 @@ export const defaultState = {
 
 const p = Promise.resolve();
 
+// tslint:disable-next-line:class-name
+interface nn {
+/**
+ * Create a EventNet NormalNode.
+ * @param {Object} attrs set the attributes of Node
+ * @param {Object} states set the initial state of Node, the `attrs` must be set firstly to set this item
+ * @param {Function} code set the code of Node
+ * @return {NormalNode} a new EventNet NormalNode
+ */
+  (attrs: IDictionary, state: IDictionary, code: INormalNodeCode): NormalNode;
+/**
+ * Create a EventNet NormalNode.
+ * @param {Object} attrs set the attributes of Node
+ * @param {Function} code set the code of Node
+ * @return {NormalNode} a new EventNet NormalNode
+ */
+  (attrs: IDictionary, code: INormalNodeCode): NormalNode;
+/**
+ * Create a EventNet NormalNode.
+ * @param {Function} code set the code of Node
+ * @return {NormalNode} a new EventNet NormalNode
+ */
+  (code: INormalNodeCode): NormalNode;
+}
+
+export const nn = getElementProducer((attrs: any, state?: any, code?: any): NormalNode => {
+  if (typeof attrs === 'object' && typeof state === 'object' && typeof code === 'function') {
+    return new NormalNode(attrs, state, code);
+  } else if (typeof attrs === 'object' && typeof state === 'function') {
+    return new NormalNode(attrs, {}, state);
+  } else {
+    return new NormalNode({}, {}, attrs);
+  }
+}, 'NormalNode') as nn;
+
 export class NormalNode extends BasicNode implements IWatchableElement {
 
   public type = ElementType.NormalNode;
@@ -33,7 +69,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
   public readonly code: INormalNodeCode;
 
 
-  public state: IDictionary;
+  public readonly state: IDictionary;
   public watchMe(
     expOrFn: string | ((this: IDictionary, state: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
@@ -47,7 +83,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     this._watchers.push(watcher);
 
     if (immediate) {
-      const value = watcher.getter(this.state);
+      const value = watcher.getter.call(this.state, this.state);
       callback.call(this.state, value, value);
     }
 
@@ -75,7 +111,9 @@ export class NormalNode extends BasicNode implements IWatchableElement {
       fn.call(this, this);
     }
 
-    this.state = null as any;
+    (this.state as any) = null;
+    this._watchers.forEach(watcher => watcher.teardown());
+    this._watchers.length = 0;
     ////////////////////////////////////////////
   }
 
@@ -173,7 +211,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     this.state = Object.assign({}, defaultState, state);
     new Observer(this.state, 'data');
   }
-  public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
+  public run(data?: any, caller?: ILineLike): any | Promise<any> {
     if (this._attrs.own.sync) {
       try {
         return this.codeSync(data, caller);
@@ -207,75 +245,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     // Try-catch will copy all the variables in the current scope.
   }
 
-  // public stareArrow(
-  //   node: INodeHasUps,
-  //   expOrFn: string | (() => any),
-  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-  //   {
-  //     deep = false,
-  //     sync = false,
-  //     immediate = false,
-  //   } = {},
-  //   { id, classes }: ILineOptions = {},
-  // ) {
-  //   const line = new StareArrow(
-  //     this,
-  //     NormalNode.prototype.watchMe,
-  //     expOrFn,
-  //     callback,
-  //     { deep, sync, immediate },
-  //     { id, classes },
-  //   );
-  //   weld(line.downstream, node.In);
-  //   return node;
-  // }
-
-  // public starePipe(
-  //   node: INodeHasUps,
-  //   expOrFn: string | (() => any),
-  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-  //   {
-  //     deep = false,
-  //     sync = false,
-  //     immediate = false,
-  //   } = {},
-  //   { id, classes }: ILineOptions = {},
-  // ) {
-  //   const line = new StarePipe(
-  //     this,
-  //     NormalNode.prototype.watchMe,
-  //     expOrFn,
-  //     callback,
-  //     { deep, sync, immediate },
-  //     { id, classes },
-  //   );
-  //   weld(line.downstream, node.In);
-  //   return node;
-  // }
-
-  // public stareTwpipe(
-  //   node: INodeHasUps,
-  //   expOrFn: string | (() => any),
-  //   callback: (newVal: any, dws: ICallableElementLike | null, oldVal: any) => any,
-  //   {
-  //     deep = false,
-  //     sync = false,
-  //     immediate = false,
-  //   } = {},
-  //   { id, classes }: ILineOptions = {},
-  // ) {
-  //   const line = new StarePipe(
-  //     this,
-  //     NormalNode.prototype.watchMe,
-  //     expOrFn,
-  //     callback,
-  //     { deep, sync, immediate },
-  //     { id, classes },
-  //   );
-  //   weld(line.downstream, node.In);
-  // }
-
-  private async codeAsync(data?: any, caller?: ILineHasDws) {
+  private async codeAsync(data?: any, caller?: ILineLike) {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -317,8 +287,8 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = await this.code(
-      this.Out.wrappedElements as INodeCodeDWS,
       { data, caller },
+      this.downstream.wrappedElements as INodeCodeDWS,
       {
         origin: this,
         attrs: () => this.attrs,
@@ -354,7 +324,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
 
     return result;
   }
-  private codeSync(data?: any, caller?: ILineHasDws): any {
+  private codeSync(data?: any, caller?: ILineLike): any {
     ++this.state.runningTimes;
 
     let runningStage: NodeRunningStage = NodeRunningStage.before;
@@ -396,8 +366,8 @@ export class NormalNode extends BasicNode implements IWatchableElement {
     runningStage = NodeRunningStage.code;
 
     let result = this.code(
-      this.Out.wrappedElements as INodeCodeDWS,
       { data, caller },
+      this.downstream.wrappedElements as INodeCodeDWS,
       {
         origin: this,
         attrs: () => this.attrs,

@@ -25,6 +25,7 @@
             true,
             "single"
         ],
+        "unified-signatures": false,
         "variable-name": false
     },
     "rulesDirectory": []

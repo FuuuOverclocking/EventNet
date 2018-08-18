@@ -1,6 +1,6 @@
 import {
   IDictionary, IElementLike, IElementStream,
-  ILineHasUps, ILineLike, INodeHasDwsAndErrorStream,
+  ILineLike,
   INodeLike, IStreamOfLine, IStreamOfNode,
 } from './types';
 import { handleError, isPipeLike, isTwpipe } from './util';
@@ -24,7 +24,9 @@ export class NodeStream implements IStreamOfNode {
     }
   }
 
-  public get(index?: number): ILineLike | Array<ILineLike | undefined> | undefined {
+  public get(): Array<ILineLike | undefined>;
+  public get(index: number): ILineLike | undefined;
+  public get(index?: number) {
     return typeof index === 'undefined' ? this.elements : this.elements[index];
   }
 
@@ -174,4 +176,3 @@ export class SingleStream<Owner extends IElementLike, Stream extends IElementLik
   }
 }
 export class LineStream extends SingleStream<ILineLike, INodeLike> implements IStreamOfLine { }
-export class NodeErrorStream extends SingleStream<INodeHasDwsAndErrorStream, ILineHasUps> implements IStreamOfNode { }

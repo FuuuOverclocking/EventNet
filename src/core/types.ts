@@ -1,6 +1,3 @@
-import { NodeDwsMethods } from './node-methods';
-import { NodeErrorStream } from './stream';
-
 export interface IDictionary<T = any> {
   [index: string]: T | undefined;
 }
@@ -18,8 +15,18 @@ export type IPrimitive = 'string' | 'number' | 'boolean' | 'symbol';
  *   0-th bit: 0 - one-way, 1 - two-way
  */
 export enum ElementType {
+  Node = 0,
+  Stateful = 0b10,
+
   RawNode = 0b00,
   NormalNode = 0b10,
+
+  /**********************/
+
+  Line = 1,
+  Pipelike = 0b10,
+  Twoway = 0b100,
+
   Arrow = 0b001,
   Pipe = 0b011,
   Twpipe = 0b111,
@@ -29,17 +36,16 @@ export type IUnaryFunction<T, R> = (source: T) => R;
 
 export interface IElementLike {
   // Unique Identifier
-  uid: number;
+  readonly uid: number;
 
   // the method to run the element
   run(data?: any, caller?: IElementLike): any;
 
   // the stream of element
-  // the element must have one of them
-  upstream?: IElementStream | IElementStream[];
-  downstream?: IElementStream | IElementStream[];
+  readonly upstream: IElementStream;
+  readonly downstream: IElementStream;
 
-  type: number;
+  readonly type: number;
 
   thread(): this;
   thread<A>(op1: IUnaryFunction<this, A>): A;
@@ -48,7 +54,7 @@ export interface IElementLike {
 
   clone?(): IElementLike;
   destroy?(): void;
-  state?: IDictionary;
+  readonly state?: IDictionary;
   watchMe?(
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
@@ -70,7 +76,7 @@ export interface ICallableElementLike {
 }
 
 export interface IWatchableElement {
-  state: IDictionary;
+  readonly state: IDictionary;
   watchMe: (
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, oldVal: any) => void,
@@ -95,7 +101,7 @@ export interface IElementStream {
 
   // return undefined or the element with specified index
   // if there is no parameter, return all the elements (if more than one, return an array)
-  get: (index?: number) => Array<IElementLike | undefined> | IElementLike | undefined;
+  get(): Array<IElementLike | undefined> | IElementLike | undefined;
 
   // delete the element from stream
   del: (elem: IElementLike) => void;
@@ -106,60 +112,44 @@ export interface IElementStream {
 
 export interface IStreamOfNode extends IElementStream {
   readonly owner: INodeLike;
+  get(): Array<ILineLike | undefined>;
+  get(index: number): ILineLike | undefined;
 }
 
 export interface IStreamOfLine extends IElementStream {
   readonly owner: ILineLike;
+  get(): INodeLike | undefined;
 }
 
 export interface INodeLike extends IElementLike {
   parent: INodeLike | undefined;
-  upstream?: IStreamOfNode | IStreamOfNode[];
-  downstream?: IStreamOfNode | IStreamOfNode[];
-  destory?: () => void;
+  readonly upstream: IStreamOfNode;
+  readonly downstream: IStreamOfNode;
   ondestory?: Array<(this: INodeLike, node: INodeLike) => void>;
-}
-
-export interface INodeHasUps extends INodeLike {
-  In: IStreamOfNode;
-  upstream: IStreamOfNode | IStreamOfNode[];
-}
-
-export interface INodeHasDwsAndErrorStream extends INodeLike, NodeDwsMethods {
-  Out: IStreamOfNode;
-  Err: IStreamOfNode;
-  downstream: [IStreamOfNode, NodeErrorStream];
-}
-
-export interface INodeHasDws extends INodeLike, NodeDwsMethods {
-  Out: IStreamOfNode;
-  downstream: IStreamOfNode | IStreamOfNode[];
+  _errorHandler(when: NodeRunningStage, what?: any, where?: IElementLike[]): void;
 }
 
 export interface ILineLike extends IElementLike {
   readonly id: string | undefined;
+  readonly upstream: IStreamOfLine;
+  readonly downstream: IStreamOfLine;
   classes?: string[];
-}
-
-export interface ILineHasUps extends ILineLike {
-  upstream: IStreamOfLine;
-}
-
-export interface ILineHasDws extends ILineLike {
-  downstream: IStreamOfLine;
 }
 
 export enum NodeRunningStage {
   before = 1,
-  code,
+
+  code, /* for nodes taing code as its content */
+  child, /* for nodes containing child nodes */
+
   after,
   over,
 }
 
 export type IRawNodeCode =
-  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: IRawNodeCodeMe) => any;
+  (upstream: INodeCodeUPS, downstream: INodeCodeDWS, me: IRawNodeCodeMe) => any;
 export type INormalNodeCode =
-  (downstream: INodeCodeDWS, upstream: INodeCodeUPS, me: INormalNodeCodeMe) => any;
+  (upstream: INodeCodeUPS, downstream: INodeCodeDWS, me: INormalNodeCodeMe) => any;
 export interface INodeCodeDWS extends Array<ICallableElementLike | undefined> {
   all: (data?: any) => void;
   ask: (
@@ -171,7 +161,7 @@ export interface INodeCodeDWS extends Array<ICallableElementLike | undefined> {
 }
 export interface INodeCodeUPS {
   data: any;
-  caller: ILineHasDws | undefined;
+  caller: ILineLike | undefined;
 }
 export interface IRawNodeCodeMe {
   origin: INodeLike;
@@ -209,8 +199,8 @@ export interface IAttrFuncCondition {
 }
 
 export interface ILineOptions {
-  id?: string;
-  classes?: string[];
+  readonly id?: string;
+  readonly classes?: string[];
 }
 
 export interface ISimpleSet<T> {

@@ -8,8 +8,8 @@ export function traverse(val: any) {
 }
 
 /**
- * One known problem is, if the val is a inextensible object
- * and is in a reference ring, then the function may cause stack overflow.
+ * One known problem is, if the val is a inextensible object and is in a reference ring,
+ * then the function may immersed in a infinite recursion.
  */
 function _traverse(val: any, seen: Set<any>) {
   let i;

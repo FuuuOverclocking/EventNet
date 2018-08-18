@@ -4,30 +4,15 @@ import {
   ElementType,
   ICallableElementLike,
   IDictionary,
-  ILineHasDws,
-  ILineHasUps,
   ILineOptions,
-  INodeHasUps,
+  INodeLike,
   IWatchableElement,
 } from '../types';
 import { handleError, isPipe } from '../util';
 import { weld } from '../weld';
 import { Arrow, Pipe, Twpipe } from './../line';
-function abc({a = false} = {}) {}
-export const stareArrow = getElementProducer<
-  ILineHasDws,
-  [
-    IWatchableElement,
-    string | ((this: IDictionary, target: IDictionary) => any),
-    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
-    {
-      deep?: boolean,
-      sync?: boolean,
-      immediate?: boolean,
-    }?,
-    ILineOptions?
-  ]
-  >((
+
+export const stareArrow = getElementProducer((
     target: IWatchableElement,
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any =
@@ -69,20 +54,7 @@ export const stareArrow = getElementProducer<
     return line;
   }, 'stareArrow');
 
-export const starePipe = getElementProducer<
-  ILineHasDws,
-  [
-    IWatchableElement,
-    string | ((this: IDictionary, target: IDictionary) => any),
-    (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
-    {
-      deep?: boolean,
-      sync?: boolean,
-      immediate?: boolean,
-    },
-    ILineOptions
-  ]
-  >((
+export const starePipe = getElementProducer((
     target: IWatchableElement,
     expOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any =
@@ -113,32 +85,10 @@ export const starePipe = getElementProducer<
     return line;
   }, 'starePipe');
 
-export const stareTwpipe = getElementProducer<
-  ILineHasUps & ILineHasDws,
-  [
-    IWatchableElement & INodeHasUps,
-    string | ((this: IDictionary, target: IDictionary) => any),
-    IWatchableElement & INodeHasUps,
-    string | ((this: IDictionary, target: IDictionary) => any),
-    (
-      upsNewVal: any,
-      dwsNewVal: any,
-      ups: ICallableElementLike | undefined,
-      dws: ICallableElementLike | undefined,
-      upsOldVal: any,
-      dwsOldVal: any,
-    ) => void,
-    {
-      deep?: boolean,
-      sync?: boolean,
-      immediate?: boolean,
-    }?,
-    ILineOptions?
-  ]
-  >((
-    upsTarget: IWatchableElement & INodeHasUps,
+export const stareTwpipe = getElementProducer((
+    upsTarget: IWatchableElement & INodeLike,
     upsExpOrFn: string | ((this: IDictionary, target: IDictionary) => any),
-    dwsTarget: IWatchableElement & INodeHasUps,
+    dwsTarget: IWatchableElement & INodeLike,
     dwsExpOrFn: string | ((this: IDictionary, target: IDictionary) => any),
     callback: (
       upsNewVal: any,
@@ -156,8 +106,8 @@ export const stareTwpipe = getElementProducer<
     { id, classes }: ILineOptions = {},
   ) => {
     const line = new Twpipe(null, null, { id, classes });
-    weld(line.upstream, upsTarget.In);
-    weld(line.downstream, dwsTarget.In);
+    weld(line.upstream, upsTarget.upstream);
+    weld(line.downstream, dwsTarget.upstream);
 
     let upsOldVal: any = void 0;
     let dwsOldVal: any = void 0;
@@ -191,6 +141,8 @@ export const stareTwpipe = getElementProducer<
       run(void 0, newVal, upsOldVal, oldVal);
       dwsOldVal = newVal;
     }, { deep, sync, immediate });
+
+    return line;
   }, 'stareTwpipe');
 
 declare module '../normal-node' {
@@ -205,7 +157,7 @@ declare module '../normal-node' {
 function createStareLine(
   this: NormalNode,
   type: ElementType,
-  node: INodeHasUps,
+  node: INodeLike,
   expOrFn: string | (() => any),
   callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
   {
@@ -223,7 +175,7 @@ function createStareLine(
     { deep, sync, immediate },
     { id, classes },
   );
-  weld(line.downstream, node.In);
+  weld(line.downstream, node.upstream);
   return line;
 }
 
@@ -233,7 +185,7 @@ export const [createStareArrow, createStarePipe] =
   [ElementType.Arrow, ElementType.Pipe],
   (t: ElementType) => function(
     this: NormalNode,
-    node: INodeHasUps,
+    node: INodeLike,
     expOrFn: string | (() => any),
     callback: (newVal: any, dws: ICallableElementLike | undefined, oldVal: any) => any,
     {

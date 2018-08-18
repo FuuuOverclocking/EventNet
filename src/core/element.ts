@@ -1,16 +1,19 @@
-import { IElementLike, ILineLike, INodeLike, IUnaryFunction } from './types';
+import { IElementLike, IElementStream, ILineLike, INodeLike, IUnaryFunction } from './types';
 import { handleError, isObject } from './util';
 
 // uid should start at 1, as 0 is a falsy value
 let globalElementUid = 0;
-export function getUid() {
+function getUid() {
   return ++globalElementUid;
 }
 
 export abstract class Element implements IElementLike {
-  public uid = getUid();
+  public readonly uid = getUid();
   public abstract run(data?: any, caller?: IElementLike): any;
-  public abstract type: number;
+  public readonly abstract type: number;
+
+  public abstract readonly upstream: IElementStream;
+  public abstract readonly downstream: IElementStream;
 
   public thread(): this;
   public thread<A>(op1: IUnaryFunction<this, A>): A;
@@ -28,10 +31,10 @@ export abstract class Element implements IElementLike {
   }
 }
 
-export function getElementProducer<type extends INodeLike | ILineLike, T extends any[]>(
-  fn: (...args: T) => type,
+export function getElementProducer<T extends (...args: any[]) => IElementLike>(
+  fn: T,
   name: string,
-): (...args: T) => type;
+): T;
 
 export function getElementProducer<type extends INodeLike | ILineLike>(existingElement: type, name: string): () => type;
 

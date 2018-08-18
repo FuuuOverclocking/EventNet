@@ -1,21 +1,19 @@
 import { warn } from '../shared/util/debug';
 import { Element } from './element';
-import { Arrow, Pipe, Twpipe } from './line';
-import { linesWaitingLink, NodeDwsMethods, NodeDwsUpsMethods, NodeUpsMethods } from './node-methods';
-import { NodeErrorStream, NodeStream } from './stream';
+import { linesWaitingLink, NodeMethods } from './node-methods';
+import { NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
-  ILineHasDws, ILineHasUps, ILineLike,
-  ILineOptions,
-  INodeCodeDWS, INodeHasDws, INodeHasDwsAndErrorStream,
-  INodeHasUps, INodeLike, INormalNodeCode, IRawNodeCode, NodeRunningStage,
+  IElementLike,
+  ILineLike,
+  INodeCodeDWS, INodeLike, INormalNodeCode, IRawNodeCode, IStreamOfNode, NodeRunningStage,
 } from './types';
 import {
   applyMixins, def, handleError,
-  isNode, isPipe, isTwpipe,
+  isTwpipe,
   isValidArrayIndex,
 } from './util';
-import { deweld, weld } from './weld';
+import { weld } from './weld';
 
 /**
  * The ancestor of all the nodes.
@@ -23,32 +21,37 @@ import { deweld, weld } from './weld';
  */
 export abstract class Node extends Element implements INodeLike {
   public parent: INodeLike | undefined = void 0;
-  public abstract type: number;
+  public abstract readonly type: number;
+  public abstract readonly upstream: IStreamOfNode;
+  public abstract readonly downstream: IStreamOfNode;
+
+  public _errorHandler(when: NodeRunningStage, what?: any, where?: IElementLike[]) {
+    const er = this.downstream.get().filter(line => {
+      if (!line || !line.classes) { return false; }
+      return ~line.classes.indexOf('error');
+    }) as ILineLike[];
+
+    if (er.length) {
+      er.forEach(line => line.run({ when, what, where }, this));
+    } else if (this.parent) {
+      where = where || [];
+      where.push(this);
+      this.parent._errorHandler(NodeRunningStage.child, what, where);
+    } else {
+      handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
+    }
+  }
 }
 
-export abstract class BasicNode extends Node implements
-  INodeHasDwsAndErrorStream,
-  INodeHasUps,
-  NodeUpsMethods,
-  NodeDwsMethods,
-  NodeDwsUpsMethods {
+export abstract class BasicNode extends Node {
 
-  public abstract type: ElementType;
+  public abstract readonly type: ElementType;
 
-  public upstream: NodeStream = new NodeStream(this);
-  public downstream: [NodeStream, NodeErrorStream] = [
-    new NodeStream(this, toCallableDws, new NodeCodeDws()),
-    new NodeErrorStream(this),
-  ];
+  public readonly upstream: NodeStream = new NodeStream(this);
+  public readonly downstream: NodeStream = new NodeStream(this, toCallableDws, new NodeCodeDws());
 
-  // the default iostream of node
-  public In: NodeStream = this.upstream;
-  public Out: NodeStream = this.downstream[0];
-
-  // the error stream of node
-  public Err: NodeErrorStream = this.downstream[1];
-
-  public ondestory: Array<(this: BasicNode, node: BasicNode) => void> = [];
+  public readonly ondestory:
+    Array<(this: BasicNode, node: BasicNode) => void> = [];
   /**
    * Destory the Node
    * execute all the functions in the array `ondestory`, then
@@ -63,57 +66,24 @@ export abstract class BasicNode extends Node implements
    */
   public abstract destory(): void;
 
-  public abstract run(data?: any, caller?: ILineHasDws): any | Promise<any>;
+  public abstract run(data?: any, caller?: ILineLike): any | Promise<any>;
   public readonly code: IRawNodeCode | INormalNodeCode;
   constructor(code: IRawNodeCode | INormalNodeCode) {
     super();
 
-    def(this.Out.wrappedElements, 'origin', this.Out);
+    def(this.downstream.wrappedElements, 'origin', this.downstream);
 
     this.code = code;
 
     // all types of Node with upstream(s), should contain the following lines in its constructor
     for (const line of linesWaitingLink) {
-      weld(this.In, line.downstream);
+      weld(this.upstream, line.downstream);
       if (isTwpipe(line.type)) {
-        weld(this.Out, line.downstream);
+        weld(this.downstream, line.downstream);
       }
     }
     linesWaitingLink.length = 0;
     // all types of Node with upstream(s), should contain the lines abov in its constructor
-  }
-
-  public setErrStream(elem: ILineHasUps | INodeHasUps | null) {
-    const original = this.Err.get();
-    if (original) {
-      deweld(this.Err, original.upstream);
-      if (isTwpipe(original.type)) {
-        deweld(this.In, original.upstream);
-      }
-    }
-
-    if (elem === null) {
-      return;
-    }
-    if (isNode(elem.type)) {
-      const pipe = new Pipe(null, elem as INodeHasUps, { classes: ['error'] });
-      weld(this.Err, pipe.upstream);
-    } else if (isPipe(elem.type)) {
-      weld(this.Err, (elem as ILineHasUps).upstream);
-    } else if (isTwpipe(elem.type)) {
-      weld(this.Err, (elem as ILineHasUps).upstream);
-      weld(this.In, (elem as ILineHasUps).upstream);
-    } else {
-      handleError(new Error('errorReceiver must be assigned to Node, Pipe or Twpipe'), 'Node.setErrStream', this);
-    }
-  }
-  public _errorHandler(when: NodeRunningStage, what?: any) {
-    const er = this.Err.get();
-    if (er) {
-      er.run({ when, what }, this);
-    } else {
-      handleError(what, `Node running stage '${NodeRunningStage[when]}'`, this);
-    }
   }
 
   public abstract clone(): BasicNode;
@@ -132,28 +102,11 @@ export abstract class BasicNode extends Node implements
     return fn;
   }
 
-
-  // mixin method
-  // tslint:disable:max-line-length
-  public createLine: (node: INodeHasUps, options: any, type: ElementType) => Arrow | Pipe | Twpipe;
-  public createArrow: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Arrow;
-  public createPipe: (node: INodeHasUps | null | undefined, options?: ILineOptions) => Pipe;
-  public createTwpipe: (node: (INodeHasUps & INodeHasDws) | null | undefined, options?: ILineOptions) => Twpipe;
-  public arrow: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
-  public pipe: <T extends INodeHasUps>(node: T, options?: ILineOptions) => T;
-  public twpipe: <T extends (INodeHasUps & INodeHasDws) >(node: T, options?: ILineOptions) => T;
-  public alsoArrow: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
-  public alsoPipe: (node: INodeHasUps, options?: ILineOptions) => BasicNode;
-  public alsoTwpipe: (node: (INodeHasUps & INodeHasDws), options?: ILineOptions) => BasicNode;
-  public arrowNext: (options?: ILineOptions) => BasicNode;
-  public pipeNext: (options?: ILineOptions) => BasicNode;
-  public twpipeNext: (options?: ILineOptions) => BasicNode;
-  // tslint:enable:max-line-length
-
 }
 
 // mixin methods
-applyMixins(BasicNode, [NodeUpsMethods, NodeDwsMethods, NodeDwsUpsMethods]);
+export interface Node extends NodeMethods { }
+applyMixins(Node, [NodeMethods]);
 
 function toCallableDws(this: NodeStream, line: ILineLike) {
   const fn = ((data?: any) => {

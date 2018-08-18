@@ -1,13 +1,49 @@
+import { getElementProducer } from './element';
 import { BasicNode } from './node';
 import {
   ElementType,
-  ILineHasDws,
+  ILineLike,
   INodeCodeDWS,
   IRawNodeCode,
   NodeRunningStage,
 } from './types';
 
 const p = Promise.resolve();
+
+// tslint:disable-next-line:class-name
+interface raw {
+  /**
+   * Create a EventNet RawNode.
+   * @param {Function} code set the code of Node
+   * @returns {RawNode} a new EventNet RawNode
+   */
+  (code: IRawNodeCode): RawNode;
+  /**
+   * Create a EventNet RawNode.
+   * @param {boolean} sync whether the Node running synchronously or asynchronously
+   * @param {Function} code set the code of Node
+   * @returns {RawNode} a new EventNet RawNode
+   */
+  (sync: boolean, code: IRawNodeCode): RawNode;
+
+  /**
+   * Create a EventNet RawNode.
+   * @param {boolean} sync whether the Node running synchronously or asynchronously
+   * @param {Function} code set the code of Node
+   * @returns {RawNode} a new EventNet RawNode
+   */
+  ({ sync }: { sync?: boolean }, code: IRawNodeCode): RawNode;
+}
+
+export const raw = getElementProducer((arg1: any, arg2?: any): RawNode => {
+  if (typeof arg1 === 'function') {
+    return new RawNode({ sync: true }, arg1);
+  } else if (typeof arg1 === 'boolean') {
+    return new RawNode({ sync: arg1 }, arg2);
+  } else {
+    return new RawNode(arg1, arg2);
+  }
+}, 'RawNode') as raw;
 
 export class RawNode extends BasicNode {
   public type = ElementType.RawNode;
@@ -30,12 +66,12 @@ export class RawNode extends BasicNode {
     ////////////////////////////////////////////
   }
 
-  public run(data?: any, caller?: ILineHasDws): any | Promise<any> {
+  public run(data?: any, caller?: ILineLike): any | Promise<any> {
     if (this.sync) {
       try {
         return this.code(
-          this.Out.wrappedElements as INodeCodeDWS,
           { data, caller },
+          this.downstream.wrappedElements as INodeCodeDWS,
           { origin: this },
         );
       } catch (error) {
@@ -44,8 +80,8 @@ export class RawNode extends BasicNode {
     } else {
       return p.then(() => {
         return this.code(
-          this.Out.wrappedElements as INodeCodeDWS,
           { data, caller },
+          this.downstream.wrappedElements as INodeCodeDWS,
           { origin: this },
         );
       }).catch(error => {
