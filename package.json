@@ -9,12 +9,12 @@
     "url": "git+https://github.com/xyzingh/EventNet.git"
   },
   "keywords": [
+    "debugger",
+    "debugger-visualizer",
     "eventnet",
-    "flow",
-    "visual",
-    "debug",
-    "typescript",
-    "javascript-tools"
+    "flowchart",
+    "javascript-tools",
+    "visual"
   ],
   "author": "X.Y.Z.",
   "license": "MIT",
@@ -31,6 +31,9 @@
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "@types/node": "^10.1.2",
+    "commitizen": "^2.10.1",
+    "conventional-changelog-cli": "^2.0.1",
+    "cz-conventional-changelog": "^2.1.0",
     "jest": "^23.0.1",
     "ts-jest": "^22.4.6",
     "ts-loader": "^4.4.2",
@@ -41,13 +44,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:dev": "",
-    "build:mnt": "",
-    "build:min": "",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "clean": "",
-    "clean:all": "",
+    "cz": "git-cz",
+    "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
     "test": "jest",
-    "lint": "tslint --fix -c tslint.json 'src/**/*.ts'"
+    "version": "npm run changelog && git add CHANGELOG.md"
   },
   "jest": {
     "collectCoverage": true,
@@ -71,5 +73,10 @@
     },
     "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(js|ts)$",
     "testEnvironment": "node"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }
