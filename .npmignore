@@ -11,6 +11,7 @@ tslint.json
 .travis.yml
 .circleci
 .vscode/
+.editorconfig
 test.config
 package-lock.json
 yarn.lock
