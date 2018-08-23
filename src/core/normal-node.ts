@@ -107,7 +107,7 @@ export class NormalNode extends BasicNode implements IWatchableElement {
 
 
   public destory() {
-    for (const fn of this.ondestory) {
+    for (const fn of this.ondestroy) {
       fn.call(this, this);
     }
 

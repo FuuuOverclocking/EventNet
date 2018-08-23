@@ -60,7 +60,7 @@ export class RawNode extends BasicNode {
   }
 
   public destory() {
-    for (const fn of this.ondestory) {
+    for (const fn of this.ondestroy) {
       fn.call(this, this);
     }
     ////////////////////////////////////////////

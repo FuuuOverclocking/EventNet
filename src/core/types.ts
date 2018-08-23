@@ -129,7 +129,7 @@ export interface INodeLike extends IElementLike {
   parent: INodeLike | undefined;
   readonly upstream: IStreamOfNode;
   readonly downstream: IStreamOfNode;
-  ondestory?: Array<(this: any, node: any) => void>;
+  ondestroy?: Array<(this: any, node: any) => void>;
   _errorHandler(when: NodeRunningStage, what?: any, where?: IElementLike[]): void;
 }
 

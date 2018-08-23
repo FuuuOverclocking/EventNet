@@ -89,7 +89,7 @@ export abstract class BasicNode extends Node {
   public readonly upstream: NodeStream = new NodeStream(this);
   public readonly downstream: NodeStream = new NodeStream(this, toCallableDws, new NodeCodeDws());
 
-  public readonly ondestory:
+  public readonly ondestroy:
     Array<(this: BasicNode, node: BasicNode) => void> = [];
   /**
    * Destory the Node
