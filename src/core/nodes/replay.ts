@@ -3,7 +3,7 @@ import { Arrow, Pipe } from '../line';
 import { Node } from '../node';
 import { NodeMethods } from '../node-methods';
 import { NodeStream } from '../stream';
-import { ElementType, ILineOptions, INodeLike } from '../types';
+import { ElementType, INodeLike } from '../types';
 import { handleError } from '../util';
 
 export class ReplayNode extends Node {
@@ -20,7 +20,10 @@ export class ReplayNode extends Node {
   }
 }
 
-ReplayNode.prototype.createArrow = function(this: ReplayNode, node: INodeLike, options?: ILineOptions) {
+ReplayNode.prototype.createArrow = function(
+  this: ReplayNode,
+  node: INodeLike,
+  options?: { id?: string, classes?: string[] }) {
   if (!node) {
     process.env.NODE_ENV !== 'production' &&
       handleError(new Error('the target node must be designated'), 'RedistNode.createArrow');
@@ -32,7 +35,10 @@ ReplayNode.prototype.createArrow = function(this: ReplayNode, node: INodeLike, o
   }
   return line;
 };
-ReplayNode.prototype.createPipe = function(this: ReplayNode, node: INodeLike, options?: ILineOptions) {
+ReplayNode.prototype.createPipe = function(
+  this: ReplayNode,
+  node: INodeLike,
+  options?: { id?: string, classes?: string[] }) {
   if (!node) {
     process.env.NODE_ENV !== 'production' &&
       handleError(new Error('the target node must be designated'), 'RedistNode.createPipe');

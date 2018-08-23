@@ -97,14 +97,14 @@ export interface IElementStream {
 
   // add an element to the stream
   // this method must be able to de-duplicate
-  add: (elem: IElementLike) => void;
+  add(elem: IElementLike): void;
 
   // return undefined or the element with specified index
   // if there is no parameter, return all the elements (if more than one, return an array)
   get(): Array<IElementLike | undefined> | IElementLike | undefined;
 
   // delete the element from stream
-  del: (elem: IElementLike) => void;
+  del(elem: IElementLike): void;
 
   // clear all elements in the stream
   clear(): void;
@@ -114,11 +114,15 @@ export interface IStreamOfNode extends IElementStream {
   readonly owner: INodeLike;
   get(): Array<ILineLike | undefined>;
   get(index: number): ILineLike | undefined;
+  add(elem: ILineLike): void;
+  del(elem: ILineLike): void;
 }
 
 export interface IStreamOfLine extends IElementStream {
   readonly owner: ILineLike;
   get(): INodeLike | undefined;
+  add(elem: INodeLike): void;
+  del(elem: INodeLike): void;
 }
 
 export interface INodeLike extends IElementLike {
@@ -196,11 +200,6 @@ export interface IAttrFuncCondition {
   state: IDictionary;
   node: INodeLike;
   shut: (error?: any) => void;
-}
-
-export interface ILineOptions {
-  readonly id?: string;
-  readonly classes?: string[];
 }
 
 export interface ISimpleSet<T> {

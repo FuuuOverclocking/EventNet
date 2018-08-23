@@ -22,6 +22,15 @@
     "url": "https://github.com/xyzingh/EventNet/issues"
   },
   "homepage": "https://eventnet.justlog.xyz/",
+  "scripts": {
+    "build": "npm run clean && tsc",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "clean": "node scripts/clean",
+    "cz": "git-cz",
+    "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
+    "test": "jest",
+    "version": "npm run changelog && git add CHANGELOG.md"
+  },
   "dependencies": {
     "@types/debug": "0.0.30",
     "@types/ws": "^5.1.2",
@@ -41,15 +50,6 @@
     "typescript": "^3.0.1",
     "webpack": "^4.16.1",
     "webpack-cli": "^3.0.8"
-  },
-  "scripts": {
-    "build": "tsc",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "clean": "",
-    "cz": "git-cz",
-    "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
-    "test": "jest",
-    "version": "npm run changelog && git add CHANGELOG.md"
   },
   "jest": {
     "collectCoverage": true,

@@ -1,5 +1,4 @@
 import { nn, raw } from '../lib';
-import { Pipe, Twpipe } from '../lib/core/line';
 import { NodeRunningStage } from '../lib/core/types';
 
 test('NormalNode invalid args test', () => {
@@ -28,7 +27,6 @@ test('NormalNode Basic Test', done => {
 
     expect(dws.id('nonexistent')).toBeUndefined();
   });
-
   nd1.arrowNext();
   const nd2 = nn((ups, dws) => {
     dws[0]('test 1');

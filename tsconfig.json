@@ -3,7 +3,7 @@
         "alwaysStrict": true,
         "declaration": true,
         "lib": [
-          "es2015"
+          "esnext"
         ],
         "module": "commonjs",
         "newLine": "lf",

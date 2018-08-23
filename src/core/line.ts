@@ -1,6 +1,6 @@
 import { Element } from './element';
 import { LineStream } from './stream';
-import { ElementType, ILineLike, ILineOptions, INodeLike } from './types';
+import { ElementType, ILineLike, INodeLike } from './types';
 import { handleError, tip } from './util';
 import { weld } from './weld';
 
@@ -10,7 +10,7 @@ export abstract class Line extends Element implements ILineLike {
   constructor(
     ups: INodeLike | null | undefined,
     dws: INodeLike | null | undefined,
-    { id, classes }: ILineOptions = {},
+    { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super();
     this.id = id;
@@ -72,7 +72,7 @@ export class Twpipe extends Line {
   constructor(
     ups: INodeLike | null | undefined,
     dws: INodeLike | null | undefined,
-    { id, classes }: ILineOptions = {},
+    { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super(ups, dws, { id, classes });
     ups && weld(ups.upstream, this.upstream);

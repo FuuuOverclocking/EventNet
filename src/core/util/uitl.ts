@@ -8,6 +8,15 @@ export function def(obj: any, key: string, value: any, enumerable: boolean = fal
   });
 }
 
+export const setProto = Object.setPrototypeOf ||
+  ({ __proto__: [] } instanceof Array && ((d, b) => { d.__proto__ = b; })) ||
+  ((d: any, b: any) => {
+    if (!b) { return; }
+    for (const p in b) {
+      if (b.hasOwnProperty(p)) { d[p] = b[p]; }
+    }
+  });
+
 export function protoAugment(target: any, src: any) {
   target.__proto__ = src;
 }

@@ -48,6 +48,7 @@ export function getElementProducer(fnOrElem: any, name: string) {
       }
       elem.uid || (elem.uid = getUid());
       elem.clone || (elem.clone = fn);
+      return elem;
     };
     return fn;
   } else {

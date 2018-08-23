@@ -4,16 +4,55 @@ import { linesWaitingLink, NodeMethods } from './node-methods';
 import { NodeStream } from './stream';
 import {
   ElementType, ICallableElementLike, IDictionary,
-  IElementLike,
-  ILineLike,
-  INodeCodeDWS, INodeLike, INormalNodeCode, IRawNodeCode, IStreamOfNode, NodeRunningStage,
+  IElementLike, ILineLike, INodeCodeDWS,
+  INodeLike, INormalNodeCode, IRawNodeCode,
+  IStreamOfNode, NodeRunningStage,
 } from './types';
 import {
   applyMixins, def, handleError,
-  isTwpipe,
-  isValidArrayIndex,
+  isTwpipe, isValidArrayIndex, setProto,
 } from './util';
 import { weld } from './weld';
+
+/**
+ * pack nodes and lines into a big node
+ * @example
+ * pack(() => {
+ *
+ * })
+ *
+ * @example define and export a node in a single file
+ *
+ * import { pack, raw } from 'eventnet'
+ * export default pack.setEntry()
+ * // the firstly defined node will be regarded as
+ * // the entry of the parent node
+ * raw(({data, caller}, dws) => {
+ *   const msg =
+ *     'Hello World~\n' +
+ *     typeof data === 'undefined' ? '' : 'get "${data}" from parent node's upstream\n' +
+ *     (caller && caller.code && ('the caller is\n' + caller.code.toString() + '\n')) || ''
+ *   console.log(msg)
+ *   dws[0]()
+ * }).arrowNext()
+ *
+ * // the lastly defined node will be regarded as
+ * // the exit of the parent node
+ * raw((ups, dws) => {
+ *   console.log('HelloWorld Node exit~')
+ *   // activate all the downstreams of parent node
+ *   dws.all()
+ * })
+ * pack.setExit()
+ */
+// export function pack() {
+
+// }
+// // tslint:disable-next-line:class-name
+// export interface pack {
+//   setEntry(): void;
+//   setExit(): void;
+// }
 
 /**
  * The ancestor of all the nodes.
@@ -117,6 +156,10 @@ function toCallableDws(this: NodeStream, line: ILineLike) {
 }
 
 class NodeCodeDws extends Array<ICallableElementLike | undefined> implements INodeCodeDWS {
+  constructor() {
+    super();
+    setProto(this, NodeCodeDws.prototype);
+  }
   public origin: NodeStream;
   public all(data?: any) {
     this.forEach(dws => dws && dws(data));
