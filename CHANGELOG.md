@@ -1,3 +1,14 @@
+<a name="0.1.4"></a>
+## [0.1.4](https://github.com/xyzingh/EventNet/compare/v0.1.3...v0.1.4) (2018-08-23)
+
+
+### Bug Fixes
+
+* **core:** Correct the name and type of ondestroy in interface INodeLike ([7286e35](https://github.com/xyzingh/EventNet/commit/7286e35))
+* **core/types:** Correct the type of ondestroy in interface INodeLike ([f47c306](https://github.com/xyzingh/EventNet/commit/f47c306))
+
+
+
 <a name="0.1.3"></a>
 ## [0.1.3](https://github.com/xyzingh/EventNet/compare/v0.1.2...v0.1.3) (2018-08-23)
 
