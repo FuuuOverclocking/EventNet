@@ -48,6 +48,8 @@ gulp.task('ts:esm5', ['clean:esm5'], ts_tasks[1]);
 gulp.task('ts:esm2015', ['clean:esm2015'], ts_tasks[2]);
 gulp.task('ts:types', ['clean:types'], ts_tasks[3]);
 
+gulp.task('default', ['ts:cjs']);
+
 const comp_copy_list = [
   'elements/**/*',
   'nodes/**/*',
