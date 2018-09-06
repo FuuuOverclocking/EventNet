@@ -1,20 +1,24 @@
 {
   "name": "eventnet",
   "version": "0.1.4",
-  "description": "Not just about flow design.",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.js",
+  "main": "./index.js",
+  "module": "./esm5/index.js",
+  "es2015": "./esm2015/index.js",
+  "typings": "./index.d.js",
+  "sideEffects": false,
+  "description": "Not just about flow design",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xyzingh/EventNet.git"
   },
   "keywords": [
-    "debugger",
-    "debugger-visualizer",
     "eventnet",
     "flowchart",
+    "debugger",
+    "debugger-visualizer",
     "javascript-tools",
-    "visual"
+    "visual",
+    "visual-programming"
   ],
   "author": "X.Y.Z.",
   "license": "MIT",
@@ -23,18 +27,18 @@
   },
   "homepage": "https://eventnet.justlog.xyz/",
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "gulp build",
+    "clean": "gulp clean",
+    "other-cmds": "gulp --tasks",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "clean": "node scripts/clean",
     "cz": "git-cz",
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
-    "test": "jest",
+    "test": "gulp ts:cjs && jest",
     "version": "npm run changelog && git add CHANGELOG.md"
   },
   "dependencies": {
-    "@types/debug": "0.0.30",
     "@types/ws": "^5.1.2",
-    "debug": "^3.1.0",
+    "tslib": "^1.9.3",
     "ws": "^6.0.0"
   },
   "devDependencies": {
@@ -43,13 +47,17 @@
     "commitizen": "^2.10.1",
     "conventional-changelog-cli": "^2.0.1",
     "cz-conventional-changelog": "^2.1.0",
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-replace": "^1.0.0",
     "jest": "^23.0.1",
+    "lodash": "^4.17.10",
+    "rollup": "^0.65.1",
+    "rollup-plugin-node-resolve": "^3.4.0",
+    "rollup-plugin-replace": "^2.0.0",
     "ts-jest": "^22.4.6",
-    "ts-loader": "^4.4.2",
     "tslint": "^5.10.0",
-    "typescript": "^3.0.1",
-    "webpack": "^4.16.1",
-    "webpack-cli": "^3.0.8"
+    "typescript": "^3.0.1"
   },
   "jest": {
     "collectCoverage": true,

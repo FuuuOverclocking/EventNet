@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "alwaysStrict": true,
+    "charset": "utf8",
+    // "declaration": true,
+    "diagnostics": true,
+    "extendedDiagnostics": true,
+    // "importHelpers": true,
+    "lib": [
+      "es5",
+      "es2015.collection",
+      "es2015.promise",
+      "dom"
+    ],
+    // "module": "commonjs",
+    "moduleResolution": "node",
+    "newLine": "lf",
+    "noEmitOnError": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    // "outDir": "./lib",
+    "removeComments": true,
+    "sourceMap": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    // "target": "es5",
+    "pretty": true,
+    "preserveConstEnums": true,
+    "stripInternal": true
+  },
+  "include": [
+    "./src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.js"
+  ]
+}
