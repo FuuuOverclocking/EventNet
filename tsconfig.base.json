@@ -8,6 +8,8 @@
     // "importHelpers": true,
     "lib": [
       "es5",
+      "es2015.symbol",
+      "es2015.iterable",
       "es2015.collection",
       "es2015.promise",
       "dom"
@@ -23,7 +25,6 @@
     "sourceMap": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "strictPropertyInitialization": true,
     // "target": "es5",
     "pretty": true,
     "preserveConstEnums": true,

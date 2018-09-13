@@ -4,6 +4,7 @@
   "main": "./index.js",
   "module": "./esm5/index.js",
   "es2015": "./esm2015/index.js",
+  "jsnext:main": "./esm2015/index.js",
   "typings": "./index.d.js",
   "sideEffects": false,
   "description": "Not just about flow design",
