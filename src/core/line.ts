@@ -1,4 +1,5 @@
 import { ElementType, LineLike } from '../types';
+import { debug, tip } from './debug';
 import { Element, elementify } from './element';
 import { Node } from './node';
 import { LineStream, weld } from './stream';
@@ -51,15 +52,12 @@ export class Arrow<T = any> extends Line<T> {
     const node = this.downstream.get();
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
-        tip(`data '${
-          String(data).length > 20 ?
-            String(data).substr(0, 20) + '...' : String(data)
-          }' can not pass through an Arrow, replace with a Pipe`, this);
+        debug('ArrowPassData', this, String(data));
       }
       if (!node) {
-        tip('the downstream of the arrow is empty', this);
+        debug('LineEmptyDws', this);
       } else if (caller !== node) {
-        tip('the arrow is activited but not called by its upstream', this);
+        debug('LineImproperCall', this);
       }
     }
     return node && node.run(void 0, this);
@@ -88,9 +86,9 @@ export class Pipe<T = any> extends Line<T> {
     const node = this.downstream.get();
     if (process.env.NODE_ENV !== 'production') {
       if (!node) {
-        tip('the downstream of the arrow is empty', this);
+        debug('LineEmptyDws', this);
       } else if (caller !== node) {
-        tip('the arrow is activited but not called by its upstream', this);
+        debug('LineImproperCall', this);
       }
     }
     return node && node.run(data, this);

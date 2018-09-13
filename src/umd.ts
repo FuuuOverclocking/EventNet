@@ -12,8 +12,8 @@ export * from './core';
 import * as _nodes from './nodes';
 export const nodes = _nodes;
 
-import * as _lines from './lines';
-export const lines = _lines;
+// import * as _lines from './lines';
+// export const lines = _lines;
 
-import * as _attrs from './attrs';
-export const attrs = _attrs;
+// import * as _attrs from './attrs';
+// export const attrs = _attrs;

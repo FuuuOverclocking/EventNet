@@ -1,4 +1,5 @@
 import { ElementType, LineLike, NodeLike, NodeRunPhase } from '../types';
+import { handleNodeError } from './debug';
 import { Element, elementify } from './element';
 import { Arrow, Line, Pipe } from './line';
 import { NodeStream } from './stream';
@@ -17,20 +18,19 @@ export abstract class Node<T = any>
   public abstract readonly upstream: NodeStream;
   public abstract readonly downstream: NodeStream;
 
-  public errorHandler(when: NodeRunPhase, what?: any, where: Element[] = []) {
+  public errorHandler(when: NodeRunPhase, what?: any, which = this) {
     const errDws = this.downstream.get().filter(line => {
       if (!line || !line.classes) { return false; }
       return ~line.classes.indexOf('error');
     }) as LineLike[];
 
-    where.push(this);
     if (errDws.length) {
-      errDws.forEach(line => line.run({ when, what, where }, this));
+      errDws.forEach(line => line.run({ when, what, which }, this));
       return;
     } else if (this.parent) {
-      this.parent.errorHandler(NodeRunPhase.child, what, where);
+      this.parent.errorHandler(when, what, which);
     } else {
-      handleNodeError(when, what, where);
+      handleNodeError(when, what, which);
     }
   }
 
@@ -96,10 +96,11 @@ const createMethods = [proto.createArrow, proto.createPipe] =
       return this.createLine(type, node, options);
     }) as any;
 
+  // tslint:disable:trailing-comma
 [
   proto.arrow, proto.pipe,
   proto.alsoArrow, proto.alsoPipe,
-  proto.arrowNext, proto.pipeNext,
+  proto.arrowNext, proto.pipeNext
 ] = (
   (methods, f1, f2, f3) => [
     f1(methods[0]), f1(methods[1]),

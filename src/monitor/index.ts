@@ -1,1 +1,3 @@
-export const abc = 123;
+export const monitor = {
+
+};

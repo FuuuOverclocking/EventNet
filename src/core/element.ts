@@ -1,5 +1,6 @@
 import { ElementLike, LineLike, NodeLike, UnaryFunction } from '../types';
 import { isObject } from '../util/isObject';
+import { debug } from './debug';
 import { Line } from './line';
 import { Node } from './node';
 import { LineStream, NodeStream, Stream } from './stream';
@@ -11,12 +12,12 @@ function getUid() {
 }
 
 /**
- * Trying to transform an object into Node or Lin
+ * Trying to transform an object into Node or Line
  * @param {boolean} [el.isLine] Used to determine the type of Element
  */
 export function elementify<T extends ElementLike>(el: T) {
   if (process.env.NODE_ENV && (!isObject(el) || typeof el.run !== 'function')) {
-    handleError(new Error('Invalid parameter'), 'elementify');
+    debug('ElementifyParam', void 0, new Error());
   }
 
   const _el: any = el;
@@ -41,6 +42,10 @@ export abstract class Element<T = any>
 
   public abstract readonly isLine: boolean;
   public readonly type?: number;
+
+  public generateIdentity() {
+    return { uid: this.uid };
+  }
 
   public clone?(): this;
 
@@ -103,9 +108,7 @@ export namespace Element {
     } else {
       if (process.env.NODE_ENV !== 'production' &&
         (!isObject(fnOrEl) || !(fnOrEl as Element).clone)) {
-        handleError(
-          new Error('an Element with clone method is expected'),
-          'Element.toMaker');
+        debug('ToMakerClone', void 0, new Error());
       }
       return () => fnOrEl.clone();
     }

@@ -1,4 +1,5 @@
 import { ElementType } from '../types';
+import { debug } from './debug';
 import { Element } from './element';
 import { Line } from './line';
 import { Node } from './node';
@@ -77,10 +78,7 @@ export class NodeStream extends Stream {
     if (typeof line.id !== 'undefined') {
       if (process.env.NODE_ENV !== 'production' &&
         typeof this.elementsById[line.id] !== 'undefined') {
-        handleError(
-          'The stream of the same id already exists.',
-          'stream.add',
-          this.owner);
+        debug('StreamSameEl', this.owner, new Error());
       }
 
       this.elementsById[line.id] = line;
@@ -142,10 +140,7 @@ export class NodeStream extends Stream {
         classes = regRes;
       }
       if (process.env.NODE_ENV !== 'production' && !type && !classes) {
-        handleError(
-          new Error('invaild querystring'),
-          'NodeStream.ask',
-          this.owner);
+        debug('NodeStreamAskQs', this.owner, new Error());
       }
 
       let typeCheck: (line: Line) => boolean = () => true;
@@ -186,10 +181,7 @@ export class NodeStream extends Stream {
     } else if (typeof arg === 'function') {
       fn = arg;
     } else if (process.env.NODE_ENV !== 'production') {
-      handleError(
-        new Error('the type of param is wrong'),
-        'stream.find',
-        this.owner);
+      debug('NodeStreamAskParam', this.owner, new Error());
     }
     return this.elements.filter(fn);
   }
