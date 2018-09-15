@@ -6,9 +6,11 @@ const gulp = require('gulp');
 const exec = require('child_process').exec;
 const path = require('path');
 const del = require('del');
+const rename = require('gulp-rename');
 const gulp_replace = require('gulp-replace');
 const rollup_fn = require('./config/rollup.gulp.js');
-const { production_expression_replace_list } = rollup_fn;
+const { production_expression_replace_list,
+  development_expression_replace_list } = rollup_fn;
 
 const tsconfig_paths = [
   'tsconfig.cjs.json',
@@ -56,12 +58,32 @@ const comp_copy_list = [
   'lines/**/*',
 ];
 
+function util_2promise(stream) {
+  return new Promise((resolve, reject) => {
+    stream
+      .on('finish', resolve)
+      .on('error', reject);
+  });
+}
+
 function build(type) {
   return async () => {
+    await util_2promise(gulp.src([
+      `dist/${type}/**/*`,
+      `!dist/${type}/index.js`,
+      `!dist/${type}/index.js.map`,
+    ], { base: `./dist/${type}` })
+      .pipe(rename(path => {
+        if (path.dirname === '.' && path.basename === 'index.dev')
+          path.basename = 'index';
+      }))
+      .pipe(gulp_replace('//# sourceMappingURL=index.dev.js.map', '\n'))
+      .pipe(gulp.dest(`dist/${type}_dev`)));
+
     await rollup_fn[type]();
 
     const list = comp_copy_list.map(s => 'dist/' + type + '/' + s);
-    const comp_src = gulp.src(list, {base: './dist/' + type});
+    const comp_src = gulp.src(list, { base: './dist/' + type });
 
     comp_src.pipe(gulp.dest('release/' + type + '/dev'));
 

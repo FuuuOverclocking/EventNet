@@ -11,8 +11,7 @@ const production_expression_replace_list =
 
 const date = new Date();
 const banner =
-  `
-/**
+  `/**
  * EventNet v${require('../package.json').version}
  * (c) ${date.getFullYear() > 2018 ? '2018-' + date.getFullYear() : '2018'} X.Y.Z.
  * Released under the MIT License.
@@ -57,7 +56,7 @@ Object.assign(esm5_config.output, {
 
 const esm5_dev_config = clone(basic_config);
 Object.assign(esm5_dev_config.input, {
-  input: 'dist/esm5/index.js',
+  input: 'dist/esm5_dev/index.js',
 });
 Object.assign(esm5_dev_config.output, {
   file: 'release/esm5/dev/index.js',
@@ -91,7 +90,7 @@ Object.assign(cjs_config.output, {
 
 const cjs_dev_config = clone(basic_config);
 Object.assign(cjs_dev_config.input, {
-  input: 'dist/esm5/index.js',
+  input: 'dist/esm5_dev/index.js',
 });
 Object.assign(cjs_dev_config.output, {
   file: 'release/cjs/dev/index.js',
@@ -125,7 +124,7 @@ Object.assign(esm2015_config.output, {
 
 const esm2015_dev_config = clone(basic_config);
 Object.assign(esm2015_dev_config.input, {
-  input: 'dist/esm2015/index.js',
+  input: 'dist/esm2015_dev/index.js',
 });
 Object.assign(esm2015_dev_config.output, {
   file: 'release/esm2015/dev/index.js',

@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@types/ws": "^5.1.2",
+    "gulp-rename": "^1.4.0",
     "tslib": "^1.9.3",
     "ws": "^6.0.0"
   },
