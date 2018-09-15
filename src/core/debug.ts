@@ -1,4 +1,4 @@
-import { config } from '../config';
+import { config } from '../index';
 import { NodeRunPhase } from '../types';
 import { longStringSub } from '../util/longStringSub';
 import { Element } from './element';
@@ -9,6 +9,8 @@ export let tip: (msg: string, relatedElement?: Element) => void = () => { };
 export let warn: (msg: string, relatedElement?: Element) => void = () => { };
 export let generateElemTrace: (elem: Element) => string | void = () => { };
 
+let generateKeyValue: (o: any) => any = () => {};
+
 if (process.env.NODE_ENV !== 'production') {
   if (!config.silent && typeof console !== 'undefined') {
     tip = (msg: string, el?: Element) =>
@@ -16,6 +18,29 @@ if (process.env.NODE_ENV !== 'production') {
     warn = (msg: string, el?: Element) =>
       console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
   }
+  generateKeyValue = (o: any) => {
+    let result = '';
+    for (const key of Object.keys(o)) {
+      result += key + ' = "' + longStringSub(o[key], 20) + '", ';
+    }
+    return result;
+  };
+  generateElemTrace = (elem: Element) => {
+    let result = '';
+    let indent = '  ';
+    if (elem.isLine &&
+      (elem.upstream.get() || elem.downstream.get())) {
+      elem = (elem.upstream.get() || elem.downstream.get()) as Node;
+    }
+
+    do {
+      result += indent + '-> ' + (elem.isLine ? 'Line' : 'Node') + ' ' +
+        generateKeyValue(elem.generateIdentity()) + '\n';
+      indent += '  ';
+    }
+    while (elem = (elem as any).parent);
+    return result;
+  };
 
   const issues = {
     ArrowPassData: ['tip', (data: any) =>
@@ -24,7 +49,7 @@ if (process.env.NODE_ENV !== 'production') {
     LineImproperCall: ['tip', 'the arrow is activited but not called by its upstream'],
     ElementifyParam: ['err', 'an Element-like object is expected', 'elementify'],
     ToMakerClone: ['err', 'an Element with clone method is expected', 'Element.toMaker'],
-    StreamSameEl: ['err', 'The stream of the same id already exists.', 'stream.add'],
+    StreamSameEl: ['err', 'the stream of the same id already exists.', 'Stream.add'],
     NodeStreamAskQs: ['err', 'invaild querystring', 'NodeStream.ask'],
     NodeStreamAskParam: ['err', 'the type of param is wrong', 'NodeStream.ask'],
   } as any;
@@ -65,13 +90,6 @@ export function handleError(
 
 export function handleNodeError(when: NodeRunPhase, what: any, which: Node) {
   if (process.env.NODE_ENV !== 'production') {
-    const generateKeyValue = (o: any) => {
-      let result = '';
-      for (const key of Object.keys(o)) {
-        result += '\t\t' + key + ' = ' + longStringSub(o[key]) + '\n';
-      }
-      return result;
-    };
     const errMsg = 'Unhandled Node error:' + '\n' +
       longStringSub(String(what), 100) + '\n' +
       '\t' + `in the run phase of '${NodeRunPhase[when]}' with characteristics:` + '\n' +

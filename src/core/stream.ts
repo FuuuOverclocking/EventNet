@@ -10,8 +10,7 @@ export abstract class Stream {
     this.owner = owner;
   }
   public abstract get():
-    Element |
-    undefined |
+    Element | undefined |
     ReadonlyArray<Element | undefined>;
   public abstract add(el: Element): void;
   public abstract del(el: Element): void;
@@ -161,21 +160,21 @@ export class NodeStream extends Stream {
         };
       }
 
-      for (const line of this.elements) {
-        if (!line) { continue; }
+      this.elements.forEach(line => {
+        if (!line) { return; }
         if (typeCheck(line) && classCheck(line)) {
           res.push(line);
         }
-      }
+      });
 
       return res;
 
     } else if (Array.isArray(arg)) {
       fn = (line: Line | undefined) => {
         if (!line || !line.classes) { return; }
-        for (const theClass of arg) {
-          if (!~line.classes.indexOf(theClass)) { return false; }
-        }
+        arg.forEach(theClass => {
+          if (!~line.classes!.indexOf(theClass)) { return false; }
+        });
         return true;
       };
     } else if (typeof arg === 'function') {

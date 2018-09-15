@@ -1,5 +1,5 @@
 import { ElementType, LineLike } from '../types';
-import { debug, tip } from './debug';
+import { debug } from './debug';
 import { Element, elementify } from './element';
 import { Node } from './node';
 import { LineStream, weld } from './stream';
@@ -17,7 +17,13 @@ export abstract class Line<T = any>
 
   public readonly id?: string;
   public readonly classes?: string[];
-
+  public generateIdentity() {
+    return {
+      uid: this.uid,
+      id: this.id,
+      classes: this.classes,
+    };
+  }
 }
 
 export namespace Line {
