@@ -43,7 +43,7 @@ export abstract class Element<T = any>
   public abstract readonly isLine: boolean;
   public readonly type?: number;
 
-  public generateIdentity() {
+  public generateIdentity(): object {
     return { uid: this.uid };
   }
 

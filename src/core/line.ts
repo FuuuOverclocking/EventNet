@@ -1,4 +1,5 @@
 import { ElementType, LineLike } from '../types';
+import { assign } from '../util/assign';
 import { debug } from './debug';
 import { Element, elementify } from './element';
 import { Node } from './node';
@@ -17,13 +18,14 @@ export abstract class Line<T = any>
 
   public readonly id?: string;
   public readonly classes?: string[];
-  public generateIdentity() {
-    return {
-      uid: this.uid,
+  public generateIdentity(): object {
+    return assign(super.generateIdentity(), {
+      is: 'Line',
       id: this.id,
       classes: this.classes,
-    };
+    });
   }
+
 }
 
 export namespace Line {
@@ -68,6 +70,10 @@ export class Arrow<T = any> extends Line<T> {
     }
     return node && node.run(void 0, this);
   }
+
+  public generateIdentity(): object {
+    return assign(super.generateIdentity(), { type: 'Arrow' });
+  }
 }
 
 export class Pipe<T = any> extends Line<T> {
@@ -99,4 +105,9 @@ export class Pipe<T = any> extends Line<T> {
     }
     return node && node.run(data, this);
   }
+
+  public generateIdentity(): object {
+    return assign(super.generateIdentity(), { type: 'Pipe' });
+  }
+
 }

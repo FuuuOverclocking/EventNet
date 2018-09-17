@@ -14,6 +14,11 @@ export interface ElementLike<T = any> {
   clone?(): this;
 }
 
+export interface CallableElement<T = any> {
+  (data?: any): T;
+  origin: Element<T>;
+}
+
 export interface NodeLike<T = any>
   extends ElementLike<T> {
   readonly isLine?: false;

@@ -43,14 +43,14 @@ if (process.env.NODE_ENV !== 'production') {
   };
 
   const issues = {
-    ArrowPassData: ['tip', (data: any) =>
+    ArrowPassData:      ['tip', (data: any) =>
       `data '${longStringSub(data)}' can not pass through an Arrow, replace with a Pipe`],
-    LineEmptyDws: ['tip', 'the downstream of the line is empty'],
-    LineImproperCall: ['tip', 'the arrow is activited but not called by its upstream'],
-    ElementifyParam: ['err', 'an Element-like object is expected', 'elementify'],
-    ToMakerClone: ['err', 'an Element with clone method is expected', 'Element.toMaker'],
-    StreamSameEl: ['err', 'the stream of the same id already exists.', 'Stream.add'],
-    NodeStreamAskQs: ['err', 'invaild querystring', 'NodeStream.ask'],
+    LineEmptyDws:       ['tip', 'the downstream of the line is empty'],
+    LineImproperCall:   ['tip', 'the arrow is activited but not called by its upstream'],
+    ElementifyParam:    ['err', 'an Element-like object is expected', 'elementify'],
+    ToMakerClone:       ['err', 'an Element with clone method is expected', 'Element.toMaker'],
+    StreamSameEl:       ['err', 'the stream of the same id already exists.', 'Stream.add'],
+    NodeStreamAskQs:    ['err', 'invaild querystring', 'NodeStream.ask'],
     NodeStreamAskParam: ['err', 'the type of param is wrong', 'NodeStream.ask'],
   } as any;
   debug = (issueId: string, ...data: any[]) => {

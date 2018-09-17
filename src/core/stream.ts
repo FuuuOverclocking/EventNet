@@ -18,7 +18,9 @@ export abstract class Stream {
 
   public hostedObj?: any;
   public onchange?(
+    this: this,
     operationType: number,
+    i: number | null,
     el: Element | null,
     hostedObj: any,
   ): void;
@@ -83,10 +85,10 @@ export class NodeStream extends Stream {
       this.elementsById[line.id] = line;
     }
 
-    this.elements.push(line);
+    const i = this.elements.push(line);
 
     this.onchange &&
-      this.onchange(Stream.operationType.add, line, this.hostedObj);
+      this.onchange(Stream.operationType.add, i - 1, line, this.hostedObj);
   }
   public del(line: Line) {
     const i = this.elements.indexOf(line);
@@ -97,14 +99,14 @@ export class NodeStream extends Stream {
     this.elements[i] = void 0;
 
     this.onchange &&
-      this.onchange(Stream.operationType.del, line, this.hostedObj);
+      this.onchange(Stream.operationType.del, i, line, this.hostedObj);
   }
   public clear() {
     this.elements.length = 0;
     this.elementsById = {};
 
     this.onchange &&
-      this.onchange(Stream.operationType.del, null, this.hostedObj);
+      this.onchange(Stream.operationType.del, null, null, this.hostedObj);
   }
 
   // tslint:disable:unified-signatures

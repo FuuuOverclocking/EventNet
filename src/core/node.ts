@@ -1,8 +1,9 @@
 import { ElementType, LineLike, NodeLike, NodeRunPhase } from '../types';
+import { assign } from '../util/assign';
 import { handleNodeError } from './debug';
 import { Element, elementify } from './element';
 import { Arrow, Line, Pipe } from './line';
-import { NodeStream } from './stream';
+import { NodeStream, weld } from './stream';
 
 export const linesWaitingLink: Line[] = [];
 
@@ -11,12 +12,24 @@ export abstract class Node<T = any>
   implements NodeLike<T> {
 
   public abstract run(data?: any, caller?: Line): T;
-
   public parent: Node | undefined = void 0;
   public readonly isLine = false;
   public readonly type?: number;
   public abstract readonly upstream: NodeStream;
   public abstract readonly downstream: NodeStream;
+
+  /**
+   * Most types of nodes should call this method of the parent class
+   * at the end of their constructor, which adds lines to the upstream of node.
+   */
+  public preconnect(data?: any, caller?: Line): void {
+    linesWaitingLink.forEach(line => weld(this.upstream, line.downstream));
+    linesWaitingLink.length = 0;
+  }
+
+  public generateIdentity(): object {
+    return assign(super.generateIdentity(), { is: 'Node' });
+  }
 
   public errorHandler(when: NodeRunPhase, what?: any, which = this) {
     const errDws = this.downstream.get().filter(line => {
@@ -39,7 +52,7 @@ export abstract class Node<T = any>
     type: ElementType.Arrow | ElementType.Pipe,
     node: NodeLike<U> | null | undefined,
     options: { id?: string, classes?: string[] } = {},
-  ) {
+  ): Arrow<U> | Pipe<U> {
     node && elementify(node);
     const line: Arrow<U> | Pipe<U> =
       type === ElementType.Arrow ?
@@ -96,7 +109,7 @@ const createMethods = [proto.createArrow, proto.createPipe] =
       return this.createLine(type, node, options);
     }) as any;
 
-  // tslint:disable:trailing-comma
+// tslint:disable:trailing-comma
 [
   proto.arrow, proto.pipe,
   proto.alsoArrow, proto.alsoPipe,
