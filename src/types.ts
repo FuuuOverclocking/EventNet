@@ -1,3 +1,5 @@
+import { Node } from './core';
+import { BasicNode, BasicNodeDws } from './core/builtin/basicNode';
 import { Element } from './core/element';
 import { Stream } from './core/stream';
 
@@ -5,8 +7,8 @@ export interface ElementLike<T = any> {
   // the method to activate the element
   run(data?: any, caller?: Element): T;
 
-  readonly upstream?: Stream;
-  readonly downstream?: Stream;
+  readonly ups?: Stream;
+  readonly dws?: Stream;
 
   readonly isLine?: boolean;
   readonly uid?: number;
@@ -43,3 +45,11 @@ export enum ElementType {
   Arrow = 1,
   Pipe,
 }
+
+export type BasicNodeCode<T, originType, stateType = any> = (fn: {
+  dws: BasicNodeDws,
+  ups: any,
+  data?: any,
+  origin: originType,
+  state?: stateType,
+}) => T;

@@ -13,8 +13,8 @@ export abstract class Line<T = any>
   public abstract readonly type?: number;
 
   public abstract run(data: any, caller: Node): T;
-  public abstract readonly upstream: LineStream;
-  public abstract readonly downstream: LineStream;
+  public abstract readonly ups: LineStream;
+  public abstract readonly dws: LineStream;
 
   public readonly id?: string;
   public readonly classes?: string[];
@@ -41,8 +41,8 @@ export namespace Line {
 export class Arrow<T = any> extends Line<T> {
   public readonly type = ElementType.Arrow;
 
-  public readonly upstream: LineStream = new LineStream(this);
-  public readonly downstream: LineStream = new LineStream(this);
+  public readonly ups: LineStream = new LineStream(this);
+  public readonly dws: LineStream = new LineStream(this);
   public readonly id: string | undefined;
   public readonly classes: string[];
   constructor(
@@ -51,13 +51,13 @@ export class Arrow<T = any> extends Line<T> {
     { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super();
-    ups && weld(ups.downstream, this.upstream);
-    dws && weld(dws.upstream, this.downstream);
+    ups && weld(ups.dws, this.ups);
+    dws && weld(dws.ups, this.dws);
     this.id = id;
     this.classes = classes || [];
   }
   public run(data: undefined | null, caller: Node): T {
-    const node = this.downstream.get();
+    const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
         debug('ArrowPassData', this, String(data));
@@ -79,8 +79,8 @@ export class Arrow<T = any> extends Line<T> {
 export class Pipe<T = any> extends Line<T> {
   public readonly type = ElementType.Pipe;
 
-  public readonly upstream: LineStream = new LineStream(this);
-  public readonly downstream: LineStream = new LineStream(this);
+  public readonly ups: LineStream = new LineStream(this);
+  public readonly dws: LineStream = new LineStream(this);
   public readonly id: string | undefined;
   public readonly classes: string[];
   constructor(
@@ -89,13 +89,13 @@ export class Pipe<T = any> extends Line<T> {
     { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super();
-    ups && weld(ups.downstream, this.upstream);
-    dws && weld(dws.upstream, this.downstream);
+    ups && weld(ups.dws, this.ups);
+    dws && weld(dws.ups, this.dws);
     this.id = id;
     this.classes = classes || [];
   }
   public run(data: any, caller: Node): T {
-    const node = this.downstream.get();
+    const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (!node) {
         debug('LineEmptyDws', this);

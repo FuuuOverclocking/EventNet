@@ -15,15 +15,15 @@ export abstract class Node<T = any>
   public parent: Node | undefined = void 0;
   public readonly isLine = false;
   public readonly type?: number;
-  public abstract readonly upstream: NodeStream;
-  public abstract readonly downstream: NodeStream;
+  public abstract readonly ups: NodeStream;
+  public abstract readonly dws: NodeStream;
 
   /**
    * Most types of nodes should call this method of the parent class
    * at the end of their constructor, which adds lines to the upstream of node.
    */
   public preconnect(data?: any, caller?: Line): void {
-    linesWaitingLink.forEach(line => weld(this.upstream, line.downstream));
+    linesWaitingLink.forEach(line => weld(this.ups, line.dws));
     linesWaitingLink.length = 0;
   }
 
@@ -32,7 +32,7 @@ export abstract class Node<T = any>
   }
 
   public errorHandler(when: NodeRunPhase, what?: any, which = this) {
-    const errDws = this.downstream.get().filter(line => {
+    const errDws = this.dws.get().filter(line => {
       if (!line || !line.classes) { return false; }
       return ~line.classes.indexOf('error');
     }) as LineLike[];

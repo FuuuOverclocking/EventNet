@@ -12,35 +12,6 @@ export let generateElemTrace: (elem: Element) => string | void = () => { };
 let generateKeyValue: (o: any) => any = () => {};
 
 if (process.env.NODE_ENV !== 'production') {
-  if (!config.silent && typeof console !== 'undefined') {
-    tip = (msg: string, el?: Element) =>
-      console.warn(msg + '\n' + (el ? generateElemTrace(el) : ''));
-    warn = (msg: string, el?: Element) =>
-      console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
-  }
-  generateKeyValue = (o: any) => {
-    let result = '';
-    for (const key of Object.keys(o)) {
-      result += key + ' = "' + longStringSub(o[key], 20) + '", ';
-    }
-    return result;
-  };
-  generateElemTrace = (elem: Element) => {
-    let result = '';
-    let indent = '  ';
-    if (elem.isLine &&
-      (elem.upstream.get() || elem.downstream.get())) {
-      elem = (elem.upstream.get() || elem.downstream.get()) as Node;
-    }
-
-    do {
-      result += indent + '-> ' + (elem.isLine ? 'Line' : 'Node') + ' ' +
-        generateKeyValue(elem.generateIdentity()) + '\n';
-      indent += '  ';
-    }
-    while (elem = (elem as any).parent);
-    return result;
-  };
 
   const issues = {
     ArrowPassData:      ['tip', (data: any) =>
@@ -52,7 +23,44 @@ if (process.env.NODE_ENV !== 'production') {
     StreamSameEl:       ['err', 'the stream of the same id already exists.', 'Stream.add'],
     NodeStreamAskQs:    ['err', 'invaild querystring', 'NodeStream.ask'],
     NodeStreamAskParam: ['err', 'the type of param is wrong', 'NodeStream.ask'],
+    BN_NonexistDws:     ['err',
+      'The elements meeting the condition(s) in the downstream do not exist.'],
+    BN_NonexistDwsWarn: ['warn',
+    'The elements meeting the condition(s) in the downstream do not exist.'],
   } as any;
+
+  if (!config.silent && typeof console !== 'undefined') {
+    tip = (msg: string, el?: Element) =>
+      console.warn(msg + '\n' + (el ? generateElemTrace(el) : ''));
+    warn = (msg: string, el?: Element) =>
+      console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
+  }
+
+  generateKeyValue = (o: any) => {
+    let result = '';
+    for (const key of Object.keys(o)) {
+      result += key + ' = "' + longStringSub(o[key], 20) + '", ';
+    }
+    return result;
+  };
+
+  generateElemTrace = (elem: Element) => {
+    let result = '';
+    let indent = '  ';
+    if (elem.isLine &&
+      (elem.ups.get() || elem.dws.get())) {
+      elem = (elem.ups.get() || elem.dws.get()) as Node;
+    }
+
+    do {
+      result += indent + '-> ' + (elem.isLine ? 'Line' : 'Node') + ' ' +
+        generateKeyValue(elem.generateIdentity()) + '\n';
+      indent += '  ';
+    }
+    while (elem = (elem as any).parent);
+    return result;
+  };
+
   debug = (issueId: string, ...data: any[]) => {
     const op = issues[issueId];
     if (!op) {

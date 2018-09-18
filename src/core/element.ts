@@ -37,8 +37,8 @@ export abstract class Element<T = any>
   public readonly uid = getUid();
   public abstract run(data?: any, caller?: Element): T;
 
-  public abstract readonly upstream: Stream;
-  public abstract readonly downstream: Stream;
+  public abstract readonly ups: Stream;
+  public abstract readonly dws: Stream;
 
   public abstract readonly isLine: boolean;
   public readonly type?: number;

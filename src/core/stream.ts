@@ -126,10 +126,9 @@ export class NodeStream extends Stream {
   public ask(arg: any) {
     let fn: any;
     if (typeof arg === 'string') {
-      const res: Line[] = [];
 
       const regLeading = /^\s*(arrow|pipe)/;
-      const regClasses = /(\.[0-9a-zA-Z\-_]+)/g;
+      const regClasses = /(\.\!?[0-9a-zA-Z\-_]+)/g;
 
       let regRes: RegExpMatchArray | null;
       let type: string | undefined;
@@ -156,27 +155,25 @@ export class NodeStream extends Stream {
         classCheck = (line: Line) => {
           if (!line.classes) { return false; }
           for (const cl of classes as string[]) {
-            if (!~line.classes.indexOf(cl.substr(1))) { return false; }
+            if (cl.charAt(1) === '!') {
+              if (~line.classes.indexOf(cl.substr(2))) { return false; }
+            } else if (!~line.classes.indexOf(cl.substr(1))) { return false; }
           }
           return true;
         };
       }
 
-      this.elements.forEach(line => {
-        if (!line) { return; }
-        if (typeCheck(line) && classCheck(line)) {
-          res.push(line);
-        }
-      });
-
-      return res;
+      return this.elements.filter(line => line && typeCheck(line) && classCheck(line));
 
     } else if (Array.isArray(arg)) {
       fn = (line: Line | undefined) => {
-        if (!line || !line.classes) { return; }
-        arg.forEach(theClass => {
-          if (!~line.classes!.indexOf(theClass)) { return false; }
-        });
+        if (!line || !line.classes) { return false; }
+
+        for (const cl of arg) {
+          if (cl.charAt(0) === '!') {
+            if (~line.classes.indexOf(cl)) { return false; }
+          } else if (!~line.classes.indexOf(cl)) { return false; }
+        }
         return true;
       };
     } else if (typeof arg === 'function') {
