@@ -1,7 +1,7 @@
 export function assign<T extends any, U extends any>(target: T, source: U): T & U {
-  Object.keys(source).forEach(key => {
-    target[key] = source[key];
-  });
+  for (let keys = Object.keys(source), i = keys.length - 1; i >= 0; --i) {
+    target[keys[i]] = source[keys[i]];
+  }
   return target as T & U;
 }
 
@@ -11,11 +11,11 @@ export function multiAssign<T, U, V, W>(target: T, source1: U, source2: V, sourc
 export function multiAssign(target: object, ...sources: any[]): any;
 // tslint:enable:max-line-length
 export function multiAssign(target: any): any {
-  for (let i = 1; i < arguments.length; ++i) {
+  for (let i = 1, len = arguments.length; i < len; ++i) {
     const src = arguments[i];
     if (src === null || src === void 0) { continue; }
-    Object.keys(src).forEach(key => {
-      target[key] = src[key];
-    });
+    for (let keys = Object.keys(src), j = keys.length - 1; j >= 0; --j) {
+      target[keys[i]] = src[keys[i]];
+    }
   }
 }

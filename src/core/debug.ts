@@ -4,6 +4,13 @@ import { longStringSub } from '../util/longStringSub';
 import { Element } from './element';
 import { Node } from './node';
 
+export const hasPromise =
+  typeof Promise === 'function' &&
+  typeof Promise.resolve === 'function' &&
+  typeof Promise.prototype.then === 'function' &&
+  typeof Promise.prototype.catch === 'function';
+export const fulfilledPromise = hasPromise ? Promise.resolve() : null;
+
 export let debug: (issueId: string, ...data: any[]) => void = () => { };
 export let tip: (msg: string, relatedElement?: Element) => void = () => { };
 export let warn: (msg: string, relatedElement?: Element) => void = () => { };
@@ -20,13 +27,14 @@ if (process.env.NODE_ENV !== 'production') {
     LineImproperCall:   ['tip', 'the arrow is activited but not called by its upstream'],
     ElementifyParam:    ['err', 'an Element-like object is expected', 'elementify'],
     ToMakerClone:       ['err', 'an Element with clone method is expected', 'Element.toMaker'],
-    StreamSameEl:       ['err', 'the stream of the same id already exists.', 'Stream.add'],
+    StreamSameEl:       ['err', 'the stream of the same id already exists', 'Stream.add'],
     NodeStreamAskQs:    ['err', 'invaild querystring', 'NodeStream.ask'],
     NodeStreamAskParam: ['err', 'the type of param is wrong', 'NodeStream.ask'],
     BN_NonexistDws:     ['err',
       'The elements meeting the condition(s) in the downstream do not exist.'],
     BN_NonexistDwsWarn: ['warn',
     'The elements meeting the condition(s) in the downstream do not exist.'],
+    AttrDuplicate:      ['tip', 'duplicate attrs already exist'],
   } as any;
 
   if (!config.silent && typeof console !== 'undefined') {
@@ -35,6 +43,33 @@ if (process.env.NODE_ENV !== 'production') {
     warn = (msg: string, el?: Element) =>
       console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
   }
+
+  /**
+   * @example
+   * debug('LineEmptyDws', related element)
+   * debug('ArrowPassData', related element, arg_1, arg_2, ...)
+   * debug('BN_NonexistDwsWarn', related element)
+   * debug('ElementifyParam', void 0, new Error());
+   */
+  debug = (issueId: string, ...data: any[]) => {
+    const op = issues[issueId];
+    if (!op) {
+      throw new Error('invalid debug call');
+    }
+
+    let msg: string;
+    if (op[0] === 'tip') {
+      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
+      tip(msg, data[0]);
+    } else if (op[0] === 'warn') {
+      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
+      warn(msg, data[0]);
+    } else if (op[0] === 'err') {
+      msg = typeof op[1] === 'function' ? op[1](...data.slice(2)) : op[1];
+      data[1].message = msg;
+      handleError(data[1], op[2] || '', data[0]);
+    }
+  };
 
   generateKeyValue = (o: any) => {
     let result = '';
@@ -61,26 +96,6 @@ if (process.env.NODE_ENV !== 'production') {
     return result;
   };
 
-  debug = (issueId: string, ...data: any[]) => {
-    const op = issues[issueId];
-    if (!op) {
-      throw new Error('invalid debug call');
-    }
-
-    let msg: string;
-    if (op[0] === 'tip') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
-      tip(msg, data[0]);
-    } else if (op[0] === 'warn') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
-      warn(msg, data[0]);
-    } else if (op[0] === 'err') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(2)) : op[1];
-      data[1].message = msg;
-      handleError(data[1], op[2] || '', data[0]);
-    }
-  };
-
 }
 
 export function handleError(
@@ -96,8 +111,9 @@ export function handleError(
   throw err;
 }
 
-export function handleNodeError(when: NodeRunPhase, what: any, which: Node) {
+export function handleNodeError(when: NodeRunPhase, what: any, where: Element[]) {
   if (process.env.NODE_ENV !== 'production') {
+    const which = where[0];
     const errMsg = 'Unhandled Node error:' + '\n' +
       longStringSub(String(what), 100) + '\n' +
       '\t' + `in the run phase of '${NodeRunPhase[when]}' with characteristics:` + '\n' +

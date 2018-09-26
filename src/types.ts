@@ -1,5 +1,6 @@
 import { Node } from './core';
 import { BasicNode, BasicNodeDws } from './core/builtin/basicNode';
+import { NormalNode } from './core/builtin/normalNode';
 import { Element } from './core/element';
 import { Stream } from './core/stream';
 
@@ -44,12 +45,50 @@ export enum NodeRunPhase {
 export enum ElementType {
   Arrow = 1,
   Pipe,
+  NormalNode,
+  RawNode,
 }
 
-export type BasicNodeCode<T, originType, stateType = any> = (fn: {
+export type BasicNodeCode<T, originType, stateType = any> = (param: {
   dws: BasicNodeDws,
   ups: any,
   data?: any,
   origin: originType,
   state?: stateType,
+  store: any,
 }) => T;
+
+export type NormalNodeCode<T, stateType, originType> = (param: {
+  dws: BasicNodeDws,
+  ups: any,
+  data?: any,
+  origin: originType,
+  state: stateType,
+  store: { [i: string]: any },
+}) => T;
+
+export enum BasicNodeMode {
+  sync = 1,
+  queue,
+  micro,
+  macro,
+  animationFrame,
+}
+
+export interface NodeAttr {
+  before?: NodeAttrFn;
+  beforePriority?: number;
+  after?: NodeAttrFn;
+  afterPriority?: number;
+}
+
+export type NodeAttrFn = (
+  value: any,
+  condition: {
+    data: any;
+    attrs: { [i: string]: any | NodeAttr };
+    state: { [i: string]: any };
+    node: NormalNode;
+    shut: (error?: any) => void;
+  },
+) => void;

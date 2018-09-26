@@ -121,7 +121,7 @@ export class NodeStream extends Stream {
   /**
    * Return the lines that meet the condition specified in a callback function
    */
-  public ask(filter: (line: Line) => boolean): Line[];
+  public ask(filter: (line: Line | undefined) => boolean): Line[];
   // tslint:enable:unified-signatures
   public ask(arg: any) {
     let fn: any;

@@ -1,32 +1,32 @@
-import { ElementType, LineLike } from '../types';
+import { ElementType, LineLike, UnaryFunction } from '../types';
 import { assign } from '../util/assign';
 import { debug } from './debug';
-import { Element, elementify } from './element';
+import { Element, getUid } from './element';
 import { Node } from './node';
 import { LineStream, weld } from './stream';
 
-export abstract class Line<T = any>
-  extends Element<T>
-  implements LineLike<T> {
-
+export abstract class Line<T = any> implements Element<T>, LineLike<T> {
+  public readonly uid = getUid();
   public readonly isLine = true;
   public abstract readonly type?: number;
 
-  public abstract run(data: any, caller: Node): T;
+  public abstract run(data?: any, caller?: Node): T;
   public abstract readonly ups: LineStream;
   public abstract readonly dws: LineStream;
 
   public readonly id?: string;
   public readonly classes?: string[];
-  public generateIdentity(): object {
-    return assign(super.generateIdentity(), {
+  public generateIdentity(): { [field: string]: any } {
+    return {
+      uid: this.uid,
       is: 'Line',
       id: this.id,
       classes: this.classes,
-    });
+    };
   }
-
 }
+
+export interface Line<T = any> extends Element<T> {}
 
 export namespace Line {
   /**
@@ -34,9 +34,11 @@ export namespace Line {
    */
   export const ify = <T extends LineLike>(el: T) => {
     (el as any).isLine = true;
-    return elementify(el);
+    return Element.ify(el);
   };
 }
+
+Line.prototype.biu = Element.biu;
 
 export class Arrow<T = any> extends Line<T> {
   public readonly type = ElementType.Arrow;
@@ -71,7 +73,7 @@ export class Arrow<T = any> extends Line<T> {
     return node && node.run(void 0, this);
   }
 
-  public generateIdentity(): object {
+  public generateIdentity(): { [field: string]: any } {
     return assign(super.generateIdentity(), { type: 'Arrow' });
   }
 }
@@ -106,7 +108,7 @@ export class Pipe<T = any> extends Line<T> {
     return node && node.run(data, this);
   }
 
-  public generateIdentity(): object {
+  public generateIdentity(): { [field: string]: any } {
     return assign(super.generateIdentity(), { type: 'Pipe' });
   }
 

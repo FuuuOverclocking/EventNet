@@ -1,16 +1,14 @@
-import { ElementType, LineLike, NodeLike, NodeRunPhase } from '../types';
+import { ElementType, LineLike, NodeLike, NodeRunPhase, UnaryFunction } from '../types';
 import { assign } from '../util/assign';
 import { handleNodeError } from './debug';
-import { Element, elementify } from './element';
+import { Element, getUid } from './element';
 import { Arrow, Line, Pipe } from './line';
 import { NodeStream, weld } from './stream';
 
 export const linesWaitingLink: Line[] = [];
 
-export abstract class Node<T = any>
-  extends Element<T>
-  implements NodeLike<T> {
-
+export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
+  public readonly uid = getUid();
   public abstract run(data?: any, caller?: Line): T;
   public parent: Node | undefined = void 0;
   public readonly isLine = false;
@@ -19,31 +17,36 @@ export abstract class Node<T = any>
   public abstract readonly dws: NodeStream;
 
   /**
-   * Most types of nodes should call this method of the parent class
-   * at the end of their constructor, which adds lines to the upstream of node.
+   * Most types of nodes should call this method
+   * at the end of their constructor, which adds
+   * lines to the upstream of node.
    */
   public preconnect(data?: any, caller?: Line): void {
     linesWaitingLink.forEach(line => weld(this.ups, line.dws));
     linesWaitingLink.length = 0;
   }
 
-  public generateIdentity(): object {
-    return assign(super.generateIdentity(), { is: 'Node' });
+  public generateIdentity(): { [field: string]: any } {
+    return {
+      uid: this.uid,
+      is: 'Node',
+    };
   }
 
-  public errorHandler(when: NodeRunPhase, what?: any, which = this) {
+  public errorHandler(when: NodeRunPhase, what?: any, where: Element[] = []) {
     const errDws = this.dws.get().filter(line => {
       if (!line || !line.classes) { return false; }
       return ~line.classes.indexOf('error');
     }) as LineLike[];
 
+    where.push(this);
     if (errDws.length) {
-      errDws.forEach(line => line.run({ when, what, which }, this));
+      errDws.forEach(line => line.run({ when, what, where }, this));
       return;
     } else if (this.parent) {
-      this.parent.errorHandler(when, what, which);
+      this.parent.errorHandler(when, what, where);
     } else {
-      handleNodeError(when, what, which);
+      handleNodeError(when, what, where);
     }
   }
 
@@ -53,55 +56,61 @@ export abstract class Node<T = any>
     node: NodeLike<U> | null | undefined,
     options: { id?: string, classes?: string[] } = {},
   ): Arrow<U> | Pipe<U> {
-    node && elementify(node);
+    node && Element.ify(node);
     const line: Arrow<U> | Pipe<U> =
       type === ElementType.Arrow ?
         new Arrow<U>(this, node as Node<U>, options) :
         new Pipe<U>(this, node as Node<U>, options);
     return line;
   }
-  public createArrow: <U>(
+}
+
+export interface Node<T = any> extends Element<T> {
+  createArrow<U>(
     node: NodeLike<U> | null | undefined,
     options?: { id?: string, classes?: string[] },
-  ) => Arrow<U>;
-  public createPipe: <U>(
+  ): Arrow<U>;
+  createPipe<U>(
     node: NodeLike<U> | null | undefined,
     options?: { id?: string, classes?: string[] },
-  ) => Pipe<U>;
-  public arrow: <U extends NodeLike>(
+  ): Pipe<U>;
+  arrow<U extends NodeLike>(
     node: U,
     options?: { id?: string, classes?: string[] },
-  ) => U;
-  public pipe: <U extends NodeLike>(
+  ): U;
+  pipe<U extends NodeLike>(
     node: U,
     options?: { id?: string, classes?: string[] },
-  ) => U;
-  public alsoArrow: (
+  ): U;
+  alsoArrow(
     node: NodeLike,
     options?: { id?: string, classes?: string[] },
-  ) => this;
-  public alsoPipe: (
+  ): this;
+  alsoPipe(
     node: NodeLike,
     options?: { id?: string, classes?: string[] },
-  ) => this;
-  public arrowNext: (options?: { id?: string, classes?: string[] }) => this;
-  public pipeNext: (options?: { id?: string, classes?: string[] }) => this;
+  ): this;
+  arrowNext(options?: { id?: string, classes?: string[] }): this;
+  pipeNext(options?: { id?: string, classes?: string[] }): this;
 }
 
 export namespace Node {
   /**
    * Trying to transform an object into Node
    */
-  export const ify: <T extends NodeLike>(el: T) => Node = elementify;
+  export const ify: <T extends NodeLike>(el: T) => Node = Element.ify;
 }
 
 const proto = Node.prototype;
+
+proto.biu = Element.biu;
+
 const createMethods = [proto.createArrow, proto.createPipe] =
   (
     (types, f) => [f(types[0]), f(types[1])]
   )(
-    [ElementType.Arrow, ElementType.Pipe],
-    (type: ElementType) => function <U>(
+    [ElementType.Arrow, ElementType.Pipe] as any,
+    (type: ElementType.Arrow | ElementType.Pipe) => function <U>(
       this: Node,
       node: NodeLike<U> | null | undefined,
       options?: { id?: string, classes?: string[] },
