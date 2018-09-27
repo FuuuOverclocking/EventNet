@@ -1,5 +1,6 @@
 import { NodeAttr, NodeAttrFn } from '../../types';
 import { assign } from '../../util/assign';
+import { nextMoment } from '../../util/nextMoment';
 import { debug, fulfilledPromise, hasPromise } from '../debug';
 
 export const attrManager = {
@@ -74,11 +75,7 @@ export class Attrs {
   public toSort() {
     if (this.willSort) { return; }
     this.willSort = true;
-    if (hasPromise) {
-      (fulfilledPromise as Promise<void>).then(this.sort.bind(this));
-    } else {
-      setTimeout(this.sort.bind(this), 0);
-    }
+    nextMoment(this.sort.bind(this));
   }
 
   public sort() {

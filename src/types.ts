@@ -14,12 +14,24 @@ export interface ElementLike<T = any> {
   readonly isLine?: boolean;
   readonly uid?: number;
   readonly type?: number;
-  clone?(): this;
+  clone?(): Element;
 }
 
 export interface CallableElement<T = any> {
   (data?: any): T;
   origin: Element<T>;
+}
+
+export interface WatchableObject {
+  watchMe(
+    expOrFn: string | ((this: any, target: any) => any),
+    callback: (newVal: any, oldVal: any) => void,
+    options?: {
+        deep?: boolean,
+        sync?: boolean,
+        immediate?: boolean,
+    },
+  ): () => void;
 }
 
 export interface NodeLike<T = any>
@@ -49,15 +61,6 @@ export enum ElementType {
   RawNode,
 }
 
-export type BasicNodeCode<T, originType, stateType = any> = (param: {
-  dws: BasicNodeDws,
-  ups: any,
-  data?: any,
-  origin: originType,
-  state?: stateType,
-  store: any,
-}) => T;
-
 export type NormalNodeCode<T, stateType, originType> = (param: {
   dws: BasicNodeDws,
   ups: any,
@@ -65,6 +68,13 @@ export type NormalNodeCode<T, stateType, originType> = (param: {
   origin: originType,
   state: stateType,
   store: { [i: string]: any },
+}) => T;
+
+export type RawNodeCode<T, originType> = (param: {
+  dws: BasicNodeDws,
+  ups: any,
+  data?: any,
+  origin: originType,
 }) => T;
 
 export enum BasicNodeMode {

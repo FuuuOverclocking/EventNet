@@ -19,7 +19,7 @@ export interface Element<T = any> {
   readonly isLine: boolean;
   readonly type?: number;
   generateIdentity(): { [field: string]: any };
-  clone?(): this;
+  clone?(): Element;
 
   // tslint:disable:max-line-length
   biu(): this;

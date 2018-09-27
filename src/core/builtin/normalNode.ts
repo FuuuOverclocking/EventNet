@@ -1,14 +1,16 @@
-import { BasicNodeMode, ElementType, NodeAttr, NodeAttrFn, NodeRunPhase, NormalNodeCode } from '../../types';
+import { BasicNodeMode, ElementType, NodeAttr, NodeRunPhase, NormalNodeCode} from '../../types';
 import { assign, multiAssign } from '../../util/assign';
 import { errorObject } from '../../util/errorObject';
 import { isObject } from '../../util/isObject';
 import { tryCatch } from '../../util/tryCatch';
 import { hasPromise } from '../debug';
 import { Line } from '../line';
+import { Observer } from '../observer';
 import { NodeStream } from '../stream';
-import { Attrs } from './attrManager';
+import { Attrs } from './attr';
 import { BasicNode, BasicNodeDws } from './basicNode';
 import { QueueScheduler } from './queueScheduler';
+import { State } from './state';
 
 // The default state of each new NormalNode.
 // The states of Node created by calling nn() is the result
@@ -25,6 +27,24 @@ const defaultState = {
   running: 0,
 };
 
+export interface NormalNode<T = any, stateType = any> {
+  mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
+  runSync(data?: any, caller?: Line): T;
+  queue(queue?: QueueScheduler): {
+    run(data?: any, caller?: Line): Promise<T>;
+  };
+  runMicro(data?: any, caller?: Line): Promise<T>;
+  runMacro(data?: any, caller?: Line): Promise<T>;
+  runAnimationFrame(data?: any, caller?: Line): Promise<T>;
+  noret(): {
+    queue(queue?: QueueScheduler): {
+      run(data?: any, caller?: Line): void;
+    };
+    runMacro(data?: any, caller?: Line): void;
+    runAnimationFrame(data?: any, caller?: Line): void;
+  };
+}
+
 export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
   public readonly type = ElementType.NormalNode;
 
@@ -32,7 +52,7 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
   public readonly dws: NodeStream = new NodeStream(this);
 
 
-  public state: stateType & typeof defaultState;
+  public state: State & stateType & typeof defaultState;
   public stateGetter: null | (() => stateType) = null;
 
 
@@ -41,15 +61,18 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
   /**
    * Get a shallow copy of the node's own `attrs`.
    */
-  public get attrs() {
+  public attrs() {
     return assign({}, this._attrs.own);
+  }
+  public setAttrs(attrs: { [i: string]: any | NodeAttr }) {
+    this._attrs.setOwn(attrs);
   }
 
   /**
    * Get a shallow copy of the node's all `attrs`,
    * including its own and inherited.
    */
-  public get allAttrs() {
+  public allAttrs() {
     return assign({}, this._attrs.all);
   }
 
@@ -59,8 +82,6 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     NormalNode<T, stateType>
     >;
   protected readonly codeDws = new BasicNodeDws(this.dws);
-
-  public mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
 
   constructor(
     options:
@@ -97,12 +118,59 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
 
     this.mode = $mode;
 
-    this.state = multiAssign({}, defaultState, state) as any;
+    this.state = new State() as any;
+    multiAssign(this.state, defaultState, state);
+    State.toReactive(this.state, 'store');
 
-    assign(this._attrs.own, $attrs);
+    this._attrs.setOwn($attrs);
     this._attrs.toSort();
 
     this.preconnect();
+  }
+
+  /**
+   * Clone a existing NormalNode
+   * can be faster than creating by constructor.
+   */
+  public clone(): NormalNode<T, stateType> {
+    let nd = Object.create(NormalNode.prototype);
+    nd = BasicNode.call(nd) || nd;
+    nd.type = ElementType.NormalNode;
+    nd.ups = new NodeStream(nd);
+    nd.dws = new NodeStream(nd);
+    nd.stateGetter = this.stateGetter;
+    nd._attrs = new Attrs();
+    nd.codeDws = new BasicNodeDws(nd.dws);
+    nd.code = this.code;
+    nd.mode = this.mode;
+
+    let state: any;
+    if (this.stateGetter) {
+      state = this.stateGetter();
+    } else {
+      state = assign({}, this.state);
+      state.store = assign({}, this.state.store);
+    }
+    nd.state = new State() as any;
+    multiAssign(nd.state, defaultState, state);
+    State.toReactive(this.state, 'store');
+
+    const attrs = this._attrs;
+    assign(nd._attrs.own, attrs.own);
+    assign(nd._attrs.all, attrs.own);
+
+    if (Object.keys(attrs.inherited).length === 0
+      && !attrs.willSort) {
+      nd._attrs.beforeSeq = attrs.beforeSeq.slice();
+      nd._attrs.afterSeq = attrs.afterSeq.slice();
+    } else {
+      nd._attrs.toSort();
+    }
+    return nd;
+  }
+
+  public generateIdentity(): { [field: string]: any } {
+    return assign(super.generateIdentity(), { type: 'NormalNode' });
   }
 
   protected _run(data?: any, caller?: Line): T {
@@ -167,11 +235,14 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
             afterSeqLen ?
               this._runAfter(theResult) :
               (--this.state.running, theResult),
+
           e => {
             --this.state.running;
             this.errorHandler(NodeRunPhase.code, e);
           }) as any;
-    } else if (errorObject.e) {
+    }
+
+    if (errorObject.e) {
       --this.state.running;
       const e = errorObject.e;
       errorObject.e = void 0;
@@ -216,45 +287,5 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     phase = NodeRunPhase.over;
     --this.state.running;
     return condition.data;
-  }
-
-  /**
-   * Clone a existing NormalNode
-   * can be faster than creating by constructor.
-   */
-  public clone(): this {
-    let nd = Object.create(NormalNode.prototype);
-    nd = BasicNode.call(nd) || nd;
-    nd.type = ElementType.NormalNode;
-    nd.ups = new NodeStream(nd);
-    nd.dws = new NodeStream(nd);
-    nd.stateGetter = this.stateGetter;
-    nd._attrs = new Attrs();
-    nd.codeDws = new BasicNodeDws(nd.dws);
-    nd.code = this.code;
-    nd.mode = this.mode;
-
-    let state: any;
-    if (this.stateGetter) {
-      state = this.stateGetter();
-    } else {
-      state = assign({}, this.state);
-      state.store = assign({}, this.state.store);
-    }
-    nd.state = multiAssign({}, defaultState, state);
-
-    const attrs = this._attrs;
-    assign(nd._attrs.own, attrs.own);
-
-    if (Object.keys(attrs.inherited).length === 0
-      && !attrs.willSort) {
-      nd._attrs.beforeSeq = attrs.beforeSeq.slice();
-      nd._attrs.afterSeq = attrs.afterSeq.slice();
-    }
-    return nd;
-  }
-
-  public generateIdentity(): { [field: string]: any } {
-    return assign(super.generateIdentity(), { type: 'NormalNode' });
   }
 }

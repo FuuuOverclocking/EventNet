@@ -39,19 +39,21 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
   }
   protected _run?(data?: any, caller?: Line): T;
 
-  protected mode?: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
+  protected mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
 
   protected runSync(data?: any, caller?: Line): T {
     return this._run!(data, caller);
   }
   protected queue(
-    queue = Array.isArray(this.mode) &&
+    queue: QueueScheduler = Array.isArray(this.mode) &&
       this.mode[0] === BasicNodeMode.queue &&
       this.mode[1]
       || defaultQueue,
-  ) {
+  ): {
+    run(data?: any, caller?: Line): Promise<T>;
+  } {
     return {
-      run: (data?: any, caller?: Line) => {
+      run: (data, caller) => {
         return new Promise<T>(resolve =>
           queue.schedule(() => {
             const result = this._run!(data, caller);
@@ -80,7 +82,13 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
    * This is provided for runtime that does not
    * support Promise and do not have a polyfill for Promise.
    */
-  protected noret() {
+  protected noret(): {
+    queue(queue?: QueueScheduler): {
+      run(data?: any, caller?: Line): void;
+    };
+    runMacro(data?: any, caller?: Line): void;
+    runAnimationFrame(data?: any, caller?: Line): void;
+  } {
     const fns = {
       queue: (queue = defaultQueue) => {
         return {
@@ -106,7 +114,7 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
   public generateIdentity(): { [field: string]: any } {
     return assign(super.generateIdentity(), { type: 'BasicNode' });
   }
-  public abstract clone(): this;
+  public abstract clone(): BasicNode<any>;
 }
 
 function callableDws(line: Line, caller: Node, data?: any) {

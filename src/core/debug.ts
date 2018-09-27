@@ -1,9 +1,11 @@
 import { config } from '../index';
 import { NodeRunPhase } from '../types';
 import { longStringSub } from '../util/longStringSub';
+import { noop } from '../util/noop';
 import { Element } from './element';
 import { Node } from './node';
 
+export const hasProto = { __proto__: [] } instanceof Array;
 export const hasPromise =
   typeof Promise === 'function' &&
   typeof Promise.resolve === 'function' &&
@@ -11,18 +13,18 @@ export const hasPromise =
   typeof Promise.prototype.catch === 'function';
 export const fulfilledPromise = hasPromise ? Promise.resolve() : null;
 
-export let debug: (issueId: string, ...data: any[]) => void = () => { };
-export let tip: (msg: string, relatedElement?: Element) => void = () => { };
-export let warn: (msg: string, relatedElement?: Element) => void = () => { };
-export let generateElemTrace: (elem: Element) => string | void = () => { };
+export let debug: (issueId: string, ...data: any[]) => void = noop;
+export let tip: (msg: string, relatedElement?: Element) => void = noop;
+export let warn: (msg: string, relatedElement?: Element) => void = noop;
+export let generateElemTrace: (elem: Element) => string | void = noop;
 
-let generateKeyValue: (o: any) => any = () => {};
+let generateKeyValue: (o: any) => any = noop;
 
 if (process.env.NODE_ENV !== 'production') {
 
   const issues = {
     ArrowPassData:      ['tip', (data: any) =>
-      `data '${longStringSub(data)}' can not pass through an Arrow, replace with a Pipe`],
+      `data '${longStringSub(String(data))}' can not pass through an Arrow, replace with a Pipe`],
     LineEmptyDws:       ['tip', 'the downstream of the line is empty'],
     LineImproperCall:   ['tip', 'the arrow is activited but not called by its upstream'],
     ElementifyParam:    ['err', 'an Element-like object is expected', 'elementify'],
@@ -31,10 +33,16 @@ if (process.env.NODE_ENV !== 'production') {
     NodeStreamAskQs:    ['err', 'invaild querystring', 'NodeStream.ask'],
     NodeStreamAskParam: ['err', 'the type of param is wrong', 'NodeStream.ask'],
     BN_NonexistDws:     ['err',
-      'The elements meeting the condition(s) in the downstream do not exist.'],
+      'The elements meeting the condition(s) in the downstream do not exist.', 'BasicNodeDws'],
     BN_NonexistDwsWarn: ['warn',
-    'The elements meeting the condition(s) in the downstream do not exist.'],
+    'The elements meeting the condition(s) in the downstream do not exist.', 'BasicNodeDws'],
     AttrDuplicate:      ['tip', 'duplicate attrs already exist'],
+    SetDelReactiveOn:   ['err', (target: any) =>
+      `Cannot set/delete reactive property on undefined, null, or primitive value: ${target}`,
+      'Observer/set or Observer/del'],
+    InvaildWatchingPath: ['err', (path: string) => `Failed watching path: "${path}" ` +
+                        'Watcher only accepts simple dot-delimited paths. ' +
+                        'For full control, use a function instead.', 'WatcherConstructor'],
   } as any;
 
   if (!config.silent && typeof console !== 'undefined') {
@@ -50,6 +58,7 @@ if (process.env.NODE_ENV !== 'production') {
    * debug('ArrowPassData', related element, arg_1, arg_2, ...)
    * debug('BN_NonexistDwsWarn', related element)
    * debug('ElementifyParam', void 0, new Error());
+   * debug('SetDelReactiveOn', void 0, new Error(), arg_1, arg_2, ...)
    */
   debug = (issueId: string, ...data: any[]) => {
     const op = issues[issueId];

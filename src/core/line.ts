@@ -62,7 +62,7 @@ export class Arrow<T = any> extends Line<T> {
     const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
-        debug('ArrowPassData', this, String(data));
+        debug('ArrowPassData', this, data);
       }
       if (!node) {
         debug('LineEmptyDws', this);
