@@ -1,6 +1,6 @@
 {
   "name": "eventnet",
-  "version": "0.1.4",
+  "version": "1.0.0-0",
   "main": "./index.js",
   "module": "./esm5/index.js",
   "es2015": "./esm2015/index.js",
