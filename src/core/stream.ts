@@ -55,8 +55,8 @@ export class NodeStream extends Stream {
     hostedObj && (this.hostedObj = hostedObj);
   }
   public readonly owner: Node;
-  protected elements: Array<Line | undefined>;
-  protected elementsById: { [id: string]: Line };
+  protected elements: Array<Line | undefined> = [];
+  protected elementsById: { [id: string]: Line } = {};
   /**
    * Get all the lines of the stream.
    * NOTE: the array should not be modified,
@@ -187,7 +187,7 @@ export class NodeStream extends Stream {
 
 export class LineStream extends Stream {
   public readonly owner: Line;
-  protected element: Node | undefined;
+  protected element: Node | undefined = void 0;
   public get() {
     return this.element;
   }

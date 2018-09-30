@@ -1,7 +1,6 @@
-/**********************************
- * To view all available commands:
- * $> gulp -T
- **********************************/
+// To view all available commands:
+// $> gulp -T
+
 const gulp = require('gulp');
 const exec = require('child_process').exec;
 const path = require('path');
@@ -12,16 +11,12 @@ const rollup_fn = require('./config/rollup.gulp.js');
 const { production_expression_replace_list,
   development_expression_replace_list } = rollup_fn;
 
-const tsconfig_paths = [
-  'tsconfig.cjs.json',
-  'tsconfig.esm5.json',
-  'tsconfig.esm2015.json',
-  'tsconfig.types.json',
-].map(s => path.resolve(__dirname, './config', s));
-
 const dist_dirs = [
   'cjs', 'esm5', 'esm2015', 'typings',
 ];
+
+const tsconfig_paths = dist_dirs
+  .map(s => path.resolve(__dirname, './config', `tsconfig.${s}.json`));
 
 const clean_tasks = dist_dirs.map(dir =>
   async () => await del([
@@ -42,13 +37,13 @@ const ts_tasks = tsconfig_paths.map(tsconfig =>
 gulp.task('clean:cjs', clean_tasks[0]);
 gulp.task('clean:esm5', clean_tasks[1]);
 gulp.task('clean:esm2015', clean_tasks[2]);
-gulp.task('clean:types', clean_tasks[3]);
-gulp.task('clean', ['clean:cjs', 'clean:esm5', 'clean:esm2015', 'clean:types']);
+gulp.task('clean:typings', clean_tasks[3]);
+gulp.task('clean', ['clean:cjs', 'clean:esm5', 'clean:esm2015', 'clean:typings']);
 
 gulp.task('ts:cjs', ['clean:cjs'], ts_tasks[0]);
 gulp.task('ts:esm5', ['clean:esm5'], ts_tasks[1]);
 gulp.task('ts:esm2015', ['clean:esm2015'], ts_tasks[2]);
-gulp.task('ts:types', ['clean:types'], ts_tasks[3]);
+gulp.task('ts:typings', ['clean:typings'], ts_tasks[3]);
 
 gulp.task('default', ['ts:cjs']);
 
@@ -56,9 +51,10 @@ const comp_copy_list = [
   'elements/**/*',
   'nodes/**/*',
   'lines/**/*',
+  'attrs/**/*',
 ];
 
-function util_2promise(stream) {
+function toPromise(stream) {
   return new Promise((resolve, reject) => {
     stream
       .on('finish', resolve)
@@ -68,16 +64,19 @@ function util_2promise(stream) {
 
 function build(type) {
   return async () => {
-    await util_2promise(gulp.src([
+    await toPromise(gulp.src([
       `dist/${type}/**/*`,
       `!dist/${type}/index.js`,
       `!dist/${type}/index.js.map`,
     ], { base: `./dist/${type}` })
       .pipe(rename(path => {
-        if (path.dirname === '.' && path.basename === 'index.dev')
+        if (path.dirname === '.' && path.basename === 'index.dev'/*.js*/)
           path.basename = 'index';
+        if (path.dirname === '.' && path.basename === 'index.dev.js'/*.map*/)
+          path.basename = 'index.js';
       }))
-      .pipe(gulp_replace('//# sourceMappingURL=index.dev.js.map', '\n'))
+      .pipe(gulp_replace('//# sourceMappingURL=index.dev.js.map', '//# sourceMappingURL=index.js.map'))
+      .pipe(gulp_replace('"file":"index.dev.js"', '"file":"index.js"'))
       .pipe(gulp.dest(`dist/${type}_dev`)));
 
     await rollup_fn[type]();
@@ -105,3 +104,16 @@ gulp.task('build:types', ['ts:types'], () => {
 });
 
 gulp.task('build', ['build:cjs', 'build:esm5', 'build:esm2015', 'build:types']);
+
+gulp.task('rel:npm', ['build'], () => {
+  gulp.src('release/cjs/**/*')
+    .pipe(gulp.dest('release/npm_release'));
+  gulp.src('release/esm5/**/*')
+    .pipe(gulp.dest('release/npm_release/esm5'));
+  gulp.src('release/esm2015/**/*')
+    .pipe(gulp.dest('release/npm_release/esm2015'));
+  gulp.src('release/typings/**/*')
+    .pipe(gulp.dest('release/npm_release/typings'));
+  gulp.src('package.json')
+    .pipe(gulp.dest('release/npm_release'));
+});

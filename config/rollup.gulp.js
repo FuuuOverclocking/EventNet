@@ -1,6 +1,7 @@
 const rollup = require('rollup');
 const clone = require('lodash/cloneDeepWith');
 const replace = require('rollup-plugin-replace');
+const sourcemaps = require('rollup-plugin-sourcemaps');
 // const node_resolve = require('rollup-plugin-node-resolve');
 
 const production_expression_replace_list =

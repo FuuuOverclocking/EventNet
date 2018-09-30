@@ -5,7 +5,7 @@
   "module": "./esm5/index.js",
   "es2015": "./esm2015/index.js",
   "jsnext:main": "./esm2015/index.js",
-  "typings": "./index.d.js",
+  "typings": "./typings/index.d.js",
   "sideEffects": false,
   "description": "Not just about flow design",
   "repository": {
@@ -64,8 +64,8 @@
   "jest": {
     "collectCoverage": true,
     "collectCoverageFrom": [
-      "<rootDir>/lib/**/*.{js,ts}",
-      "!<rootDir>/lib/**/*.d.ts",
+      "<rootDir>/release/cjs/dev/**/*.{js,ts}",
+      "!<rootDir>/release/cjs/dev/**/*.d.ts",
       "!**/node_modules/**"
     ],
     "globals": {
