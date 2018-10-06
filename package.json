@@ -34,7 +34,8 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "cz": "git-cz",
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
-    "test": "gulp ts:cjs && jest",
+    "publs": "cd ./release/npm_release && npm publish",
+    "test": "gulp test && jest",
     "version": "npm run changelog && git add CHANGELOG.md"
   },
   "dependencies": {
@@ -50,6 +51,7 @@
     "cz-conventional-changelog": "^2.1.0",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
+    "gulp-exec": "^3.0.2",
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.0.0",
     "jest": "^23.0.1",
@@ -57,17 +59,12 @@
     "rollup": "^0.65.1",
     "rollup-plugin-node-resolve": "^3.4.0",
     "rollup-plugin-replace": "^2.0.0",
+    "rollup-plugin-sourcemaps": "^0.4.2",
     "ts-jest": "^22.4.6",
     "tslint": "^5.10.0",
     "typescript": "^3.0.1"
   },
   "jest": {
-    "collectCoverage": true,
-    "collectCoverageFrom": [
-      "<rootDir>/release/cjs/dev/**/*.{js,ts}",
-      "!<rootDir>/release/cjs/dev/**/*.d.ts",
-      "!**/node_modules/**"
-    ],
     "globals": {
       "ts-jest": {
         "skipBabel": true
@@ -79,9 +76,9 @@
       "json"
     ],
     "transform": {
-      "^.+\\.tsx?$": "ts-jest"
+      "^.+\\.ts$": "ts-jest"
     },
-    "testRegex": "(/tests/.*|(\\.|/)(test|spec))\\.(js|ts)$",
+    "testRegex": "/tests/.*\\.(js|ts)$",
     "testEnvironment": "node"
   },
   "config": {

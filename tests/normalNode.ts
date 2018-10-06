@@ -1,4 +1,4 @@
-import { NormalNode } from '../release/npm_release';
+import { NormalNode } from '../dist/node_dev_test';
 
 function time() {
   const diff = process.hrtime();
@@ -11,7 +11,7 @@ for (let i = 0; i < 100; ++i) {
 
 test('perf', () => {
   const start = time();
-  let nd: any;
+  let nd;
   // 12073.962551 ms on Intel i7 7700HQ
   for (let i = 0; i < 1000000; ++i) {
     nd = new NormalNode({

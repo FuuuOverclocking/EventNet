@@ -1,6 +1,8 @@
 import { config } from './config';
+import { monitor } from './monitor/index';
+
 config.monitoring = true;
+config.monitor = monitor;
 
 export { config };
-export * from './monitor/index';
 export * from './core/index';
