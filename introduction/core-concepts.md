@@ -2,7 +2,5 @@
 
 EventNet = { Node, Line }
 
-
-
 ## Node
 

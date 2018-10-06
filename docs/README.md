@@ -1,20 +1,18 @@
 # Read Me
 
-EventNet 是一个轻量的流程设计库，使用它的 API 可将 JavaScript 程序表述成一张有向图，以支持你进行函数式和流式编程，以及管理状态。在图的基础上，我们可以利用一些可视化工具和团队协作工具，使得项目的阅读、调试、重构、扩展变得更为直观和便捷。
+EventNet is a JavaScript library for [visual programming](https://en.m.wikipedia.org/wiki/Visual_programming_language) and [dataflow programming](https://en.m.wikipedia.org/wiki/Dataflow_programming), which describes your program as a directed network consists of `Node` and `Line`. On this basis, an additional visualization tool EN Viewer is provided, which is expected to help developers in many ways - facilitates the reading, debugging, refactoring, and extension of projects.
 
-[![GitHub issues](https://img.shields.io/github/issues/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/issues)
-[![npm](https://img.shields.io/npm/v/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
-[![npm](https://img.shields.io/npm/dm/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet)
-[![GitHub license](https://img.shields.io/github/license/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/blob/dev-xyz/LICENSE)
+The project was started in March 2018 and still being develop. If you read the following sections and find the idea interesting, welcome Issues and PRs, and join as a contributor.
 
-## 初步概念
+[![GitHub issues](https://img.shields.io/github/issues/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/issues) [![npm](https://img.shields.io/npm/v/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet) [![npm](https://img.shields.io/npm/dm/eventnet.svg?style=flat-square)](https://www.npmjs.com/package/eventnet) [![GitHub license](https://img.shields.io/github/license/xyzingh/EventNet.svg?style=flat-square)](https://github.com/xyzingh/EventNet/blob/dev-xyz/LICENSE)
+
+## Initial concept
 
 不同于传统的响应式编程，EventNet用**节点**和它们之间的**连线**表示程序流程。**节点**包装着一系列操作，逻辑上对应于程序的一步流程，或实现一个功能点，或起一些辅助作用；**连线**体现了节点间的关系，表示调用关系，并能传递数据。不仅于此，由于可视化工具的存在，**节点**还相当于设置在程序中的监控单元，EventNet的API的一举一动，都会通过可视化工具的界面，以人类友好的方式，反馈在屏幕上。
 
 依照模块化的思想，一系列相互耦合度较高的 功能点 应当被组织起来，抽象成更高层次的一项功能。相应地，EventNet提供对一群节点构成的网络的折叠和打包功能。
 
-下面的图例粗糙地说明了一个后端如何初始化，同时也展示了可视化工具提供的福利中的“**实时运行情况**”，“**自动计时**”。
-![EventNet 图示](http://justlog.xyz/eventnet/images/eventnet_graphic.gif)
+下面的图例粗糙地说明了一个后端如何初始化，同时也展示了可视化工具提供的福利中的“**实时运行情况**”，“**自动计时**”。 ![EventNet &#x56FE;&#x793A;](http://justlog.xyz/eventnet/images/eventnet_graphic.gif)
 
 ### 节点
 
@@ -24,18 +22,18 @@ EventNet 是一个轻量的流程设计库，使用它的 API 可将 JavaScript 
 
 按形状分为：
 
-* ![one-way arrow](http://justlog.xyz/eventnet/images/owarrow.png) 单向箭头(one-way arrow)&nbsp;&nbsp;&nbsp;触发指向的节点
-* ![one-way pipe](http://justlog.xyz/eventnet/images/owpipe.png) 单向管道(one-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;触发指向的节点，数据同时通过管道流入
-* ![two-way pipe](http://justlog.xyz/eventnet/images/twpipe.png) 双向管道(two-way pipe)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以触发两头的节点，数据双向流动
+* ![one-way arrow](http://justlog.xyz/eventnet/images/owarrow.png) 单向箭头\(one-way arrow\)   触发指向的节点
+* ![one-way pipe](http://justlog.xyz/eventnet/images/owpipe.png) 单向管道\(one-way pipe\)     触发指向的节点，数据同时通过管道流入
+* ![two-way pipe](http://justlog.xyz/eventnet/images/twpipe.png) 双向管道\(two-way pipe\)     可以触发两头的节点，数据双向流动
 
 按智商分为：
 
-* (普通) 连线 只能被动地由节点调用自己
+* \(普通\) 连线 只能被动地由节点调用自己
 * Clever 连线 主动观察着节点的State变化，并调用下游节点
 
 没有双向箭头，因为当你发现两个节点之间的关系复杂到需要双向箭头时，也许很快会发现其实还需要双向管道。
 
-[Get started](#get-started)一节会给出更详尽的概念定义和代码示例，不过现在先让我们来看看EventNet的可视化工具有多友好 :)
+[Get started](./#get-started)一节会给出更详尽的概念定义和代码示例，不过现在先让我们来看看EventNet的可视化工具有多友好 :\)
 
 ## 可视化工具 EN Viewer
 
@@ -76,7 +74,7 @@ EN Viewer操作你的源码时的宗旨：
 
 ### 响应式编程？
 
-响应式编程(Reactive programming) 是一种面向数据流和变化传播的编程范式( [Wiki 传送门](https://en.wikipedia.org/wiki/Reactive_programming) )。说EventNet是类响应式，是由于它不完全符合定义：
+响应式编程\(Reactive programming\) 是一种面向数据流和变化传播的编程范式\( [Wiki 传送门](https://en.wikipedia.org/wiki/Reactive_programming) \)。说EventNet是类响应式，是由于它不完全符合定义：
 
 * EventNet 更着眼于 通过节点刻画程序流程，而非节点间流动的数据；事实上，节点间很多时候仅仅是调用，没有数据传递
 * 数据和数据的变化 在EventNet中不具有特别地位，数据变化是否引起相关操作取决于用户代码
@@ -99,7 +97,7 @@ EventNet并非替代Promise, then等异步方案的工具。
 
 例如，某天领导甩给你一个非常可怕的项目要你维护，里面都是屎一般的祖传代码...大家都知道这是什么感觉。
 
-但假如这个项目是用EventNet构建，情况会稍稍好些：虽然每个节点里装着屎，但你可以根据它的name和desc(ription)多少了解一点它的行为，然后把一个节点摘下来，自己重写一个装上去，并用 **管道数据快照** 和 **局部网络调试** 确保行为一致，避免大规模的重构。
+但假如这个项目是用EventNet构建，情况会稍稍好些：虽然每个节点里装着屎，但你可以根据它的name和desc\(ription\)多少了解一点它的行为，然后把一个节点摘下来，自己重写一个装上去，并用 **管道数据快照** 和 **局部网络调试** 确保行为一致，避免大规模的重构。
 
 ### 最佳实践
 
