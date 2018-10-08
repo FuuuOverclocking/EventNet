@@ -6,7 +6,6 @@ const exec = require('child_process').exec;
 const path = require('path');
 const del = require('del');
 const rename = require('gulp-rename');
-const gulp_exec = require('gulp-exec');
 const gulp_replace = require('gulp-replace');
 const rollup_fn = require('./config/rollup.gulp.js');
 const { production_expression_replace_list } = rollup_fn;

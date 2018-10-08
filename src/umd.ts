@@ -9,8 +9,8 @@ export { config };
 export * from './monitor';
 export * from './core';
 
-import * as _nodes from './nodes';
-export const nodes = _nodes;
+// import * as _nodes from './nodes';
+// export const nodes = _nodes;
 
 // import * as _lines from './lines';
 // export const lines = _lines;

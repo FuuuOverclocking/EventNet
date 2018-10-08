@@ -3,6 +3,7 @@ import { debug } from './debug';
 import { Element } from './element';
 import { Line } from './line';
 import { Node } from './node';
+import { returnTrue } from './util/index';
 
 export abstract class Stream {
   public readonly owner: Element;
@@ -15,6 +16,15 @@ export abstract class Stream {
   public abstract add(el: Element): void;
   public abstract del(el: Element): void;
   public abstract clear(): void;
+
+  public weld(stream: Stream) {
+    this.add(stream.owner);
+    stream.add(this.owner);
+  }
+  public deweld(stream: Stream) {
+    this.del(stream.owner);
+    stream.del(this.owner);
+  }
 
   public hostedObj?: any;
   public onchange?(
@@ -31,20 +41,10 @@ export abstract class Stream {
   };
 }
 
-export function weld(stream1: NodeStream, stream2: LineStream): void;
-export function weld(stream1: LineStream, stream2: NodeStream): void;
-export function weld(stream1: any, stream2: any) {
-  stream1.add(stream2.owner);
-  stream2.add(stream1.owner);
+export interface NodeStream {
+  weld(stream: LineStream): void;
+  deweld(stream: LineStream): void;
 }
-
-export function deweld(stream1: NodeStream, stream2: LineStream): void;
-export function deweld(stream1: LineStream, stream2: NodeStream): void;
-export function deweld(stream1: any, stream2: any) {
-  stream1.del(stream2.owner);
-  stream2.del(stream1.owner);
-}
-
 export class NodeStream extends Stream {
   constructor(
     owner: Node,
@@ -67,9 +67,6 @@ export class NodeStream extends Stream {
     // but for performance,
     return this.elements; // return this.elements.slice();
   }
-  public getById(id: string): Line | undefined {
-    return this.elementsById[id];
-  }
 
   public add(line: Line) {
     if (~this.elements.indexOf(line)) {
@@ -90,6 +87,7 @@ export class NodeStream extends Stream {
     this.onchange &&
       this.onchange(Stream.operationType.add, i - 1, line, this.hostedObj);
   }
+
   public del(line: Line) {
     const i = this.elements.indexOf(line);
     if (!~i) { return; }
@@ -101,6 +99,7 @@ export class NodeStream extends Stream {
     this.onchange &&
       this.onchange(Stream.operationType.del, i, line, this.hostedObj);
   }
+
   public clear() {
     this.elements.length = 0;
     this.elementsById = {};
@@ -109,82 +108,90 @@ export class NodeStream extends Stream {
       this.onchange(Stream.operationType.del, null, null, this.hostedObj);
   }
 
-  // tslint:disable:unified-signatures
+  /**
+   * Get Line with given ID from the downstream if exist
+   * @param id the id of Line
+   */
+  public id(id: string): Line | undefined {
+    return this.elementsById[id];
+  }
+
   /**
    * Return the lines meet the condition specified in the given querystring
    */
-  public ask(querystring: string): Line[];
-  /**
-   * Return the lines having these classes
-   */
-  public ask(classes: string[]): Line[];
-  /**
-   * Return the lines that meet the condition specified in a callback function
-   */
-  public ask(filter: (line: Line | undefined) => boolean): Line[];
-  // tslint:enable:unified-signatures
-  public ask(arg: any) {
-    let fn: any;
-    if (typeof arg === 'string') {
+  public query(querystring: string): Line[] {
+    const regLeading = /^\s*(arrow|pipe)/;
+    const regClasses = /(\.\!?[0-9a-zA-Z\-_]+)/g;
 
-      const regLeading = /^\s*(arrow|pipe)/;
-      const regClasses = /(\.\!?[0-9a-zA-Z\-_]+)/g;
+    let regRes: RegExpMatchArray | null;
+    let type: string | undefined;
+    let classes: string[] | undefined;
 
-      let regRes: RegExpMatchArray | null;
-      let type: string | undefined;
-      let classes: string[] | undefined;
-      if (regRes = arg.match(regLeading)) {
-        type = regRes[1];
-      }
-      if (regRes = arg.match(regClasses)) {
-        classes = regRes;
-      }
-      if (process.env.NODE_ENV !== 'production' && !type && !classes) {
-        debug('NodeStreamAskQs', this.owner, new Error());
-      }
+    if (regRes = querystring.match(regLeading)) {
+      type = regRes[1];
+    }
+    if (regRes = querystring.match(regClasses)) {
+      classes = regRes;
+    }
+    if (process.env.NODE_ENV !== 'production' && !type && !classes) {
+      debug('NodeStreamAskQs', this.owner, new Error());
+    }
 
-      let typeCheck: (line: Line) => boolean = () => true;
-      let classCheck: (line: Line) => boolean = () => true;
-      if (type === 'arrow') {
-        typeCheck = (line: Line) => line.type === ElementType.Arrow;
-      } else if (type === 'pipe') {
-        typeCheck = (line: Line) => line.type === ElementType.Pipe;
-      }
+    let typeCheck: (line: Line) => boolean = returnTrue;
+    let classCheck: (line: Line) => boolean = returnTrue;
 
-      if (classes) {
-        classCheck = (line: Line) => {
-          if (!line.classes) { return false; }
-          for (const cl of classes as string[]) {
-            if (cl.charAt(1) === '!') {
-              if (~line.classes.indexOf(cl.substr(2))) { return false; }
-            } else if (!~line.classes.indexOf(cl.substr(1))) { return false; }
-          }
-          return true;
-        };
-      }
+    if (type) {
+      const _type = type === 'arrow' ? ElementType.Arrow : ElementType.Pipe;
+      typeCheck = line => line.type === _type;
+    }
 
-      return this.elements.filter(line => line && typeCheck(line) && classCheck(line));
-
-    } else if (Array.isArray(arg)) {
-      fn = (line: Line | undefined) => {
-        if (!line || !line.classes) { return false; }
-
-        for (const cl of arg) {
-          if (cl.charAt(0) === '!') {
-            if (~line.classes.indexOf(cl)) { return false; }
-          } else if (!~line.classes.indexOf(cl)) { return false; }
+    if (classes) {
+      classCheck = line => {
+        if (!line.classes) { return false; }
+        for (const cl of classes as string[]) {
+          if (cl.charAt(1) === '!') {
+            if (~line.classes.indexOf(cl.substr(2))) { return false; }
+          } else if (!~line.classes.indexOf(cl.substr(1))) { return false; }
         }
         return true;
       };
-    } else if (typeof arg === 'function') {
-      fn = arg;
-    } else if (process.env.NODE_ENV !== 'production') {
-      debug('NodeStreamAskParam', this.owner, new Error());
     }
+
+    return this.elements.filter(
+      line =>
+        line &&
+        typeCheck(line) &&
+        classCheck(line)) as Line[];
+  }
+
+  /**
+   * Return the lines having these classes
+   */
+  public classes(classes: string[]): Line[] {
+    return this.elements.filter((line: Line | undefined) => {
+      if (!line || !line.classes) { return false; }
+
+      for (const cl of classes) {
+        if (cl.charAt(0) === '!') {
+          if (~line.classes.indexOf(cl)) { return false; }
+        } else if (!~line.classes.indexOf(cl)) { return false; }
+      }
+      return true;
+    }) as Line[];
+  }
+
+  /**
+   * Return the lines that meet the condition specified in a callback function
+   */
+  public filter(fn: (line: Line | undefined) => boolean): Array<Line | undefined> {
     return this.elements.filter(fn);
   }
 }
 
+export interface LineStream {
+  weld(stream: NodeStream): void;
+  deweld(stream: NodeStream): void;
+}
 export class LineStream extends Stream {
   public readonly owner: Line;
   protected element: Node | undefined = void 0;

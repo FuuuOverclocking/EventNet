@@ -1,5 +1,5 @@
 
-import { remove } from '../../util/remove';
+import { remove } from '../util/index';
 import { Watcher } from './watcher';
 
 let uid = 0;

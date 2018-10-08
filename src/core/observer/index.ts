@@ -1,11 +1,11 @@
-import { def } from '../../util/defineProperty';
-import { hasOwn } from '../../util/hasOwn';
-import { isObject } from '../../util/isObject';
-import { isPlainObject } from '../../util/isPlainObject';
-import { isPrimitive } from '../../util/isPrimitive';
-import { isValidArrayIndex } from '../../util/isValidArrayIndex';
-import { setProto } from '../../util/setProto';
 import { debug } from '../debug';
+import { def } from '../util/index';
+import { hasOwn } from '../util/index';
+import { isObject } from '../util/index';
+import { isPlainObject } from '../util/index';
+import { isPrimitive } from '../util/index';
+import { isValidArrayIndex } from '../util/index';
+import { setProto } from '../util/index';
 import { arrayMethods, methodsToPatch } from './array';
 import Dep from './dep';
 

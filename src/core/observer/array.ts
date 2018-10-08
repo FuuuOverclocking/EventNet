@@ -1,4 +1,4 @@
-import { def } from '../../util/defineProperty';
+import { def } from '../util/index';
 
 const arrayProto = Array.prototype as any;
 export const arrayMethods = Object.create(arrayProto);

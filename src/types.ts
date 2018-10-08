@@ -1,12 +1,12 @@
-import { Node } from './core';
-import { BasicNode, BasicNodeDws } from './core/builtin/basicNode';
+import { Line, Node } from './core';
+import { BasicNodeDws } from './core/builtin/basicNode';
 import { NormalNode } from './core/builtin/normalNode';
 import { Element } from './core/element';
-import { Stream } from './core/stream';
+import { LineStream, NodeStream, Stream } from './core/stream';
 
 export interface ElementLike<T = any> {
   // the method to activate the element
-  run(data?: any, caller?: Element): T;
+  run(data?: any, options?: { caller?: Element; [i: string]: any; }): T;
 
   readonly ups?: Stream;
   readonly dws?: Stream;
@@ -27,20 +27,29 @@ export interface WatchableObject {
     expOrFn: string | ((this: any, target: any) => any),
     callback: (newVal: any, oldVal: any) => void,
     options?: {
-        deep?: boolean,
-        sync?: boolean,
-        immediate?: boolean,
+      deep?: boolean,
+      sync?: boolean,
+      immediate?: boolean,
     },
   ): () => void;
 }
 
 export interface NodeLike<T = any>
   extends ElementLike<T> {
+  run(data?: any, options?: { caller?: Line; [i: string]: any; }): T;
+
+  readonly ups?: NodeStream;
+  readonly dws?: NodeStream;
+
   readonly isLine?: false;
 }
 
 export interface LineLike<T = any>
   extends ElementLike<T> {
+  run(data?: any, options?: { caller?: Node; [i: string]: any; }): T;
+
+  readonly ups?: LineStream;
+  readonly dws?: LineStream;
   readonly isLine: true;
 }
 
@@ -59,6 +68,12 @@ export enum ElementType {
   Pipe,
   NormalNode,
   RawNode,
+}
+
+export interface BasicNodeOpt {
+  caller?: Line;
+  runStack?: number[];
+  [i: string]: any;
 }
 
 export type NormalNodeCode<T, stateType, originType> = (param: {

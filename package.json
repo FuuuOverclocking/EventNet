@@ -51,7 +51,6 @@
     "cz-conventional-changelog": "^2.1.0",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
-    "gulp-exec": "^3.0.2",
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.0.0",
     "jest": "^23.0.1",

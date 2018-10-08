@@ -1,8 +1,7 @@
 import { WatchableObject } from '../../types';
-import { def } from '../../util/defineProperty';
-import { remove } from '../../util/remove';
 import { Observer } from '../observer/index';
 import { Watcher } from '../observer/watcher';
+import { def, remove } from '../util/index';
 
 export class State implements WatchableObject {
   public static toReactive(state: State, except?: string) {

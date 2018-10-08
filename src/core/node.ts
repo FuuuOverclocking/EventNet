@@ -1,15 +1,14 @@
-import { ElementType, LineLike, NodeLike, NodeRunPhase, UnaryFunction } from '../types';
-import { assign } from '../util/assign';
+import { ElementType, LineLike, NodeLike, NodeRunPhase } from '../types';
 import { handleNodeError } from './debug';
 import { Element, getUid } from './element';
 import { Arrow, Line, Pipe } from './line';
-import { NodeStream, weld } from './stream';
+import { NodeStream } from './stream';
 
 export const linesWaitingLink: Line[] = [];
 
 export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
   public readonly uid = getUid();
-  public abstract run(data?: any, caller?: Line): T;
+  public abstract run(data?: any, opt?: { caller?: Line, [i: string]: any; }): T;
   public parent: Node | undefined = void 0;
   public readonly isLine = false;
   public readonly type?: number;
@@ -21,8 +20,8 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
    * at the end of their constructor, which adds
    * lines to the upstream of node.
    */
-  public preconnect(data?: any, caller?: Line): void {
-    linesWaitingLink.forEach(line => weld(this.ups, line.dws));
+  public preconnect(): void {
+    linesWaitingLink.forEach(line => this.ups.weld(line.dws));
     linesWaitingLink.length = 0;
   }
 
@@ -34,14 +33,14 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
   }
 
   public errorHandler(when: NodeRunPhase, what?: any, where: Element[] = []) {
-    const errDws = this.dws.get().filter(line => {
+    const errDws = this.dws.filter(line => {
       if (!line || !line.classes) { return false; }
-      return ~line.classes.indexOf('error');
-    }) as LineLike[];
+      return ~line.classes.indexOf('error') as any;
+    }) as Line[];
 
     where.push(this);
     if (errDws.length) {
-      errDws.forEach(line => line.run({ when, what, where }, this));
+      errDws.forEach(line => line.run({ when, what, where }, { caller: this}));
       return;
     } else if (this.parent) {
       this.parent.errorHandler(when, what, where);

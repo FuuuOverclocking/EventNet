@@ -1,4 +1,4 @@
-import { hasPromise } from '../debug';
+import { hasPromise } from '../util/env';
 
 export class QueueScheduler {
   public active = false;

@@ -1,8 +1,7 @@
-import { errorObject } from '../../util/errorObject';
-import { isObject } from '../../util/isObject';
-import { parsePath } from '../../util/parsePath';
-import { tryCatch } from '../../util/tryCatch';
 import { debug, handleError } from '../debug';
+import { isObject } from '../util/index';
+import { parsePath } from '../util/index';
+import { tryCatch } from '../util/index';
 import Dep from './dep';
 import { queueWatcher } from './scheduler';
 import { traverse } from './traverse';
@@ -93,9 +92,8 @@ export class Watcher {
 
     value = tryCatch(() => this.getter.call(obj, obj));
 
-    if (errorObject.e) {
-      const e = errorObject.e;
-      errorObject.e = void 0;
+    const e = tryCatch.getErr();
+    if (typeof e !== 'undefined') {
       handleError(e, 'Watcher.getter');
     }
     if (this.deep) {

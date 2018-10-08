@@ -1,7 +1,6 @@
 import { NodeAttr, NodeAttrFn } from '../../types';
-import { assign } from '../../util/assign';
-import { nextMoment } from '../../util/nextMoment';
-import { debug, fulfilledPromise, hasPromise } from '../debug';
+import { debug } from '../debug';
+import { assign, nextMoment } from '../util/index';
 
 export const attrManager = {
   attrStore: {} as { [name: string]: NodeAttr },

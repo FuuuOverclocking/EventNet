@@ -1,4 +1,4 @@
-import { nextMoment } from '../../util/nextMoment';
+import { nextMoment } from '../util/index';
 import { Watcher } from './watcher';
 
 const queue: Watcher[] = [];

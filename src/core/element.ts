@@ -1,9 +1,9 @@
-import { ElementLike, LineLike, NodeLike, UnaryFunction } from '../types';
-import { isObject } from '../util/isObject';
+import { ElementLike, LineLike, UnaryFunction } from '../types';
 import { debug } from './debug';
 import { Line } from './line';
 import { Node } from './node';
 import { LineStream, NodeStream, Stream } from './stream';
+import { isObject, setProto } from './util/index';
 
 // uid will start at 1, as 0 is a falsy value
 let globalElementUid = 0;
@@ -11,9 +11,11 @@ export function getUid() {
   return ++globalElementUid;
 }
 
+type UF<A, B> = UnaryFunction<A, B>;
+
 export interface Element<T = any> {
   readonly uid: number;
-  run(data?: any, caller?: Element): T;
+  run(data?: any, opt?: { caller?: Element; [i: string]: any; }): T;
   readonly ups: Stream;
   readonly dws: Stream;
   readonly isLine: boolean;
@@ -23,15 +25,15 @@ export interface Element<T = any> {
 
   // tslint:disable:max-line-length
   biu(): this;
-  biu<A>(op1: UnaryFunction<this, A>): A;
-  biu<A, B>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>): B;
-  biu<A, B, C>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>): C;
-  biu<A, B, C, D>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>): D;
-  biu<A, B, C, D, E>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>, op5: UnaryFunction<D, E>): E;
-  biu<A, B, C, D, E, F>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>, op5: UnaryFunction<D, E>, op6: UnaryFunction<E, F>): F;
-  biu<A, B, C, D, E, F, G>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>, op5: UnaryFunction<D, E>, op6: UnaryFunction<E, F>, op7: UnaryFunction<F, G>): G;
-  biu<A, B, C, D, E, F, G, H>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>, op5: UnaryFunction<D, E>, op6: UnaryFunction<E, F>, op7: UnaryFunction<F, G>, op8: UnaryFunction<G, H>): H;
-  biu<A, B, C, D, E, F, G, H, I>(op1: UnaryFunction<this, A>, op2: UnaryFunction<A, B>, op3: UnaryFunction<B, C>, op4: UnaryFunction<C, D>, op5: UnaryFunction<D, E>, op6: UnaryFunction<E, F>, op7: UnaryFunction<F, G>, op8: UnaryFunction<F, G>): I;
+  biu<A>(op1: UF<this, A>): A;
+  biu<A, B>(op1: UF<this, A>, op2: UF<A, B>): B;
+  biu<A, B, C>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>): C;
+  biu<A, B, C, D>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>): D;
+  biu<A, B, C, D, E>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>, op5: UF<D, E>): E;
+  biu<A, B, C, D, E, F>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>, op5: UF<D, E>, op6: UF<E, F>): F;
+  biu<A, B, C, D, E, F, G>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>, op5: UF<D, E>, op6: UF<E, F>, op7: UF<F, G>): G;
+  biu<A, B, C, D, E, F, G, H>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>, op5: UF<D, E>, op6: UF<E, F>, op7: UF<F, G>, op8: UF<G, H>): H;
+  biu<A, B, C, D, E, F, G, H, I>(op1: UF<this, A>, op2: UF<A, B>, op3: UF<B, C>, op4: UF<C, D>, op5: UF<D, E>, op6: UF<E, F>, op7: UF<F, G>, op8: UF<F, G>): I;
   // tslint:enable:max-line-length
 }
 
@@ -49,13 +51,20 @@ export namespace Element {
     const _el: any = el;
     const isLine = _el.isLine = !!_el.isLine;
     _el.uid || (_el.uid = getUid());
-    _el.upstream ||
-      (_el.upstream = isLine ? new LineStream(_el) : new NodeStream(_el));
-    _el.downstream ||
-      (_el.downstream = isLine ? new LineStream(_el) : new NodeStream(_el));
+
+    if (isLine) {
+      _el.upstream || (_el.upstream = new LineStream(_el));
+      _el.downstream || (_el.downstream = new LineStream(_el));
+      _el instanceof Line || setProto && setProto(_el, Line);
+    } else {
+      _el.upstream || (_el.upstream = new NodeStream(_el));
+      _el.downstream || (_el.downstream = new NodeStream(_el));
+      _el instanceof Node || setProto && setProto(_el, Node);
+    }
 
     return _el as T extends LineLike ? Line : Node;
   }
+
   /**
    * Generates and returns an element maker.
    * @param fn a function that returns an Element-like object
@@ -78,7 +87,12 @@ export namespace Element {
   export function toMaker(fnOrEl: any, name: string) {
     if (typeof fnOrEl === 'function') {
       const fn = (...args: any[]) => {
-        return ify(fnOrEl(...args));
+        const el = fnOrEl(...args);
+        if (process.env.NODE_ENV !== 'production' &&
+          !(el instanceof Node || el instanceof Line)) {
+          debug('ToMakerClone', void 0, new Error());
+        }
+        return el;
       };
       return fn;
     } else {

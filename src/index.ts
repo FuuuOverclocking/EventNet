@@ -1,7 +1,3 @@
-import { config } from './config';
-
-config.silent = true;
-
-export { config };
+export { config } from './config';
 export * from './monitor/index';
 export * from './core/index';

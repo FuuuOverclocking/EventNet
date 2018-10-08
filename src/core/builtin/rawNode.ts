@@ -1,27 +1,25 @@
-import { BasicNodeMode, ElementType, NodeRunPhase, RawNodeCode } from '../../types';
-import { errorObject } from '../../util/errorObject';
-import { tryCatch } from '../../util/tryCatch';
-import { hasPromise } from '../debug';
-import { Line } from '../line';
+import { BasicNodeMode, BasicNodeOpt, ElementType, NodeRunPhase, RawNodeCode } from '../../types';
 import { NodeStream } from '../stream';
+import { hasPromise } from '../util/env';
+import { isUndef, tryCatch } from '../util/index';
 import { BasicNode, BasicNodeDws } from './basicNode';
 import { QueueScheduler } from './queueScheduler';
 
 export interface RawNode<T = any> {
   mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
-  runSync(data?: any, caller?: Line): T;
+  runSync(data?: any, opt?: BasicNodeOpt): T;
   queue(queue?: QueueScheduler): {
-    run(data?: any, caller?: Line): Promise<T>;
+    run(data?: any, opt?: BasicNodeOpt): Promise<T>;
   };
-  runMicro(data?: any, caller?: Line): Promise<T>;
-  runMacro(data?: any, caller?: Line): Promise<T>;
-  runAnimationFrame(data?: any, caller?: Line): Promise<T>;
+  runMicro(data?: any, opt?: BasicNodeOpt): Promise<T>;
+  runMacro(data?: any, opt?: BasicNodeOpt): Promise<T>;
+  runAnimationFrame(data?: any, opt?: BasicNodeOpt): Promise<T>;
   noret(): {
     queue(queue?: QueueScheduler): {
-      run(data?: any, caller?: Line): void;
+      run(data?: any, opt?: BasicNodeOpt): void;
     };
-    runMacro(data?: any, caller?: Line): void;
-    runAnimationFrame(data?: any, caller?: Line): void;
+    runMacro(data?: any, opt?: BasicNodeOpt): void;
+    runAnimationFrame(data?: any, opt?: BasicNodeOpt): void;
   };
 }
 
@@ -54,23 +52,29 @@ export class RawNode<T = any> extends BasicNode<T> {
     );
   }
 
-  public _run(data?: any, caller?: Line): T {
+  public _run(data: any, opt: BasicNodeOpt): T {
+    const codeDws = opt.runStack ?
+      new BasicNodeDws(this.dws, opt.runStack) :
+      this.codeDws;
+
     const result = tryCatch(this.code.bind(this, {
-      dws: this.codeDws,
+      dws: codeDws,
       ups: {},
       data,
       origin: this,
     })) as T;
     if (hasPromise && result instanceof Promise) {
       return result
-        .catch(error => {
+        .then(
+          null,
+
+          error => {
           this.errorHandler(NodeRunPhase.code, error);
         }) as any;
     }
 
-    if (errorObject.e) {
-      const e = errorObject.e;
-      errorObject.e = void 0;
+    const e = tryCatch.getErr();
+    if (!isUndef(e)) {
       this.errorHandler(NodeRunPhase.code, e);
       return void 0 as any;
     }

@@ -1,12 +1,7 @@
-import { BasicNodeMode, ElementType, NodeAttr, NodeRunPhase, NormalNodeCode} from '../../types';
-import { assign, multiAssign } from '../../util/assign';
-import { errorObject } from '../../util/errorObject';
-import { isObject } from '../../util/isObject';
-import { tryCatch } from '../../util/tryCatch';
-import { hasPromise } from '../debug';
+import { BasicNodeMode, BasicNodeOpt, ElementType, NodeAttr, NodeRunPhase, NormalNodeCode} from '../../types';
 import { Line } from '../line';
-import { Observer } from '../observer';
 import { NodeStream } from '../stream';
+import { assign, hasPromise, isObject, multiAssign, tryCatch } from '../util/index';
 import { Attrs } from './attr';
 import { BasicNode, BasicNodeDws } from './basicNode';
 import { QueueScheduler } from './queueScheduler';
@@ -29,19 +24,19 @@ const defaultState = {
 
 export interface NormalNode<T = any, stateType = any> {
   mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
-  runSync(data?: any, caller?: Line): T;
+  runSync(data?: any, opt?: BasicNodeOpt): T;
   queue(queue?: QueueScheduler): {
-    run(data?: any, caller?: Line): Promise<T>;
+    run(data?: any, opt?: BasicNodeOpt): Promise<T>;
   };
-  runMicro(data?: any, caller?: Line): Promise<T>;
-  runMacro(data?: any, caller?: Line): Promise<T>;
-  runAnimationFrame(data?: any, caller?: Line): Promise<T>;
+  runMicro(data?: any, opt?: BasicNodeOpt): Promise<T>;
+  runMacro(data?: any, opt?: BasicNodeOpt): Promise<T>;
+  runAnimationFrame(data?: any, opt?: BasicNodeOpt): Promise<T>;
   noret(): {
     queue(queue?: QueueScheduler): {
-      run(data?: any, caller?: Line): void;
+      run(data?: any, opt?: BasicNodeOpt): void;
     };
-    runMacro(data?: any, caller?: Line): void;
-    runAnimationFrame(data?: any, caller?: Line): void;
+    runMacro(data?: any, opt?: BasicNodeOpt): void;
+    runAnimationFrame(data?: any, opt?: BasicNodeOpt): void;
   };
 }
 
@@ -173,7 +168,7 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     return assign(super.generateIdentity(), { type: 'NormalNode' });
   }
 
-  protected _run(data?: any, caller?: Line): T {
+  protected _run(data: any, opt: BasicNodeOpt): T {
     this._attrs.sort();
 
     ++this.state.runningTimes;
@@ -183,6 +178,10 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     ++this.state.running;
 
     let shouldShut = false;
+
+    const codeDws = opt.runStack ?
+      new BasicNodeDws(this.dws, opt.runStack) :
+      this.codeDws;
 
     const beforeSeq = this._attrs.beforeSeq;
     let i = beforeSeq.length;
@@ -218,7 +217,7 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     phase = NodeRunPhase.code;
 
     const result = tryCatch(this.code.bind(this, {
-      dws: this.codeDws,
+      dws: codeDws,
       ups: {},
       data,
       origin: this,
@@ -236,16 +235,15 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
               this._runAfter(theResult) :
               (--this.state.running, theResult),
 
-          e => {
+          err => {
             --this.state.running;
-            this.errorHandler(NodeRunPhase.code, e);
+            this.errorHandler(NodeRunPhase.code, err);
           }) as any;
     }
 
-    if (errorObject.e) {
+    const e = tryCatch.getErr();
+    if (typeof e !== 'undefined') {
       --this.state.running;
-      const e = errorObject.e;
-      errorObject.e = void 0;
       this.errorHandler(NodeRunPhase.code, e);
       return void 0 as any;
     }

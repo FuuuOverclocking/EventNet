@@ -1,16 +1,16 @@
-import { ElementType, LineLike, UnaryFunction } from '../types';
-import { assign } from '../util/assign';
+import { ElementType, LineLike } from '../types';
 import { debug } from './debug';
 import { Element, getUid } from './element';
 import { Node } from './node';
-import { LineStream, weld } from './stream';
+import { LineStream } from './stream';
+import { assign } from './util/index';
 
 export abstract class Line<T = any> implements Element<T>, LineLike<T> {
   public readonly uid = getUid();
   public readonly isLine = true;
   public abstract readonly type?: number;
 
-  public abstract run(data?: any, caller?: Node): T;
+  public abstract run(data?: any, opt?: { caller?: Node; [i: string]: any; }): T;
   public abstract readonly ups: LineStream;
   public abstract readonly dws: LineStream;
 
@@ -41,7 +41,7 @@ export namespace Line {
 Line.prototype.biu = Element.biu;
 
 export class Arrow<T = any> extends Line<T> {
-  public readonly type = ElementType.Arrow;
+  public readonly type: ElementType.Arrow;
 
   public readonly ups: LineStream = new LineStream(this);
   public readonly dws: LineStream = new LineStream(this);
@@ -53,12 +53,12 @@ export class Arrow<T = any> extends Line<T> {
     { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super();
-    ups && weld(ups.dws, this.ups);
-    dws && weld(dws.ups, this.dws);
+    ups && ups.dws.weld(this.ups);
+    dws && dws.ups.weld(this.dws);
     this.id = id;
     this.classes = classes || [];
   }
-  public run(data: undefined | null, caller: Node): T {
+  public run(data: undefined | null, opt?: { caller?: Node; [i: string]: any; }): T {
     const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
@@ -66,7 +66,7 @@ export class Arrow<T = any> extends Line<T> {
       }
       if (!node) {
         debug('LineEmptyDws', this);
-      } else if (caller !== node) {
+      } else if (!opt || opt.caller !== node) {
         debug('LineImproperCall', this);
       }
     }
@@ -77,9 +77,11 @@ export class Arrow<T = any> extends Line<T> {
     return assign(super.generateIdentity(), { type: 'Arrow' });
   }
 }
+(Arrow.prototype.type as any) = ElementType.Arrow;
+
 
 export class Pipe<T = any> extends Line<T> {
-  public readonly type = ElementType.Pipe;
+  public readonly type: ElementType.Pipe;
 
   public readonly ups: LineStream = new LineStream(this);
   public readonly dws: LineStream = new LineStream(this);
@@ -91,17 +93,17 @@ export class Pipe<T = any> extends Line<T> {
     { id, classes }: { id?: string, classes?: string[] } = {},
   ) {
     super();
-    ups && weld(ups.dws, this.ups);
-    dws && weld(dws.ups, this.dws);
+    ups && ups.dws.weld(this.ups);
+    dws && dws.ups.weld(this.dws);
     this.id = id;
     this.classes = classes || [];
   }
-  public run(data: any, caller: Node): T {
+  public run(data: any, opt?: { caller?: Node; [i: string]: any; }): T {
     const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (!node) {
         debug('LineEmptyDws', this);
-      } else if (caller !== node) {
+      } else if (!opt || opt.caller !== node) {
         debug('LineImproperCall', this);
       }
     }
@@ -111,5 +113,5 @@ export class Pipe<T = any> extends Line<T> {
   public generateIdentity(): { [field: string]: any } {
     return assign(super.generateIdentity(), { type: 'Pipe' });
   }
-
 }
+(Pipe.prototype.type as any) = ElementType.Pipe;
