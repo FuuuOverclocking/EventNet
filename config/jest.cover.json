@@ -1,0 +1,25 @@
+{
+  "collectCoverage": true,
+  "collectCoverageFrom": [
+    "<rootDir>/dist/node_dev_test/**/*.{js,ts}",
+    "!<rootDir>/dist/node_dev_test/**/*.d.ts",
+    "!**/node_modules/**"
+  ],
+  "globals": {
+    "ts-jest": {
+      "skipBabel": true
+    }
+  },
+  "moduleFileExtensions": [
+    "ts",
+    "js",
+    "json"
+  ],
+  "notify": true,
+  "rootDir": "../",
+  "transform": {
+    "^.+\\.ts$": "ts-jest"
+  },
+  "testRegex": "/tests/.*\\.(js|ts)$",
+  "testEnvironment": "node"
+}

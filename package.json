@@ -30,12 +30,13 @@
   "scripts": {
     "build": "gulp build",
     "clean": "gulp clean",
+    "test": "gulp build:test && jest",
+    "cover": "jest -c ./config/jest.cover.json",
     "other-cmds": "gulp --tasks",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "cz": "git-cz",
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
     "publs": "cd ./release/npm_release && npm publish",
-    "test": "gulp test && jest",
     "version": "npm run changelog && git add CHANGELOG.md"
   },
   "dependencies": {
@@ -74,6 +75,7 @@
       "js",
       "json"
     ],
+    "notify": true,
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
