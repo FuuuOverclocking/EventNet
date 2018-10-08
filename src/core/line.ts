@@ -24,21 +24,12 @@ export abstract class Line<T = any> implements Element<T>, LineLike<T> {
       classes: this.classes,
     };
   }
+
+  public static ify: <T extends LineLike>(el: T) => Line;
+
 }
 
 export interface Line<T = any> extends Element<T> {}
-
-export namespace Line {
-  /**
-   * Trying to transform an object into Line
-   */
-  export const ify = <T extends LineLike>(el: T) => {
-    (el as any).isLine = true;
-    return Element.ify(el);
-  };
-}
-
-Line.prototype.biu = Element.biu;
 
 export class Arrow<T = any> extends Line<T> {
   public readonly type: ElementType.Arrow;

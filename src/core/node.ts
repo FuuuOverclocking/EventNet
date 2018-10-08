@@ -49,6 +49,7 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
     }
   }
 
+  public static ify: <T extends NodeLike>(el: T) => Node;
 
   public createLine<U>(
     type: ElementType.Arrow | ElementType.Pipe,
@@ -93,16 +94,7 @@ export interface Node<T = any> extends Element<T> {
   pipeNext(options?: { id?: string, classes?: string[] }): this;
 }
 
-export namespace Node {
-  /**
-   * Trying to transform an object into Node
-   */
-  export const ify: <T extends NodeLike>(el: T) => Node = Element.ify;
-}
-
 const proto = Node.prototype;
-
-proto.biu = Element.biu;
 
 const createMethods = [proto.createArrow, proto.createPipe] =
   (

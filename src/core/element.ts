@@ -1,4 +1,4 @@
-import { ElementLike, LineLike, UnaryFunction } from '../types';
+import { ElementLike, LineLike, NodeLike, UnaryFunction } from '../types';
 import { debug } from './debug';
 import { Line } from './line';
 import { Node } from './node';
@@ -116,3 +116,12 @@ export namespace Element {
     return this;
   }
 }
+
+(Node as any).prototype.biu = (Line as any).prototype.biu = Element.biu;
+
+Node.ify = Element.ify;
+
+Line.ify = el => {
+  (el as any).isLine = true;
+  return Element.ify(el);
+};
