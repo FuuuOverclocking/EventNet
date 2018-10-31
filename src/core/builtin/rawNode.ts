@@ -1,5 +1,5 @@
 import { BasicNodeMode, BasicNodeOpt, ElementType, NodeRunPhase, RawNodeCode } from '../../types';
-import { NodeStream } from '../stream';
+import { NodePort } from '../port';
 import { hasPromise } from '../util/env';
 import { isUndef, tryCatch } from '../util/index';
 import { BasicNode, BasicNodeDws } from './basicNode';
@@ -26,8 +26,8 @@ export interface RawNode<T = any> {
 export class RawNode<T = any> extends BasicNode<T> {
   public readonly type = ElementType.NormalNode;
 
-  public readonly ups: NodeStream = new NodeStream(this);
-  public readonly dws: NodeStream = new NodeStream(this);
+  public readonly ups: NodePort = new NodePort(this);
+  public readonly dws: NodePort = new NodePort(this);
 
   public readonly code: RawNodeCode<T, RawNode<T>>;
   protected readonly codeDws = new BasicNodeDws(this.dws);

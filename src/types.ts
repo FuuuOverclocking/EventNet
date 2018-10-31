@@ -2,14 +2,14 @@ import { Line, Node } from './core';
 import { BasicNodeDws } from './core/builtin/basicNode';
 import { NormalNode } from './core/builtin/normalNode';
 import { Element } from './core/element';
-import { LineStream, NodeStream, Stream } from './core/stream';
+import { LinePort, NodePort, Port } from './core/port';
 
 export interface ElementLike<T = any> {
   // the method to activate the element
   run(data?: any, options?: { caller?: Element; [i: string]: any; }): T;
 
-  readonly ups?: Stream;
-  readonly dws?: Stream;
+  readonly ups?: Port;
+  readonly dws?: Port;
 
   readonly isLine?: boolean;
   readonly uid?: number;
@@ -38,8 +38,8 @@ export interface NodeLike<T = any>
   extends ElementLike<T> {
   run(data?: any, options?: { caller?: Line; [i: string]: any; }): T;
 
-  readonly ups?: NodeStream;
-  readonly dws?: NodeStream;
+  readonly ups?: NodePort;
+  readonly dws?: NodePort;
 
   readonly isLine?: false;
 }
@@ -48,8 +48,8 @@ export interface LineLike<T = any>
   extends ElementLike<T> {
   run(data?: any, options?: { caller?: Node; [i: string]: any; }): T;
 
-  readonly ups?: LineStream;
-  readonly dws?: LineStream;
+  readonly ups?: LinePort;
+  readonly dws?: LinePort;
   readonly isLine: true;
 }
 

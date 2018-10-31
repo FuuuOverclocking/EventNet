@@ -1,11 +1,11 @@
 import { ElementType } from '../types';
-import { debug } from './debug';
+import { handleError } from './debug';
 import { Element } from './element';
 import { Line } from './line';
 import { Node } from './node';
 import { returnTrue } from './util/index';
 
-export abstract class Stream {
+export abstract class Port {
   public readonly owner: Element;
   constructor(owner: Element) {
     this.owner = owner;
@@ -17,22 +17,20 @@ export abstract class Stream {
   public abstract del(el: Element): void;
   public abstract clear(): void;
 
-  public weld(stream: Stream) {
-    this.add(stream.owner);
-    stream.add(this.owner);
+  public weld(port: Port) {
+    this.add(port.owner);
+    port.add(this.owner);
   }
-  public deweld(stream: Stream) {
-    this.del(stream.owner);
-    stream.del(this.owner);
+  public deweld(port: Port) {
+    this.del(port.owner);
+    port.del(this.owner);
   }
 
-  public hostedObj?: any;
   public onchange?(
     this: this,
     operationType: number,
     i: number | null,
-    el: Element | null,
-    hostedObj: any,
+    el: Element | null
   ): void;
   public static readonly operationType = {
     add: 0,
@@ -41,24 +39,22 @@ export abstract class Stream {
   };
 }
 
-export interface NodeStream {
-  weld(stream: LineStream): void;
-  deweld(stream: LineStream): void;
+export interface NodePort {
+  weld(port: LinePort): void;
+  deweld(port: LinePort): void;
 }
-export class NodeStream extends Stream {
+export class NodePort extends Port {
   constructor(
     owner: Node,
-    onchange?: typeof Stream.prototype.onchange,
-    hostedObj?: any) {
+    onchange?: typeof Port.prototype.onchange) {
     super(owner);
     onchange && (this.onchange = onchange);
-    hostedObj && (this.hostedObj = hostedObj);
   }
   public readonly owner: Node;
   protected elements: Array<Line | undefined> = [];
   protected elementsById: { [id: string]: Line } = {};
   /**
-   * Get all the lines of the stream.
+   * Get all the lines of the port.
    * NOTE: the array should not be modified,
    *       which will also change the original array
    */
@@ -76,7 +72,10 @@ export class NodeStream extends Stream {
     if (typeof line.id !== 'undefined') {
       if (process.env.NODE_ENV !== 'production' &&
         typeof this.elementsById[line.id] !== 'undefined') {
-        debug('StreamSameEl', this.owner, new Error());
+        handleError(
+          new Error('the port of the same id already exists'),
+          'Port.add',
+          this.owner);
       }
 
       this.elementsById[line.id] = line;
@@ -85,7 +84,7 @@ export class NodeStream extends Stream {
     const i = this.elements.push(line);
 
     this.onchange &&
-      this.onchange(Stream.operationType.add, i - 1, line, this.hostedObj);
+      this.onchange(Port.operationType.add, i - 1, line);
   }
 
   public del(line: Line) {
@@ -97,7 +96,7 @@ export class NodeStream extends Stream {
     this.elements[i] = void 0;
 
     this.onchange &&
-      this.onchange(Stream.operationType.del, i, line, this.hostedObj);
+      this.onchange(Port.operationType.del, i, line);
   }
 
   public clear() {
@@ -105,7 +104,7 @@ export class NodeStream extends Stream {
     this.elementsById = {};
 
     this.onchange &&
-      this.onchange(Stream.operationType.del, null, null, this.hostedObj);
+      this.onchange(Port.operationType.del, null, null);
   }
 
   /**
@@ -134,7 +133,10 @@ export class NodeStream extends Stream {
       classes = regRes;
     }
     if (process.env.NODE_ENV !== 'production' && !type && !classes) {
-      debug('NodeStreamAskQs', this.owner, new Error());
+      handleError(
+        new Error('invalid querystring'),
+        'NodePort.query',
+        this.owner);
     }
 
     let typeCheck: (line: Line) => boolean = returnTrue;
@@ -147,11 +149,11 @@ export class NodeStream extends Stream {
 
     if (classes) {
       classCheck = line => {
-        if (!line.classes) { return false; }
         for (const cl of classes as string[]) {
           if (cl.charAt(1) === '!') {
+            if (!line.classes) { continue; }
             if (~line.classes.indexOf(cl.substr(2))) { return false; }
-          } else if (!~line.classes.indexOf(cl.substr(1))) { return false; }
+          } else if (!line.classes || !~line.classes.indexOf(cl.substr(1))) { return false; }
         }
         return true;
       };
@@ -169,12 +171,13 @@ export class NodeStream extends Stream {
    */
   public classes(classes: string[]): Line[] {
     return this.elements.filter((line: Line | undefined) => {
-      if (!line || !line.classes) { return false; }
+      if (!line) { return false; }
 
       for (const cl of classes) {
         if (cl.charAt(0) === '!') {
+          if (!line.classes) { continue; }
           if (~line.classes.indexOf(cl)) { return false; }
-        } else if (!~line.classes.indexOf(cl)) { return false; }
+        } else if (!line.classes || !~line.classes.indexOf(cl)) { return false; }
       }
       return true;
     }) as Line[];
@@ -188,23 +191,36 @@ export class NodeStream extends Stream {
   }
 }
 
-export interface LineStream {
-  weld(stream: NodeStream): void;
-  deweld(stream: NodeStream): void;
+export interface LinePort {
+  weld(port: NodePort): void;
+  deweld(port: NodePort): void;
 }
-export class LineStream extends Stream {
+export class LinePort extends Port {
   public readonly owner: Line;
   protected element: Node | undefined = void 0;
+  constructor(
+    owner: Line,
+    onchange?: typeof Port.prototype.onchange) {
+    super(owner);
+    onchange && (this.onchange = onchange);
+  }
   public get() {
     return this.element;
   }
   public add(node: Node) {
     this.element = node;
+    this.onchange &&
+      this.onchange(Port.operationType.add, null, node);
   }
   public del(node: Node) {
     node === this.element && (this.element = void 0);
+    this.onchange &&
+      this.onchange(Port.operationType.del, null, node);
+
   }
   public clear() {
     this.element = void 0;
+    this.onchange &&
+      this.onchange(Port.operationType.clear, null, null);
   }
 }

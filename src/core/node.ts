@@ -2,7 +2,7 @@ import { ElementType, LineLike, NodeLike, NodeRunPhase } from '../types';
 import { handleNodeError } from './debug';
 import { Element, getUid } from './element';
 import { Arrow, Line, Pipe } from './line';
-import { NodeStream } from './stream';
+import { NodePort } from './port';
 
 export const linesWaitingLink: Line[] = [];
 
@@ -12,8 +12,8 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
   public parent: Node | undefined = void 0;
   public readonly isLine = false;
   public readonly type?: number;
-  public abstract readonly ups: NodeStream;
-  public abstract readonly dws: NodeStream;
+  public abstract readonly ups: NodePort;
+  public abstract readonly dws: NodePort;
 
   /**
    * Most types of nodes should call this method
@@ -54,7 +54,7 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
   public createLine<U>(
     type: ElementType.Arrow | ElementType.Pipe,
     node: NodeLike<U> | null | undefined,
-    options: { id?: string, classes?: string[] } = {},
+    options: { id?: string, classes?: string[] } = {}
   ): Arrow<U> | Pipe<U> {
     node && Element.ify(node);
     const line: Arrow<U> | Pipe<U> =
@@ -68,27 +68,27 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
 export interface Node<T = any> extends Element<T> {
   createArrow<U>(
     node: NodeLike<U> | null | undefined,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): Arrow<U>;
   createPipe<U>(
     node: NodeLike<U> | null | undefined,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): Pipe<U>;
   arrow<U extends NodeLike>(
     node: U,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): U;
   pipe<U extends NodeLike>(
     node: U,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): U;
   alsoArrow(
     node: NodeLike,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): this;
   alsoPipe(
     node: NodeLike,
-    options?: { id?: string, classes?: string[] },
+    options?: { id?: string, classes?: string[] }
   ): this;
   arrowNext(options?: { id?: string, classes?: string[] }): this;
   pipeNext(options?: { id?: string, classes?: string[] }): this;
@@ -104,7 +104,7 @@ const createMethods = [proto.createArrow, proto.createPipe] =
     (type: ElementType.Arrow | ElementType.Pipe) => function <U>(
       this: Node,
       node: NodeLike<U> | null | undefined,
-      options?: { id?: string, classes?: string[] },
+      options?: { id?: string, classes?: string[] }
     ) {
       return this.createLine(type, node, options);
     }) as any;

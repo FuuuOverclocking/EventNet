@@ -2,122 +2,59 @@ import { config } from '../index';
 import { NodeRunPhase } from '../types';
 import { Element } from './element';
 import { Node } from './node';
-import { truncate } from './util/index';
-import { noop } from './util/index';
+import { hasConsole, noop, truncate } from './util/index';
 
-/**
- * debug
- * @param issueId the id of issue
- * @param data[0] releted Element
- * @param data[1] type is `err` ? new Error() : arg_0
- * @param data[2] type is `err` ? arg_0 : arg_1
- * @example
- * debug('LineEmptyDws', related element)
- * debug('ArrowPassData', related element, arg_1, arg_2, ...)
- * debug('BN_NonexistDwsWarn', related element)
- * debug('ElementifyParam', void 0, new Error());
- * debug('SetDelReactiveOn', void 0, new Error(), arg_1, arg_2, ...)
- */
-export let debug: (issueId: string, ...data: any[]) => void = noop;
 export let tip: (msg: string, relatedElement?: Element) => void = noop;
 export let warn: (msg: string, relatedElement?: Element) => void = noop;
-export let generateElemTrace: (elem: Element) => string | void = noop;
 
-let generateKeyValue: (o: any) => any = noop;
+if (!config.silent && hasConsole) {
+  tip = (msg: string, el?: Element) =>
+    console.warn(msg + '\n' + (el ? generateElemTrace(el) : ''));
+  warn = (msg: string, el?: Element) =>
+    console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
+}
 
-if (process.env.NODE_ENV !== 'production') {
+function generateKeyValue(o: any) {
+  let result = '';
+  for (const key of Object.keys(o)) {
+    result += key + ' = "' + truncate(o[key], 20) + '", ';
+  }
+  return result;
+}
 
-  const issues = {
-    ArrowPassData: ['tip', (data: any) =>
-      `data '${truncate(String(data))}' can not pass through an Arrow, replace with a Pipe`],
-    LineEmptyDws: ['tip', 'the downstream of the line is empty'],
-    LineImproperCall: ['tip', 'the arrow is activited but not called by its upstream'],
-    ElementifyParam: ['err', 'an Element-like object is expected', 'elementify'],
-    ToMakerClone: ['err', 'an Element with clone method is expected', 'Element.toMaker'],
-    StreamSameEl: ['err', 'the stream of the same id already exists', 'Stream.add'],
-    NodeStreamAskQs: ['err', 'invaild querystring', 'NodeStream.ask'],
-    BN_NonexistDws: ['err',
-      'The elements meeting the condition(s) in the downstream do not exist.', 'BasicNodeDws'],
-    BN_NonexistDwsWarn: ['warn',
-      'The elements meeting the condition(s) in the downstream do not exist.', 'BasicNodeDws'],
-    AttrDuplicate: ['tip', 'duplicate attrs already exist'],
-    SetDelReactiveOn: ['err', (target: any) =>
-      `Cannot set/delete reactive property on undefined, null, or primitive value: ${target}`,
-      'Observer/set or Observer/del'],
-    InvaildWatchingPath: ['err', (path: string) => `Failed watching path: "${path}" ` +
-      'Watcher only accepts simple dot-delimited paths. ' +
-      'For full control, use a function instead.', 'WatcherConstructor'],
-  } as any;
-
-  if (!config.silent && typeof console !== 'undefined') {
-    tip = (msg: string, el?: Element) =>
-      console.warn(msg + '\n' + (el ? generateElemTrace(el) : ''));
-    warn = (msg: string, el?: Element) =>
-      console.error(msg + '\n' + (el ? generateElemTrace(el) : ''));
+export function generateElemTrace(elem: Element) {
+  let result = '';
+  let indent = '  ';
+  if (elem.isLine &&
+    (elem.ups.get() || elem.dws.get())) {
+    elem = (elem.ups.get() || elem.dws.get()) as Node;
   }
 
-  debug = (issueId: string, ...data: any[]) => {
-    const op = issues[issueId];
-    if (!op) {
-      throw new Error('invalid debug call');
-    }
-
-    let msg: string;
-    if (op[0] === 'tip') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
-      tip(msg, data[0]);
-    } else if (op[0] === 'warn') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(1)) : op[1];
-      warn(msg, data[0]);
-    } else if (op[0] === 'err') {
-      msg = typeof op[1] === 'function' ? op[1](...data.slice(2)) : op[1];
-      data[1].message = msg;
-      handleError(data[1], op[2] || '', data[0]);
-    }
-  };
-
-  generateKeyValue = (o: any) => {
-    let result = '';
-    for (const key of Object.keys(o)) {
-      result += key + ' = "' + truncate(o[key], 20) + '", ';
-    }
-    return result;
-  };
-
-  generateElemTrace = (elem: Element) => {
-    let result = '';
-    let indent = '  ';
-    if (elem.isLine &&
-      (elem.ups.get() || elem.dws.get())) {
-      elem = (elem.ups.get() || elem.dws.get()) as Node;
-    }
-
-    do {
-      result += indent + '-> ' + (elem.isLine ? 'Line' : 'Node') + ' ' +
-        generateKeyValue(elem.generateIdentity()) + '\n';
-      indent += '  ';
-    }
-    while (elem = (elem as any).parent);
-    return result;
-  };
-
+  do {
+    result += indent + '-> ' + (elem.isLine ? 'Line' : 'Node') + ' ' +
+      generateKeyValue(elem.generateIdentity()) + '\n';
+    indent += '  ';
+  }
+  while (elem = (elem as any).parent);
+  return result;
 }
 
 export function handleError(
   err: any,
   location?: string,
-  relatedElement?: Element,
+  relatedElement?: Element
 ) {
-  if (process.env.NODE_ENV !== 'production') {
-    warn(`Error [${location}]: ${
-      err.message || String(err)
+  if (!config.silent && hasConsole) {
+    warn(`EventNet Error [${location}]: ${
+      err.message || err
       }`, relatedElement);
+  } else {
+    throw err;
   }
-  throw err;
 }
 
 export function handleNodeError(when: NodeRunPhase, what: any, where: Element[]) {
-  if (process.env.NODE_ENV !== 'production') {
+  if (!config.silent && hasConsole) {
     const which = where[0];
     const errMsg = 'Unhandled Node error:' + '\n' +
       truncate(String(what), 100) + '\n' +

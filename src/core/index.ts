@@ -1,5 +1,5 @@
 import { Element } from './element';
-import { LineStream, NodeStream, Stream } from './stream';
+import { LinePort, NodePort, Port } from './port';
 export { Node } from './node';
 export { Line, Arrow, Pipe } from './line';
 
@@ -15,9 +15,9 @@ export { _util };
 
 export const advanced = {
   Element,
-  Stream,
-  NodeStream,
-  LineStream,
+  Port,
+  NodePort,
+  LinePort,
 
   BasicNode,
   BasicNodeDws,

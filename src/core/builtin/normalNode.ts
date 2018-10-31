@@ -1,6 +1,6 @@
 import { BasicNodeMode, BasicNodeOpt, ElementType, NodeAttr, NodeRunPhase, NormalNodeCode} from '../../types';
 import { Line } from '../line';
-import { NodeStream } from '../stream';
+import { NodePort } from '../port';
 import { assign, hasPromise, isObject, multiAssign, tryCatch } from '../util/index';
 import { Attrs } from './attr';
 import { BasicNode, BasicNodeDws } from './basicNode';
@@ -43,8 +43,8 @@ export interface NormalNode<T = any, stateType = any> {
 export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
   public readonly type = ElementType.NormalNode;
 
-  public readonly ups: NodeStream = new NodeStream(this);
-  public readonly dws: NodeStream = new NodeStream(this);
+  public readonly ups: NodePort = new NodePort(this);
+  public readonly dws: NodePort = new NodePort(this);
 
 
   public state: State & stateType & typeof defaultState;
@@ -131,8 +131,8 @@ export class NormalNode<T = any, stateType = any> extends BasicNode<T> {
     let nd = Object.create(NormalNode.prototype);
     nd = BasicNode.call(nd) || nd;
     nd.type = ElementType.NormalNode;
-    nd.ups = new NodeStream(nd);
-    nd.dws = new NodeStream(nd);
+    nd.ups = new NodePort(nd);
+    nd.dws = new NodePort(nd);
     nd.stateGetter = this.stateGetter;
     nd._attrs = new Attrs();
     nd.codeDws = new BasicNodeDws(nd.dws);

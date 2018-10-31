@@ -5,6 +5,8 @@ export const hasPromise =
   typeof Promise.prototype.then === 'function';
 export const fulfilledPromise = hasPromise ? Promise.resolve() : null;
 
+export const hasConsole = typeof console !== 'undefined';
+
 export const setProto: false | ((target: any, source: any) => void) =
   (Object as any).setPrototypeOf ||
   hasProto && ((d: any, b: any) => { d.__proto__ = b; });

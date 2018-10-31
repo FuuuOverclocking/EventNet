@@ -1,4 +1,4 @@
-import { NormalNode } from '../dist/node_dev_test';
+import { NormalNode } from '../../../dist/node_dev_test';
 
 function time() {
   const diff = process.hrtime();

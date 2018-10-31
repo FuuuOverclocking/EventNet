@@ -1,9 +1,9 @@
 import { ElementType, LineLike } from '../types';
-import { debug } from './debug';
+import { tip } from './debug';
 import { Element, getUid } from './element';
 import { Node } from './node';
-import { LineStream } from './stream';
-import { assign } from './util/index';
+import { LinePort } from './port';
+import { assign, truncate } from './util/index';
 
 export abstract class Line<T = any> implements Element<T>, LineLike<T> {
   public readonly uid = getUid();
@@ -11,8 +11,8 @@ export abstract class Line<T = any> implements Element<T>, LineLike<T> {
   public abstract readonly type?: number;
 
   public abstract run(data?: any, opt?: { caller?: Node; [i: string]: any; }): T;
-  public abstract readonly ups: LineStream;
-  public abstract readonly dws: LineStream;
+  public abstract readonly ups: LinePort;
+  public abstract readonly dws: LinePort;
 
   public readonly id?: string;
   public readonly classes?: string[];
@@ -26,22 +26,21 @@ export abstract class Line<T = any> implements Element<T>, LineLike<T> {
   }
 
   public static ify: <T extends LineLike>(el: T) => Line;
-
 }
 
-export interface Line<T = any> extends Element<T> {}
+export interface Line<T = any> extends Element<T> { }
 
 export class Arrow<T = any> extends Line<T> {
   public readonly type: ElementType.Arrow;
 
-  public readonly ups: LineStream = new LineStream(this);
-  public readonly dws: LineStream = new LineStream(this);
+  public readonly ups: LinePort = new LinePort(this);
+  public readonly dws: LinePort = new LinePort(this);
   public readonly id: string | undefined;
   public readonly classes: string[];
   constructor(
     ups: Node | null | undefined,
     dws: Node<T> | null | undefined,
-    { id, classes }: { id?: string, classes?: string[] } = {},
+    { id, classes }: { id?: string, classes?: string[] } = {}
   ) {
     super();
     ups && ups.dws.weld(this.ups);
@@ -53,15 +52,20 @@ export class Arrow<T = any> extends Line<T> {
     const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (typeof data !== 'undefined' && data !== null) {
-        debug('ArrowPassData', this, data);
+        tip(`data '${truncate(String(data))}' can not pass through an Arrow, replace with a Pipe`,
+          this
+        );
       }
       if (!node) {
-        debug('LineEmptyDws', this);
+        tip('the downstream of the line is empty', this);
       } else if (!opt || opt.caller !== node) {
-        debug('LineImproperCall', this);
+        tip('the arrow is activited but not called by its upstream', this);
       }
     }
-    return node && node.run(void 0, this);
+    if (node) {
+      return node.run(void 0, this);
+    }
+    return void 0 as any;
   }
 
   public generateIdentity(): { [field: string]: any } {
@@ -74,14 +78,14 @@ export class Arrow<T = any> extends Line<T> {
 export class Pipe<T = any> extends Line<T> {
   public readonly type: ElementType.Pipe;
 
-  public readonly ups: LineStream = new LineStream(this);
-  public readonly dws: LineStream = new LineStream(this);
+  public readonly ups: LinePort = new LinePort(this);
+  public readonly dws: LinePort = new LinePort(this);
   public readonly id: string | undefined;
   public readonly classes: string[];
   constructor(
     ups: Node | null | undefined,
     dws: Node<T> | null | undefined,
-    { id, classes }: { id?: string, classes?: string[] } = {},
+    { id, classes }: { id?: string, classes?: string[] } = {}
   ) {
     super();
     ups && ups.dws.weld(this.ups);
@@ -93,12 +97,15 @@ export class Pipe<T = any> extends Line<T> {
     const node = this.dws.get();
     if (process.env.NODE_ENV !== 'production') {
       if (!node) {
-        debug('LineEmptyDws', this);
+        tip('the downstream of the line is empty', this);
       } else if (!opt || opt.caller !== node) {
-        debug('LineImproperCall', this);
+        tip('the arrow is activited but not called by its upstream', this);
       }
     }
-    return node && node.run(data, this);
+    if (node) {
+      return node.run(data, this);
+    }
+    return void 0 as any;
   }
 
   public generateIdentity(): { [field: string]: any } {

@@ -1,4 +1,4 @@
-import { debug, handleError } from '../debug';
+import { handleError } from '../debug';
 import { isObject } from '../util/index';
 import { parsePath } from '../util/index';
 import { tryCatch } from '../util/index';
@@ -30,7 +30,7 @@ export class Watcher {
     options?: {
       deep?: boolean;
       sync?: boolean;
-    },
+    }
   ) {
     if (!options) {
       this.deep = this.sync = false;
@@ -47,7 +47,11 @@ export class Watcher {
       if (!this.getter) {
         this.getter = () => { };
         process.env.NODE_ENV !== 'production' &&
-          debug('InvaildWatchingPath', void 0, new Error(), expOrFn);
+          handleError(
+            new Error(`Failed watching path: "${expOrFn}" ` +
+              'Watcher only accepts simple dot-delimited paths. ' +
+              'For full control, use a function instead.'),
+            'Watcher.constructor');
       }
     }
     this.callback = callback;

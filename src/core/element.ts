@@ -1,9 +1,9 @@
 import { ElementLike, LineLike, NodeLike, UnaryFunction } from '../types';
-import { debug } from './debug';
+import { handleError } from './debug';
 import { Line } from './line';
 import { Node } from './node';
-import { LineStream, NodeStream, Stream } from './stream';
-import { isObject, setProto } from './util/index';
+import { LinePort, NodePort, Port } from './port';
+import { hasOwn, isObject, isUndef, setProto } from './util/index';
 
 // uid will start at 1, as 0 is a falsy value
 let globalElementUid = 0;
@@ -16,8 +16,8 @@ type UF<A, B> = UnaryFunction<A, B>;
 export interface Element<T = any> {
   readonly uid: number;
   run(data?: any, opt?: { caller?: Element; [i: string]: any; }): T;
-  readonly ups: Stream;
-  readonly dws: Stream;
+  readonly ups: Port;
+  readonly dws: Port;
   readonly isLine: boolean;
   readonly type?: number;
   generateIdentity(): { [field: string]: any };
@@ -44,8 +44,9 @@ export namespace Element {
    * @param {boolean} [el.isLine] Used to determine the type of Element
    */
   export function ify<T extends ElementLike>(el: T) {
-    if (process.env.NODE_ENV && (!isObject(el) || typeof el.run !== 'function')) {
-      debug('ElementifyParam', void 0, new Error());
+    if (process.env.NODE_ENV
+      && (!isObject(el) || typeof el.run !== 'function')) {
+      handleError(new Error('an Element-like object is expected'), 'elementify');
     }
 
     const _el: any = el;
@@ -53,12 +54,12 @@ export namespace Element {
     _el.uid || (_el.uid = getUid());
 
     if (isLine) {
-      _el.upstream || (_el.upstream = new LineStream(_el));
-      _el.downstream || (_el.downstream = new LineStream(_el));
+      _el.upstream || (_el.upstream = new LinePort(_el));
+      _el.downstream || (_el.downstream = new LinePort(_el));
       _el instanceof Line || setProto && setProto(_el, Line);
     } else {
-      _el.upstream || (_el.upstream = new NodeStream(_el));
-      _el.downstream || (_el.downstream = new NodeStream(_el));
+      _el.upstream || (_el.upstream = new NodePort(_el));
+      _el.downstream || (_el.downstream = new NodePort(_el));
       _el instanceof Node || setProto && setProto(_el, Node);
     }
 
@@ -66,14 +67,25 @@ export namespace Element {
   }
 
   /**
+   * Check if `el` is an Element
+   */
+  export function isElement(el: any): el is Element {
+    return hasOwn(el, 'uid') &&
+      typeof el.isLine === 'boolean' &&
+      hasOwn(el, 'ups') &&
+      hasOwn(el, 'dws') &&
+      (el instanceof Node || el instanceof Line);
+  }
+
+  /**
    * Generates and returns an element maker.
-   * @param fn a function that returns an Element-like object
+   * @param factory a function that returns an Element
    * @param name the name of this kind of Element
    */
   export function toMaker
-    <T extends (...args: any[]) => ElementLike>(
-      fn: T,
-      name: string,
+    <T extends (...args: any[]) => Element>(
+      factory: T,
+      name: string
   ): T;
   /**
    * Generates and returns an element maker.
@@ -84,23 +96,28 @@ export namespace Element {
   export function toMaker
     <T extends Element>(elem: T, name: string): () => T;
 
-  export function toMaker(fnOrEl: any, name: string) {
-    if (typeof fnOrEl === 'function') {
+  export function toMaker(facOrEl: any, name: string) {
+    if (typeof facOrEl === 'function') {
       const fn = (...args: any[]) => {
-        const el = fnOrEl(...args);
-        if (process.env.NODE_ENV !== 'production' &&
-          !(el instanceof Node || el instanceof Line)) {
-          debug('ToMakerClone', void 0, new Error());
+        const el = facOrEl(...args);
+        if (process.env.NODE_ENV !== 'production' && !isElement(el)) {
+          handleError(
+            new Error('the factory function should return an Element'),
+            'Element.toMaker'
+          );
         }
         return el;
       };
       return fn;
     } else {
       if (process.env.NODE_ENV !== 'production' &&
-        (!isObject(fnOrEl) || !(fnOrEl as Element).clone)) {
-        debug('ToMakerClone', void 0, new Error());
+        (!isElement(facOrEl) || !facOrEl.clone)) {
+        handleError(
+          new Error('an Element with clone method is expected'),
+          'Element.toMaker'
+        );
       }
-      return () => fnOrEl.clone();
+      return () => facOrEl.clone();
     }
   }
 
@@ -108,7 +125,7 @@ export namespace Element {
     if (fns.length > 1) {
       return fns.reduce(
         (prev: any, fn: UnaryFunction<any, any>) => fn(prev),
-        this,
+        this
       );
     } else if (fns.length === 1) {
       return fns[0](this);

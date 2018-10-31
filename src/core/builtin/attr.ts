@@ -1,104 +1,119 @@
-import { NodeAttr, NodeAttrFn } from '../../types';
-import { debug } from '../debug';
-import { assign, nextMoment } from '../util/index';
+import { assign, noop } from '../util';
+import { BasicNode } from './basicNode';
 
-export const attrManager = {
-  attrStore: {} as { [name: string]: NodeAttr },
-  registerAttr,
-};
-
-function registerAttr(
-  this: typeof attrManager,
-  name: string,
-  val: NodeAttr,
-) {
-  if (process.env.NODE_ENV !== 'production') {
-    if (typeof this.attrStore[name]) {
-      debug('AttrDuplicate', void 0);
-    }
-  }
-  if (val.before && typeof val.beforePriority !== 'number') {
-    val.beforePriority = 9999;
-  }
-  if (val.after && typeof val.afterPriority !== 'number') {
-    val.afterPriority = 9999;
-  }
-  this.attrStore[name] = {
-    before: val.before,
-    beforePriority: val.beforePriority,
-    after: val.after,
-    afterPriority: val.afterPriority,
-  };
+export enum AttrType {
+  /** just as a key-value pair */
+  value,
+  /** perform an action after the construction */
+  constructed,
+  /** perform an action before running */
+  run,
+  /** perform an action when error happen */
+  error,
 }
 
-type NodeAttrVal = any;
-type NodeAttrPriority = number;
+interface AttrRunCtx {
+  data: any;
+  returnVal: any;
+  state?: any;
+  node: BasicNode;
+  attrValue: { [i: string]: any; };
+  [i: string]: any;
+}
+
+export type Attr = {
+  type: AttrType.value;
+  value: { [i: string]: any; };
+} | {
+  type: AttrType.constructed;
+  action: (node: BasicNode, attrValue: { [i: string]: any; }) => void;
+} | {
+  type: AttrType.run;
+  action: (
+    ctx: AttrRunCtx,
+    next: (cb: () => void) => void
+  ) => void;
+} | {
+  type: AttrType.error;
+  /** @return whether prevent default error handling */
+  action: (
+    err: any,
+    node: BasicNode,
+    attrValue: { [i: string]: any; }
+  ) => boolean | void;
+};
 
 export class Attrs {
-  public inherited: { [i: string]: any | NodeAttr } = {};
-  public own: { [i: string]: any | NodeAttr } = {};
-
-  public all: { [i: string]: any | NodeAttr } = {};
-  public setOwn(attrs: { [i: string]: any | NodeAttr }) {
-    assign(this.own, attrs);
-    assign(this.all, this.inherited);
-    assign(this.all, this.own);
-  }
-  public setInherited(attrs: { [i: string]: any | NodeAttr }) {
-    assign(this.inherited, attrs);
-    assign(this.all, this.inherited);
-    assign(this.all, this.own);
-  }
-  /**
-   * The smaller the priority, the earlier `attrFn` is executed.
-   * NOTE: This sequence is sorted in descending order of priority.
-   * So it should be executed from the back to the front.
-   */
-  public beforeSeq: Array<[NodeAttrFn, NodeAttrVal, NodeAttrPriority]> = [];
-
-  /**
-   * The larger the priority, the earlier `attrFn` is executed.
-   * NOTE: This sequence is sorted in ascending order of priority.
-   * So it should be executed from the back to the front.
-   */
-  public afterSeq: Array<[NodeAttrFn, NodeAttrVal, NodeAttrPriority]> = [];
-
-  /**
-   * A flag to indicate whether `attrs` is about to sort.
-   */
-  public willSort = false;
-
-  /**
-   * `attrs` will be sorted at the next moment.
-   */
-  public toSort() {
-    if (this.willSort) { return; }
-    this.willSort = true;
-    nextMoment(this.sort.bind(this));
+  public value: { [i: string]: any } = {};
+  public sequence: Attr[];
+  constructor(attrs?: Attr[]) {
+    const seq = this.sequence = attrs || [];
+    for (let i = 0, l = seq.length; i < l; ++i) {
+      if (seq[i].type === AttrType.value) {
+        assign(this.value, (seq[i] as any).value);
+      }
+    }
   }
 
-  public sort() {
-    if (!this.willSort) { return; }
-    this.willSort = false;
-    this.beforeSeq.length = this.afterSeq.length = 0;
+  public onconstructed(node: BasicNode) {
+    const seq = this.sequence;
+    const val = this.value;
+    for (let i = 0, l = seq.length; i < l; ++i) {
+      if (seq[i].type === AttrType.constructed) {
+        (seq[i] as any).action(node, val);
+      }
+    }
+  }
 
-    const keys = Object.keys(this.all);
-    let i = keys.length;
-    while (--i) {
-      const name = keys[i];
-      let val = this.all[name];
-      if (typeof val === 'undefined') { continue; }
+  /**
+   * @return whether prevent default error handling
+   */
+  public onerror(err: any, node: BasicNode) {
+    const seq = this.sequence;
+    const val = this.value;
+    for (let i = 0, l = seq.length; i < l; ++i) {
+      if (seq[i].type === AttrType.constructed) {
+        if ((seq[i] as any).action(err, node, val)) return true;
+      }
+    }
+    return false;
+  }
 
-      let attr: NodeAttr = attrManager.attrStore[name];
-      if (!attr) {
-        attr = val;
-        val = void 0;
+  public onrun(ctx: AttrRunCtx, callback: () => void) {
+    const seq = this.sequence;
+    const seqLen = seq.length;
+    let i = 0;
+    let end = false;
+
+    ctx.attrValue = this.value;
+
+    function next(cb: () => void) {
+      if (i === seqLen) {
+        end = true;
+      }
+      while (!end && seq[i].type !== AttrType.run) {
+        ++i;
+        if (i === seqLen) {
+          end = true;
+        }
+      }
+      ++i;
+
+      if (end) {
+        callback();
+      } else {
+        (seq[i - 1] as any).action(ctx, next);
       }
 
-      attr.before && this.beforeSeq.push([attr.before, val, attr.beforePriority!]);
-      attr.after && this.afterSeq.push([attr.after, val, attr.afterPriority!]);
+      const result = ctx.returnVal;
+      if (result instanceof Promise) {
+        ctx.returnVal = result.then(() => {
+          cb();
+        });
+      } else {
+        cb();
+      }
     }
-    this.beforeSeq.sort((a, b) => b[2] - a[2]);
-    this.afterSeq.sort((a, b) => a[2] - b[2]);
+    next(noop);
   }
 }

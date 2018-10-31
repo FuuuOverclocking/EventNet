@@ -6,8 +6,8 @@ import { config } from './config';
 config.monitoring = true;
 
 export { config };
-export * from './monitor';
-export * from './core';
+export * from './monitor/index';
+export * from './core/index';
 
 // import * as _nodes from './nodes';
 // export const nodes = _nodes;

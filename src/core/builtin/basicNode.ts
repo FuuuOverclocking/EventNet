@@ -2,14 +2,14 @@ import { BasicNodeMode, BasicNodeOpt, CallableElement } from '../../types';
 import { debug } from '../debug';
 import { Line } from '../line';
 import { Node } from '../node';
-import { NodeStream } from '../stream';
+import { NodePort } from '../port';
 import { fulfilledPromise } from '../util/env';
 import { assign, isUndef, isValidArrayIndex } from '../util/index';
 import { defaultQueue, QueueScheduler } from './queueScheduler';
 
 export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
-  public abstract readonly ups: NodeStream;
-  public abstract readonly dws: NodeStream;
+  public abstract readonly ups: NodePort;
+  public abstract readonly dws: NodePort;
 
   /**
    * 继承和实现
@@ -137,17 +137,17 @@ function callableDws(
 }
 
 export class BasicNodeDws {
-  public readonly origin: NodeStream;
+  public readonly origin: NodePort;
   protected runOptions: {
     caller: Node;
     runStack?: number[];
   };
-  constructor(thisStream: NodeStream, runStack?: number[]) {
+  constructor(thisStream: NodePort, runStack?: number[]) {
     this.origin = thisStream;
     this.runOptions = { caller: thisStream.owner, runStack };
   }
 
-  protected static readonly $x = (i: number, origin: NodeStream, runStack?: number[]) => {
+  protected static readonly $x = (i: number, origin: NodePort, runStack?: number[]) => {
     const line = origin.get()[i];
     if (process.env.NODE_ENV !== 'production' && !line) {
       debug('BN_NonexistDws', origin.owner, new Error());

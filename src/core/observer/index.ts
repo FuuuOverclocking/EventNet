@@ -1,4 +1,4 @@
-import { debug } from '../debug';
+import { handleError } from '../debug';
 import { def } from '../util/index';
 import { hasOwn } from '../util/index';
 import { isObject } from '../util/index';
@@ -144,7 +144,12 @@ export function set(target: any, key: any, val: any): any {
     target === null ||
     isPrimitive(target)
   )) {
-    debug('SetDelReactiveOn', void 0, new Error(), target);
+    handleError(
+      new Error(
+        `Cannot set reactive property on undefined, null, or primitive value: ${target}`
+      ),
+      'Observer/set',
+      target);
   }
   if (Array.isArray(target)) {
     if (isValidArrayIndex(key)) {
@@ -178,7 +183,12 @@ export function del(target: any, key: any) {
     target === null ||
     isPrimitive(target)
   )) {
-    debug('SetDelReactiveOn', void 0, new Error(), target);
+    handleError(
+      new Error(
+        `Cannot delete reactive property on undefined, null, or primitive value: ${target}`
+      ),
+      'Observer/delete',
+      target);
   }
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.splice(key, 1);
