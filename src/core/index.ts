@@ -5,7 +5,8 @@ export { Line, Arrow, Pipe } from './line';
 
 import { BasicNode, BasicNodeDws } from './builtin/basicNode';
 import { defaultQueue, QueueScheduler } from './builtin/queueScheduler';
-export { NormalNode } from './builtin/normalNode';
+export { FullNode } from './builtin/fullNode';
+export { ComNode } from './builtin/comNode';
 export { RawNode } from './builtin/rawNode';
 import { Attrs } from './builtin/attr';
 export { State } from './builtin/state';

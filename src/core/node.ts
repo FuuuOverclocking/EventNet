@@ -32,7 +32,11 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
     };
   }
 
-  public errorHandler(when: NodeRunPhase, what?: any, where: Element[] = []) {
+  public handleError(
+    when: { phase: NodeRunPhase; [i: string]: any},
+    what?: any,
+    where: Element[] = []
+  ) {
     const errDws = this.dws.filter(line => {
       if (!line || !line.classes) { return false; }
       return ~line.classes.indexOf('error') as any;
@@ -43,7 +47,7 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
       errDws.forEach(line => line.run({ when, what, where }, { caller: this}));
       return;
     } else if (this.parent) {
-      this.parent.errorHandler(when, what, where);
+      this.parent.handleError(when, what, where);
     } else {
       handleNodeError(when, what, where);
     }

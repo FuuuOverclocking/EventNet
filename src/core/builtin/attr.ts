@@ -1,4 +1,4 @@
-import { assign, noop } from '../util';
+import { assign, noop, tryCatch, unchangingPromise } from '../util/index';
 import { BasicNode } from './basicNode';
 
 export enum AttrType {
@@ -12,7 +12,7 @@ export enum AttrType {
   error,
 }
 
-interface AttrRunCtx {
+export interface AttrRunCtx {
   data: any;
   returnVal: any;
   state?: any;
@@ -44,9 +44,13 @@ export type Attr = {
 };
 
 export class Attrs {
-  public value: { [i: string]: any } = {};
+  public value: { [i: string]: any };
   public sequence: Attr[];
   constructor(attrs?: Attr[]) {
+    this.init(attrs);
+  }
+  public init(attrs?: Attr[]) {
+    this.value = {};
     const seq = this.sequence = attrs || [];
     for (let i = 0, l = seq.length; i < l; ++i) {
       if (seq[i].type === AttrType.value) {
@@ -79,41 +83,63 @@ export class Attrs {
     return false;
   }
 
-  public onrun(ctx: AttrRunCtx, callback: () => void) {
+  /**
+   *
+   * @param ctx
+   * @param callback
+   * @param onerror
+   */
+  public onrun(
+    ctx: AttrRunCtx,
+    callback: () => void,
+    onerror: (err: any, index: number) => void
+  ) {
     const seq = this.sequence;
     const seqLen = seq.length;
-    let i = 0;
-    let end = false;
+    const indexList = [] as number[];
+
+    for (let i = 0; i < seqLen; ++i) {
+      if (seq[i].type === AttrType.run) {
+        indexList.push(i);
+      }
+    }
+
+    let j = 0; // for indexList
 
     ctx.attrValue = this.value;
 
-    function next(cb: () => void) {
-      if (i === seqLen) {
-        end = true;
+    function onErr(err: any) {
+      if (!err) return;
+      if (j === seqLen) {
+        j = -1;
       }
-      while (!end && seq[i].type !== AttrType.run) {
-        ++i;
-        if (i === seqLen) {
-          end = true;
-        }
-      }
-      ++i;
+      onerror(err, j);
+      return unchangingPromise;
+    }
 
-      if (end) {
-        callback();
+    function next(cb: () => void) {
+      if (j !== seqLen) {
+        (seq[indexList[j]] as any).action(ctx, next);
+        ++j;
       } else {
-        (seq[i - 1] as any).action(ctx, next);
+        callback();
       }
 
       const result = ctx.returnVal;
       if (result instanceof Promise) {
         ctx.returnVal = result.then(() => {
+          --j;
           cb();
-        });
+        }, onErr as any);
       } else {
+        --j;
         cb();
       }
     }
-    next(noop);
+
+    tryCatch(() => {
+      next(noop);
+    });
+    onErr(tryCatch.getErr());
   }
 }

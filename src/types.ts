@@ -1,7 +1,8 @@
 import { Line, Node } from './core';
 import { BasicNodeDws } from './core/builtin/basicNode';
-import { NormalNode } from './core/builtin/normalNode';
+import { FullNode } from './core/builtin/fullNode';
 import { Element } from './core/element';
+import { Watcher } from './core/observer/watcher';
 import { LinePort, NodePort, Port } from './core/port';
 
 export interface ElementLike<T = any> {
@@ -30,8 +31,9 @@ export interface WatchableObject {
       deep?: boolean,
       sync?: boolean,
       immediate?: boolean,
-    },
+    }
   ): () => void;
+  watchers: Watcher[];
 }
 
 export interface NodeLike<T = any>
@@ -56,17 +58,16 @@ export interface LineLike<T = any>
 export type UnaryFunction<arg, ret> = (param: arg) => ret;
 
 export enum NodeRunPhase {
-  before = 1,
+  attr = 1,
   code, /* for nodes taing code as its content */
   child, /* for nodes containing child nodes */
-  after,
-  over,
 }
 
 export enum ElementType {
   Arrow = 1,
   Pipe,
-  NormalNode,
+  FullNode,
+  ComNode,
   RawNode,
 }
 
@@ -76,13 +77,20 @@ export interface BasicNodeOpt {
   [i: string]: any;
 }
 
-export type NormalNodeCode<T, stateType, originType> = (param: {
+export type FullNodeCode<T, stateType, originType> = (param: {
   dws: BasicNodeDws,
   ups: any,
   data?: any,
   origin: originType,
   state: stateType,
   store: { [i: string]: any },
+}) => T;
+
+export type ComNodeCode<T, originType> = (param: {
+  dws: BasicNodeDws,
+  ups: any,
+  data?: any,
+  origin: originType,
 }) => T;
 
 export type RawNodeCode<T, originType> = (param: {
@@ -113,7 +121,7 @@ export type NodeAttrFn = (
     data: any;
     attrs: { [i: string]: any | NodeAttr };
     state: { [i: string]: any };
-    node: NormalNode;
+    node: FullNode;
     shut: (error?: any) => void;
-  },
+  }
 ) => void;

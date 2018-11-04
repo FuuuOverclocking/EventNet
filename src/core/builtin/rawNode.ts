@@ -14,17 +14,10 @@ export interface RawNode<T = any> {
   runMicro(data?: any, opt?: BasicNodeOpt): Promise<T>;
   runMacro(data?: any, opt?: BasicNodeOpt): Promise<T>;
   runAnimationFrame(data?: any, opt?: BasicNodeOpt): Promise<T>;
-  noret(): {
-    queue(queue?: QueueScheduler): {
-      run(data?: any, opt?: BasicNodeOpt): void;
-    };
-    runMacro(data?: any, opt?: BasicNodeOpt): void;
-    runAnimationFrame(data?: any, opt?: BasicNodeOpt): void;
-  };
 }
 
 export class RawNode<T = any> extends BasicNode<T> {
-  public readonly type = ElementType.NormalNode;
+  public readonly type = ElementType.FullNode;
 
   public readonly ups: NodePort = new NodePort(this);
   public readonly dws: NodePort = new NodePort(this);
@@ -36,7 +29,7 @@ export class RawNode<T = any> extends BasicNode<T> {
     options: {
       $mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
     },
-    code: RawNodeCode<T, RawNode<T>>,
+    code: RawNodeCode<T, RawNode<T>>
   ) {
     super();
     this.mode = options.$mode;
@@ -48,7 +41,7 @@ export class RawNode<T = any> extends BasicNode<T> {
       {
         $mode: this.mode,
       },
-      this.code,
+      this.code
     );
   }
 
@@ -69,13 +62,13 @@ export class RawNode<T = any> extends BasicNode<T> {
           null,
 
           error => {
-          this.errorHandler(NodeRunPhase.code, error);
-        }) as any;
+            this.handleError({ phase: NodeRunPhase.code }, error);
+          }) as any;
     }
 
     const e = tryCatch.getErr();
     if (!isUndef(e)) {
-      this.errorHandler(NodeRunPhase.code, e);
+      this.handleError({ phase: NodeRunPhase.code }, e);
       return void 0 as any;
     }
 

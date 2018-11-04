@@ -4,6 +4,7 @@ export const hasPromise =
   typeof Promise.resolve === 'function' &&
   typeof Promise.prototype.then === 'function';
 export const fulfilledPromise = hasPromise ? Promise.resolve() : null;
+export const unchangingPromise = new Promise(() => {});
 
 export const hasConsole = typeof console !== 'undefined';
 

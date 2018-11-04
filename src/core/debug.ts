@@ -53,12 +53,16 @@ export function handleError(
   }
 }
 
-export function handleNodeError(when: NodeRunPhase, what: any, where: Element[]) {
+export function handleNodeError(
+  when: { phase: NodeRunPhase; [i: string]: any},
+  what: any,
+  where: Element[]
+) {
   if (!config.silent && hasConsole) {
     const which = where[0];
     const errMsg = 'Unhandled Node error:' + '\n' +
       truncate(String(what), 100) + '\n' +
-      '\t' + `in the run phase of '${NodeRunPhase[when]}' with characteristics:` + '\n' +
+      '\t' + `in the run phase of '${NodeRunPhase[when.phase]}' with characteristics:` + '\n' +
       '\t\t' + generateKeyValue(which.generateIdentity());
 
     warn(errMsg, which);

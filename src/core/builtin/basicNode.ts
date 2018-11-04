@@ -1,5 +1,5 @@
 import { BasicNodeMode, BasicNodeOpt, CallableElement } from '../../types';
-import { debug } from '../debug';
+import { handleError, warn } from '../debug';
 import { Line } from '../line';
 import { Node } from '../node';
 import { NodePort } from '../port';
@@ -23,7 +23,7 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
 
   public run(
     data?: any,
-    opt: BasicNodeOpt = {},
+    opt: BasicNodeOpt = {}
   ): T | Promise<T> {
     switch (this.mode) {
       case BasicNodeMode.sync:
@@ -42,7 +42,7 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
   }
   protected _run?(
     data: any,
-    opt: BasicNodeOpt,
+    opt: BasicNodeOpt
   ): T;
 
   protected mode: BasicNodeMode | [BasicNodeMode, QueueScheduler | undefined];
@@ -54,7 +54,7 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
     queue: QueueScheduler = Array.isArray(this.mode) &&
       this.mode[0] === BasicNodeMode.queue &&
       this.mode[1]
-      || defaultQueue,
+      || defaultQueue
   ): {
       run(data?: any, opt?: BasicNodeOpt): Promise<T>;
     } {
@@ -131,7 +131,7 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
 function callableDws(
   line: Line,
   opt: { caller?: Node; runStack?: number[]; [i: string]: any; } = {},
-  data?: any,
+  data?: any
 ) {
   return line.run(data, opt);
 }
@@ -150,7 +150,11 @@ export class BasicNodeDws {
   protected static readonly $x = (i: number, origin: NodePort, runStack?: number[]) => {
     const line = origin.get()[i];
     if (process.env.NODE_ENV !== 'production' && !line) {
-      debug('BN_NonexistDws', origin.owner, new Error());
+      handleError(
+        new Error('The elements meeting the condition(s) in the downstream do not exist.'),
+        'BasicNodeDws',
+        origin.owner
+      );
     }
     const f = callableDws.bind(
       null,
@@ -197,7 +201,7 @@ export class BasicNodeDws {
     }).forEach(line =>
       (line as Line).run(
         data,
-        this.runOptions,
+        this.runOptions
       ));
   }
 
@@ -205,7 +209,11 @@ export class BasicNodeDws {
     const line = this.origin.id(id);
     if (!line) {
       if (process.env.NODE_ENV !== 'production') {
-        debug('BN_NonexistDws', this.origin.owner, new Error());
+        handleError(
+          new Error('The elements meeting the condition(s) in the downstream do not exist.'),
+          'BasicNodeDws',
+          this.origin.owner
+        );
       }
     }
     const f = callableDws.bind(line, this.runOptions);
@@ -237,7 +245,7 @@ export class BasicNodeDws {
   }
 
   public dispense(
-    id_value_or_index_value: { [index: number]: any } | { [id: string]: any },
+    id_value_or_index_value: { [index: number]: any } | { [id: string]: any }
   ) {
     let downstream: Line | undefined;
     const isIndex = isValidArrayIndex(Object.keys(id_value_or_index_value)[0]);
@@ -252,7 +260,9 @@ export class BasicNodeDws {
       if (downstream) {
         downstream.run((id_value_or_index_value as any)[i], this.runOptions);
       } else if (process.env.NODE_ENV !== 'production') {
-        debug('BN_NonexistDwsWarn', this.origin.owner);
+        warn(
+          'The elements meeting the condition(s) in the downstream do not exist.', this.origin.owner
+        );
       }
     });
   }
@@ -265,7 +275,7 @@ for (let i = 0; i < 10; ++i) {
         ((this as any).$cache[i] = (BasicNodeDws as any).$x(
           i,
           this.origin,
-          (this as any).runOptions.runStack,
+          (this as any).runOptions.runStack
         ));
     },
     enumerable: true,
