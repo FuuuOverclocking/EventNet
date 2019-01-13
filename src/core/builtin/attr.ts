@@ -121,6 +121,7 @@ export class Attrs {
       if (j !== seqLen) {
         (seq[indexList[j]] as any).action(ctx, next);
         ++j;
+
       } else {
         callback();
       }

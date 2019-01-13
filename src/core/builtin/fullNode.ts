@@ -88,8 +88,8 @@ export class FullNode<T = any, stateType = any> extends BasicNode<T> {
    * can be faster than creating by constructor.
    */
   public clone(): FullNode<T, stateType> {
-    let nd = Object.create(FullNode.prototype);
-    nd = BasicNode.call(nd) || nd;
+    const nd = Object.create(FullNode.prototype);
+    BasicNode.call(nd);
     nd.type = ElementType.FullNode;
     nd.ups = new NodePort(nd);
     nd.dws = new NodePort(nd);

@@ -1,5 +1,6 @@
 import { BasicNodeMode, BasicNodeOpt, CallableElement } from '../../types';
 import { handleError, warn } from '../debug';
+import { getUid } from '../element';
 import { Line } from '../line';
 import { Node } from '../node';
 import { NodePort } from '../port';
@@ -122,6 +123,19 @@ export abstract class BasicNode<T = any> extends Node<T | Promise<T>> {
   public generateIdentity(): { [field: string]: any } {
     return assign(super.generateIdentity(), { type: 'BasicNode' });
   }
+
+  public mirror(ups?: NodePort, dws?: NodePort) {
+    const node = Object.create(Object.getPrototypeOf(this));
+    Node.call(node);
+    assign(node, this);
+    node.mirrorFrom = this;
+    node.parent = void 0;
+    node.ups = ups || new NodePort(node);
+    node.dws = dws || new NodePort(node);
+
+    return node;
+  }
+
   public abstract clone(): BasicNode<any>;
   public readonly canRunSeparate: true;
 }

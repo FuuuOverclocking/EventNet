@@ -7,7 +7,7 @@ import { assign, truncate } from './util/index';
 
 export abstract class Line<T = any> implements Element<T>, LineLike<T> {
   public readonly uid = getUid();
-  public readonly isLine = true;
+  public readonly isLine: true;
   public abstract readonly type?: number;
 
   public abstract run(data?: any, opt?: { caller?: Node; [i: string]: any; }): T;
@@ -27,6 +27,8 @@ export abstract class Line<T = any> implements Element<T>, LineLike<T> {
 
   public static ify: <T extends LineLike>(el: T) => Line;
 }
+
+(Line as any).prototype.isLine = true;
 
 export interface Line<T = any> extends Element<T> { }
 

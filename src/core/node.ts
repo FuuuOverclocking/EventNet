@@ -10,10 +10,11 @@ export abstract class Node<T = any> implements Element<T>, NodeLike<T> {
   public readonly uid = getUid();
   public abstract run(data?: any, opt?: { caller?: Line, [i: string]: any; }): T;
   public parent: Node | undefined = void 0;
-  public readonly isLine = false;
+  public readonly isLine: false;
   public readonly type?: number;
   public abstract readonly ups: NodePort;
   public abstract readonly dws: NodePort;
+  public mirrorFrom?: Node;
 
   /**
    * Most types of nodes should call this method
@@ -99,6 +100,8 @@ export interface Node<T = any> extends Element<T> {
 }
 
 const proto = Node.prototype;
+
+(proto as any).isLine = false;
 
 const createMethods = [proto.createArrow, proto.createPipe] =
   (
