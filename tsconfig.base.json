@@ -1,0 +1,38 @@
+{
+   "compilerOptions": {
+      "target": "es2015",
+      "alwaysStrict": true,
+      "charset": "utf8",
+      "diagnostics": true,
+      "extendedDiagnostics": true,
+      "lib": [
+         "es2015",
+         "dom"
+      ],
+      "moduleResolution": "node",
+      "newLine": "lf",
+      "noEmitOnError": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "sourceMap": true,
+      "strictFunctionTypes": true,
+      "strictNullChecks": true,
+      "pretty": true,
+      "preserveConstEnums": true,
+      "stripInternal": true
+      // "module": "commonjs",
+      // "importHelpers": true,
+      // "outDir": "./dist/**/",
+      // "removeComments": true,
+      // "declaration": true,
+   },
+   "include": [
+      "./src/**/*.ts"
+   ],
+   "exclude": [
+      "node_modules",
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "**/*.js"
+   ]
+}

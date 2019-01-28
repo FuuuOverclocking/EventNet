@@ -1,0 +1,9 @@
+// This file is just provided to the editors for auto-detect.
+{
+   "extends": "./tsconfig.base.json",
+   "compilerOptions": {
+      "module": "commonjs",
+      "importHelpers": true,
+      "outDir": "./dist/cjs-dev"
+   }
+}
