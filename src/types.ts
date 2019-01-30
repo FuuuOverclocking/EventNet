@@ -1,10 +1,10 @@
 import { Node } from './core/node';
 import { Port } from './core/port';
 
-export interface DefaultPortType<I = any, O = any, E = any> {
+export interface DefaultPortType<I = any, O = any> {
    I: I;
    O: O;
-   E: E;
+   E: NodeErr;
    [name: string]: any;
 }
 

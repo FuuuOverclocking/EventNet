@@ -32,7 +32,7 @@
       "build": "gulp build",
       "clean": "gulp clean",
       "test": "gulp build:test && jest",
-      "cover": "jest -c ./config/jest.cover.json",
+      "cover": "jest -c ./jest.cover.json",
       "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
       "cz": "git-cz",
       "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",

@@ -1,9 +1,36 @@
-// This file is just provided to the editors for auto-detect.
 {
-   "extends": "./tsconfig.base.json",
    "compilerOptions": {
-      "module": "commonjs",
+      "alwaysStrict": true,
+      "noEmitOnError": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "strictFunctionTypes": true,
+      "strictNullChecks": true,
+      "target": "es2015",
+      "charset": "utf8",
+      "lib": [
+         "es2015",
+         "dom"
+      ],
+      "moduleResolution": "node",
+      "diagnostics": true,
+      "extendedDiagnostics": true,
+      "newLine": "lf",
+      "sourceMap": true,
+      "pretty": true,
+      "preserveConstEnums": true,
+      "stripInternal": true,
+      "module": "es2015",
       "importHelpers": true,
-      "outDir": "./dist/cjs-dev"
-   }
+      "outDir": "./dist/esm"
+   },
+   "include": [
+      "./src/**/*.ts"
+   ],
+   "exclude": [
+      "node_modules",
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "**/*.js"
+   ]
 }

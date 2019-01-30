@@ -7,7 +7,7 @@
  * at build time.
  *
  * To customize the facilities included in the built library,
- * modify this file and run `npm run build --direct`.
+ * modify this file and run `gulp build:direct`.
  */
 // [Abbreviation] CFG = configuration
 
