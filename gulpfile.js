@@ -1,22 +1,27 @@
-/**
- * Usage:
- * * `gulp build` - Build EventNet from sources.
- * * `gulp build {ext}` - Replace the configuration file
- *   `src/config.ts` with `src/config.{ext}.ts`, and build
- *   EventNet.
- * * `gulp build:type`
- * * `gulp build:test`
- * * `gulp clean`
- * * `gulp clean {ext}`
- * 
- * The build process of EventNet:
- * 1. The source code will first be compiled into JS files
- *    (ES Moudule)  with SourceMap by the TS compiler.
- * 2. The JS files are packaged into a bundle by Rollup,
- *    and unused functions are removed through tree-shaking.
- */
-
 const gulp = require('gulp');
+
+gulp.task('help', () => {
+   console.log(
+`
+Usage:
+  · 'gulp build'       - Build EventNet from sources.
+  · 'gulp build {ext}' - Use \`src/config.{ext}.ts\`
+                       instead of \`src/config.ts\`
+                       as the configuration file to
+                       build EventNet.
+  · 'gulp build:type'  - Build the TypeScript declaration files.
+  · 'gulp build:test'  - Build 
+  · 'gulp clean'
+  · 'gulp clean {ext}'
+
+The build process of EventNet:
+  1. The source code will first be compiled into JS files
+     (ES Moudule)  with SourceMap by the TS compiler.
+  2. The JS files are packaged into a bundle by Rollup,
+     and unused functions are removed through tree-shaking.
+`
+   );
+});
 const fs = require('fs');
 const path = require('path');
 const spawn = require('child_process').spawn;
