@@ -1,13 +1,26 @@
 {
    "name": "eventnet",
    "version": "0.5.0",
-   "main": "./index.js",
-   "module": "./esm/index.js",
-   "es2015": "./esm/index.js",
-   "jsnext:main": "./esm/index.js",
-   "typings": "./typings/index.d.ts",
-   "sideEffects": false,
    "description": "Not just about flow design",
+   "main": "./entry.js",
+   "module": "./esm/entry.js",
+   "unpkg": "./umd/eventnet.js",
+   "jsdelivr": "./umd/eventnet.js",
+   "typings": "./typings/entry.d.ts",
+   "sideEffects": false,
+   "scripts": {
+      "build:help": "node scripts/build.js --help",
+      "build": "node scripts/build.js",
+      "build:prod": "node scripts/build.js --entry prod",
+      "build:dev": "node scripts/build.js --entry dev",
+      "build:all": "node scripts/build.js --all-entries",
+      "release": "node scripts/release.js",
+      "test": "jest -c tests/jest.config.js",
+      "test:cover": "jest -c tests/jest.config.cover.js",
+      "commit": "git-cz",
+      "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+      "lint": "tslint --fix -c tslint.json 'src/**/*.ts'"
+   },
    "repository": {
       "type": "git",
       "url": "git+https://github.com/xyzingh/EventNet.git"
@@ -28,66 +41,36 @@
       "url": "https://github.com/xyzingh/EventNet/issues"
    },
    "homepage": "https://eventnet.justlog.xyz/",
-   "scripts": {
-      "other-cmds": "gulp --tasks",
-      "build": "gulp build",
-      "clean": "gulp clean",
-      "test": "jest",
-      "cover": "jest -c ./jest.cover.json",
-      "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-      "cz": "git-cz",
-      "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
-      "publish": "cd ./release/npm-runtime && npm publish",
-      "version": "npm run changelog && git add CHANGELOG.md"
-   },
-   "dependencies": {
-      "@types/ws": "^6.0.1",
-      "tslib": "^1.9.3",
-      "ws": "^6.1.2"
-   },
-   "devDependencies": {
-      "@types/gulp": "^4.0.6",
-      "@types/jest": "^23.3.12",
-      "@types/node": "^10.1.2",
-      "commitizen": "^3.0.5",
-      "conventional-changelog-cli": "^2.0.1",
-      "cz-conventional-changelog": "^2.1.0",
-      "del": "^3.0.0",
-      "gulp": "^4.0.0",
-      "gulp-rename": "^1.4.0",
-      "gulp-replace": "^1.0.0",
-      "jest": "^23.0.1",
-      "lodash": "^4.17.10",
-      "rollup": "^1.1.0",
-      "rollup-plugin-node-resolve": "^4.0.0",
-      "rollup-plugin-replace": "^2.0.0",
-      "rollup-plugin-sourcemaps": "^0.4.2",
-      "ts-jest": "^23.10.5",
-      "ts-node": "^8.2.0",
-      "tslint": "^5.10.0",
-      "typescript": "^3.2.2"
-   },
-   "jest": {
-      "globals": {
-         "ts-jest": {
-            "skipBabel": true
-         }
-      },
-      "moduleFileExtensions": [
-         "ts",
-         "js",
-         "json"
-      ],
-      "notify": true,
-      "transform": {
-         "^.+\\.ts$": "ts-jest"
-      },
-      "testRegex": "/tests/.*\\.(js|ts)$",
-      "testEnvironment": "node"
-   },
    "config": {
       "commitizen": {
          "path": "./node_modules/cz-conventional-changelog"
       }
+   },
+   "dependencies": {
+      "tslib": "^1.10.0",
+      "ws": "^7.1.0"
+   },
+   "devDependencies": {
+      "@types/fs-extra": "^8.0.0",
+      "@types/jest": "^24.0.15",
+      "@types/node": "^12.6.2",
+      "@types/ws": "^6.0.1",
+      "@types/yargs": "^13.0.0",
+      "chalk": "^2.4.2",
+      "commitizen": "^3.1.1",
+      "conventional-changelog-cli": "^2.0.21",
+      "cz-conventional-changelog": "^2.1.0",
+      "fs-extra": "^8.1.0",
+      "jest": "^24.8.0",
+      "rollup": "^1.16.7",
+      "rollup-plugin-json": "^4.0.0",
+      "rollup-plugin-node-resolve": "^5.2.0",
+      "rollup-plugin-sourcemaps": "^0.4.2",
+      "terser": "^4.1.2",
+      "ts-jest": "^24.0.2",
+      "tslint": "^5.18.0",
+      "typescript": "^3.5.3",
+      "yargs": "^13.2.4",
+      "zlib": "^1.0.5"
    }
 }
