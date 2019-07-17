@@ -1,38 +1,43 @@
-import { domain, node } from 'eventnet';
+import { node, Node } from 'eventnet';
 import { type } from '../../helpers/util';
 
-describe('EventNet core functions', () => {
-   it('LocalNode constant attributes', async () => {
-      const nd0 = node(({ $$ }) => {
-         $$('Hello World~');
-      });
-      expect(nd0.uid).toBe(domain.LocalDomain.uidCounter - 1);
-      expect(nd0.type).toBe('Node');
-      expect(nd0.parent).toBe(undefined);
-      expect(nd0.isSubnet).toBe(false);
-      expect(nd0.domain).toBe(domain.LocalDomain);
-      expect(nd0.toString()).toBe(`Node(local/${nd0.uid})`);
-      const nd0Identity = nd0.getIdentity();
-      for (const field of Object.keys(nd0Identity)) {
-         const value = nd0Identity[field];
-         expect(type(value)).toBe('string');
-      }
-      expect(type(nd0.originalNode)).toBe('object');
+describe('LocalNode', () => {
+   it('should run when calling input', () => {
+      const fn = jest.fn();
+      const nd = node(fn);
+      nd.input('test');
+      expect(fn.mock.calls.length).toBe(1);
+      expect(type(fn.mock.calls[0][0])).toBe('object');
+      expect(fn.mock.calls[0][0].data).toBe('test');
+      expect(fn.mock.calls[0][0].entry.$I).toBe(true);
    });
 
-   it('LocalNode state', () => {
-      const nd1 = node({ foo: 0 },
-         ({ state }) => {
-            state.foo++;
-         });
-      expect(type(nd1.state)).toBe('object');
-      expect(nd1.state.foo).toBe(0);
-      expect(nd1.readState('.foo')).toBe(0);
-      nd1.input();
-      expect(nd1.state.foo).toBe(1);
-      expect(nd1.readState('.foo')).toBe(1);
-      nd1.input();
-      expect(nd1.state.foo).toBe(2);
-      expect(nd1.readState('.foo')).toBe(2);
+   it('should be able to receive and send data', () => {
+      const nd0 = node<void, string>(({ $$ }) => {
+         $$('test');
+      });
+
+      nd0.pipe(
+         node<string, string>(({ $$, data }) => {
+            expect(data).toBe('test');
+            $$(data + data);
+         })
+      ).pipe('$oneInputPort',
+         node<{
+            $oneInputPort: string;
+            $oneOutputPort: number;
+         }>(({ $$, data, entry }) => {
+            expect(entry.$oneInputPort).toBe(true);
+            expect(data).toBe('testtest');
+            $$.$oneOutputPort(12345);
+         })
+      ).$oneOutputPort.pipe(
+         node<number, void>(({ data }) => {
+            expect(data).toBe(12345);
+         })
+      );
+
+      nd0.input();
+
    });
 });
