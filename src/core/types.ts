@@ -28,3 +28,15 @@ export interface NodeInvocation {
    data: any;
    [key: string]: any;
 }
+
+export namespace Events {
+   export type OnRun<PT = DefaultPorts> = (args: OnRunArgs<PT>) => void;
+
+   export interface OnRunArgs<PT = DefaultPorts> {
+      entry: {
+         [_ in keyof PT]: boolean;
+      } & { name: string };
+      data: any;
+      $$: any;
+   }
+}
