@@ -18,11 +18,13 @@ const terser = require('terser');
 const { nodeCmd, banner } = require('./util');
 const zlib = require('zlib');
 
+// avoid warnings
 require('events').EventEmitter.defaultMaxListeners = 100;
 
 main().catch(e => console.log(e));
 
 async function main() {
+   // extract command line parameters using `yargs`
    const argv = require('yargs')
       .help(false).version(false)
       .option('entry', { alias: 'e' })
@@ -129,7 +131,7 @@ async function main() {
 async function build({ entries, versions, tree }) {
    const startTime = process.hrtime();
    console.log(yellow('Start building...'));
-   console.log(yellow(`Enrties: ${entries.join(',')}`));
+   console.log(yellow(`Entries: ${entries.join(',')}`));
    console.log(yellow(`Versions: ${versions.join(',')}`));
    console.log();
 
@@ -163,6 +165,31 @@ async function buildSingle({ entry, tree }) {
             filename.startsWith('entry') &&
             filename.endsWith('.ts')
       ).forEach(filename => fs.removeSync(`build/${entry}/src/${filename}`))
+
+   const allFuncJS = fs.readFileSync(`build/${entry}/src/all-func.ts`, 'utf8');
+   const newAllFuncJSArr = [];
+   let enableNextLine = false;
+   for (let line of allFuncJS.split('\n')) {
+      if (enableNextLine) {
+         line = line.replace('// ', '');
+         enableNextLine = false;
+      }
+      if (line.startsWith('/////')) {
+         const targetEntries =
+            line
+               .split('=')[1]
+               .replace(/\s/g, '')
+               .split(',');
+         if (~targetEntries.indexOf(entry)) {
+            enableNextLine = true;
+         }
+      }
+      newAllFuncJSArr.push(line);
+   }
+   fs.writeFileSync(
+      `build/${entry}/src/all-func.ts`,
+      newAllFuncJSArr.join('\n')
+   );
 
    await walk(tree);
 
@@ -215,19 +242,24 @@ async function buildSingleVersion({ entry, version }) {
       console.log(yellow(
          `${entry}(${version}):\tPacking with Rollup...`
       ));
-      await nodeCmd([
-         './node_modules/rollup/bin/rollup',
-         '-c', './scripts/rollup.config.js',
-         '--environment', 'TARGET:' + entry + '/' + version
-      ]).then(() => {
+
+      try {
+         await nodeCmd([
+            './node_modules/rollup/bin/rollup',
+            '-c', './scripts/rollup.config.js',
+            '--environment', 'TARGET:' + entry + '/' + version
+         ]);
          console.log(green(
             `${entry}(${version}):\tRollup OK.`
          ));
-      }).catch(code => {
+      } catch (code) {
          console.log(red(
             `${entry}(${version}):\tError: rollup exited with code ${code}`
          ));
-      }).then(() => {
+         throw new Error();
+      }
+
+      try {
          const code = fs.readFileSync(`build/${entry}/${version}/eventnet.js`, 'utf8');
          console.log(yellow(
             `${entry}(${version}):\tMinifying with Terser...`
@@ -247,7 +279,9 @@ async function buildSingleVersion({ entry, version }) {
 
          const gzippedCode = zlib.gzipSync(minifiedCode);
 
-         function sizeof(str) { return (str.length / 1024).toFixed(2) + 'KB'; }
+         function sizeof(str) {
+            return (str.length / 1024).toFixed(2) + 'KB';
+         }
 
          console.log(
             blue(sizeof(code)) + yellow(`\t\t\t\tbuild/${entry}/${version}/eventnet.js`)
@@ -256,8 +290,8 @@ async function buildSingleVersion({ entry, version }) {
             blue(`${sizeof(minifiedCode)} (gzipped: ${sizeof(gzippedCode)}) `) +
             yellow(`\tbuild/${entry}/${version}/eventnet.min.js`)
          );
-      }).catch(e => {
+      } catch (e) {
          console.log(red(`${entry}(${version}):\t Terser/zlib error: ${e}`));
-      });
+      }
    }
 }

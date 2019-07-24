@@ -1,5 +1,6 @@
 build/
 release/
+tmp/
 
 # VS Code Workspace files
 .vscode/

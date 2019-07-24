@@ -1,3 +1,13 @@
 {
-    "extends": "../tsconfig.json"
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "eventnet": ["indexes/eventnet"],
+            "eventnet/attrs": ["indexes/attrs"],
+            "eventnet/connectors": ["indexes/connectors"],
+            "eventnet/monitor": ["indexes/monitor"],
+            "eventnet/nodes": ["indexes/nodes"]
+        }
+    }
 }

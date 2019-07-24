@@ -19,16 +19,7 @@
       "strictFunctionTypes": true,
       "strictNullChecks": true,
       "stripInternal": true,
-      "target": "es2015",
-      "baseUrl": ".",
-      "paths": {
-        "eventnet": ["./src/entry"],
-        "eventnet/core": ["./src/core/index"],
-        "eventnet/nodes": ["./src/nodes/index"],
-        "eventnet/attrs": ["./src/attrs/index"],
-        "eventnet/monitors": ["./src/ajax/index"],
-        "eventnet/common": ["./src/common/index"]
-      }  
+      "target": "es2015"
    },
    "exclude": [
       "node_modules"
