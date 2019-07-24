@@ -234,7 +234,7 @@ async function buildSingleVersion({ entry, version }) {
             `${entry}(${version}):\tTypeScript compilation OK.`
          ));
       } catch (code) {
-         console.log(red(
+         throw new Error(red(
             `${entry}(${version}):\tError: tsc exited with code ${code}`
          ));
       }
@@ -253,10 +253,9 @@ async function buildSingleVersion({ entry, version }) {
             `${entry}(${version}):\tRollup OK.`
          ));
       } catch (code) {
-         console.log(red(
+         throw new Error(red(
             `${entry}(${version}):\tError: rollup exited with code ${code}`
          ));
-         throw new Error();
       }
 
       try {
@@ -291,7 +290,7 @@ async function buildSingleVersion({ entry, version }) {
             yellow(`\tbuild/${entry}/${version}/eventnet.min.js`)
          );
       } catch (e) {
-         console.log(red(`${entry}(${version}):\t Terser/zlib error: ${e}`));
+         throw new Error(red(`${entry}(${version}):\t Terser/zlib error: ${e}`));
       }
    }
 }

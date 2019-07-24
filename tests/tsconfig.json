@@ -9,5 +9,8 @@
             "eventnet/monitor": ["indexes/monitor"],
             "eventnet/nodes": ["indexes/nodes"]
         }
-    }
+    },
+    "include": [
+        "./**/*"
+    ]
 }
