@@ -61,8 +61,11 @@ module.exports = {
    // globalTeardown: null,
 
    // A set of global variables that need to be available in all test environments
-   // globals: {},
-
+   globals: {
+      'ts-jest': {
+         tsConfig: 'tests/tsconfig.json',
+      },
+   },
    // An array of directory names to be searched recursively up from the requiring module's location
    // moduleDirectories: [
    //    "node_modules",
@@ -79,7 +82,7 @@ module.exports = {
    ],
 
    // A map from regular expressions to module names that allow to stub out resources with a single module
-   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/tests' }),
+   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/tests/' }),
 
    // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
    // modulePathIgnorePatterns: [],
@@ -142,7 +145,8 @@ module.exports = {
 
    // The glob patterns Jest uses to detect test files
    testMatch: [
-      "**/?(*.)+(spec|test).[jt]s",
+      "<rootDir>/./src/**/*.(spec|test).{j,t}s",
+      "<rootDir>/./tests/**/*.(spec|test).{j,t}s",
    ],
 
    // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
