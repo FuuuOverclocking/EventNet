@@ -16,7 +16,7 @@ class Client {
    };
    protected handlers: {
       default?: (msg: string) => void;
-      [k: string]: (msg: string) => void;
+      [k: string]: undefined | ((msg: string) => void);
    } = {};
 
    constructor(
@@ -98,7 +98,7 @@ class Client {
          this.assertion = false;
       }
       if (this.handlers[msg]) {
-         this.handlers[msg](msg);
+         this.handlers[msg]!(msg);
       } else if (this.handlers.default) {
          this.handlers.default(msg);
       }
@@ -126,13 +126,61 @@ export function createClient(
    {
       timeout = 5,
       silent = false,
-   }
+   } = {}
 ) {
-   return new Promise((resolve, reject) => {
+   return new Promise<Client>((resolve, reject) => {
       const client = new Client(
          filepath,
          { timeout, silent, onConnected: resolve }
       );
       setTimeout(reject, timeout);
    });
+}
+
+export function connectServer() {
+   return new Promise((resolve, reject) => {
+      const srv = new Server(resolve);
+   });
+}
+
+class Server {
+   public socket: WebSocket;
+   constructor(resolve: () => void) {
+      this.socket = new WebSocket('ws://127.0.0.1:2357');
+      this.socket.on('open', () => {
+         resolve();
+      });
+      this.socket.on('error', () => {
+         throw new Error('Fail to connect to server.');
+      });
+      this.socket.on('message', (data: string) => {
+         if (this.handlers[data]) {
+            this.handlers[data]!(data);
+         } else {
+            this.handlers.default!(data);
+         }
+      });
+   }
+   public send(msg: string) {
+      this.socket.send(msg);
+   }
+   protected handlers: {
+      default?: (msg: string) => void;
+      [k: string]: undefined | ((msg: string) => void);
+   };
+
+   public onReceive(
+      msg: string,
+      handler: (msg: string) => void
+   ): void;
+   public onReceive(
+      handler: (msg: string) => void
+   ): void;
+   public onReceive(arg1: any, arg2?: any) {
+      if (typeof arg2 === 'undefined') {
+         this.handlers.default = arg1;
+      } else {
+         this.handlers[arg1] = arg2;
+      }
+   }
 }

@@ -1,5 +1,8 @@
 import { domain, node, Node } from 'eventnet';
+import { WebSocketConnector as ws } from 'eventnet/connectors';
 import { type } from 'helpers/util';
+import { createClient } from '../helpers/e2e-helper';
+
 
 describe('constant of Node', () => {
    test('Node in LoaclDomain', () => {
@@ -85,5 +88,32 @@ describe('constant of Node', () => {
       });
    });
 
-   test('Node ');
+   test('Node in RemoteDomain', async () => {
+      const client = await createClient('tests/core/helpers/remote-node.js');
+      await client.willReceive('ping');
+      client.send('pong');
+
+      const anotherEnd = domain(
+         ws('ws://127.0.0.1:8888')
+      );
+      await anotherEnd.ready();
+      const nd = anotherEnd.nodes.nd1;
+      expect(type(nd.uid)).toBe('number');
+      expect(nd.type).toBe('Node');
+      expect(nd.isSubnet).toBe(false);
+      // nd.parent is not available
+      expect(nd.domain).toBe(anotherEnd);
+      expect(nd.toString()).toBe(`Node(127.0.0.1:8888/${nd.uid})`);
+
+      const ndIdentity = nd.getIdentity();
+      expect(ndIdentity.domain).toBe('127.0.0.1:8888');
+      expect(ndIdentity.uid).toBe(String(nd.uid));
+      expect(ndIdentity.type).toBe('Node');
+
+      Object.keys(nd.originNode).forEach(prop => {
+         expect(nd.originNode[prop]).toBe(nd[prop]);
+      });
+   });
+
+
 });
