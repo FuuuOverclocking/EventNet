@@ -17,8 +17,7 @@ exports.nodeCmd = args => {
 
 exports.banner = (() => {
    const date = new Date();
-   const banner = `
-/**
+   const banner = `/**
  * EventNet v${require('../package.json').version}
  * (c) ${'2018-' + date.getFullYear()} X.Y.Z.
  * Released under the MIT License.

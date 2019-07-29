@@ -2,6 +2,7 @@
    "compilerOptions": {
       "alwaysStrict": true,
       "allowSyntheticDefaultImports": true,
+      "allowUnreachableCode": true,
       "charset": "utf8",
       "lib": [
          "es2015"
@@ -21,10 +22,8 @@
       "stripInternal": true,
       "target": "es2015"
    },
-   "include": [
-      "./src/**/*"
-   ],
    "exclude": [
-      "node_modules"
+      "node_modules",
+      "tmp"
    ]
 }

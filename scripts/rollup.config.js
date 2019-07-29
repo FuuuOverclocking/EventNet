@@ -10,7 +10,7 @@ console.assert(
 );
 
 module.exports = {
-   input: `build/${entry}/esm/all-func.js`,
+   input: `build/${entry}/esm/entry.js`,
    external: ['ws'],
    plugins: [
       json(),

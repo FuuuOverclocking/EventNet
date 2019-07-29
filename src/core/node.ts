@@ -1,6 +1,6 @@
-import { DefaultPorts as DP, NodeInvocation } from './types';
+import { DefaultPorts, IOPorts, NodeInvocation } from './types';
 
-export type Node<Ports extends DP = DP> = {
+export type Node<Ports extends DefaultPorts = DefaultPorts> = {
    // Ports are actually defined on `Node.$$`.
    // We use Proxy to access them.
    [name in keyof Ports]: Port<Ports[name]>;
@@ -28,7 +28,7 @@ export const Node = {
       portsWaitingLink.length = 0;
    },
 
-   proxify<Ports extends DP>(node: OriginalNode<Ports>) {
+   proxify<Ports extends DefaultPorts>(node: OriginalNode<Ports>) {
       return new Proxy(node, {
          get(target, prop: string, receiver) {
             if (prop.startsWith('$') && !prop.startsWith('$$')) {
@@ -41,13 +41,13 @@ export const Node = {
    },
 };
 
-export abstract class OriginalNode<Ports extends DP> {
+export abstract class OriginalNode<Ports extends DefaultPorts> {
    public abstract readonly uid: number;
    public abstract readonly type: string;
    public abstract readonly isSubnet: boolean;
    public readonly $$: PortSet<Ports>;
    public parent: Subnet | InvisibleNode | undefined;
-   public domain: Domain;
+   public readonly domain: Domain;
 
    public abstract run(invocation: NodeInvocation): void;
    public abstract input(invocation: NodeInvocation): void;
@@ -59,7 +59,7 @@ export abstract class OriginalNode<Ports extends DP> {
    public on(event: '', handler: () => void) { }
 
    public toString() {
-      return `Node(${this.domain.name}/${this.uid}`;
+      return `${this.type}(${this.domain.name}/${this.uid}`;
    }
 
    public getIdentity(): { [field: string]: string } {
@@ -72,8 +72,8 @@ export abstract class OriginalNode<Ports extends DP> {
 
    public dispatch(map: {
       [name in keyof Ports]?:
-      Node<DP<Ports[name]>> |
-      PortSet<DP<Ports[name]>> |
+      Node<IOPorts<Ports[name]>> |
+      PortSet<IOPorts<Ports[name]>> |
       Port<Ports[name]> |
       string;
    }) {
@@ -81,15 +81,15 @@ export abstract class OriginalNode<Ports extends DP> {
       return this;
    }
 
-   public pipe<U extends DP<Ports['$O']>>(node: Node<U>): Node<U>;
-   public pipe<U extends DP<Ports['$O']>>(portSet: PortSet<U>): PortSet<U>;
+   public pipe<U extends IOPorts<Ports['$O']>>(node: Node<U>): Node<U>;
+   public pipe<U extends IOPorts<Ports['$O']>>(portSet: PortSet<U>): PortSet<U>;
    public pipe<U extends Port<Ports['$O']>>(port: U): U;
    public pipe(obj: any) {
       return this.$$.get('$O').pipe(obj);
    }
 
-   public alsoPipe<U extends DP<Ports['$O']>>(node: Node<U>): this;
-   public alsoPipe<U extends DP<Ports['$O']>>(portSet: PortSet<U>): this;
+   public alsoPipe<U extends IOPorts<Ports['$O']>>(node: Node<U>): this;
+   public alsoPipe<U extends IOPorts<Ports['$O']>>(portSet: PortSet<U>): this;
    public alsoPipe<U extends Port<Ports['$O']>>(port: U): this;
    public alsoPipe(obj: any) {
       this.$$.get('$O').alsoPipe(obj);

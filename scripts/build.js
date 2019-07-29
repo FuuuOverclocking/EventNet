@@ -16,6 +16,7 @@ const { red, yellow, green, blue } = require('chalk');
 const fs = require('fs-extra');
 const terser = require('terser');
 const { nodeCmd, banner } = require('./util');
+const path = require('path');
 const zlib = require('zlib');
 
 // avoid warnings
@@ -24,6 +25,10 @@ require('events').EventEmitter.defaultMaxListeners = 100;
 main().catch(e => console.log(e));
 
 async function main() {
+   if (process.cwd() !== path.resolve(__dirname, '../')) {
+      throw new Error('This script should be executed at the root of the project.');
+   }
+
    // extract command line parameters using `yargs`
    const argv = require('yargs')
       .help(false).version(false)
@@ -152,46 +157,26 @@ async function build({ entries, versions, tree }) {
 async function buildSingle({ entry, tree }) {
    fs.removeSync(`build/${entry}/src`);
    fs.copySync('src', `build/${entry}/src`);
-   fs.renameSync(
-      `build/${entry}/src/entry${
-      entry === 'default' ? '' : '.' + entry
-      }.ts`,
-      `build/${entry}/src/entry.ts`
-   );
-   fs.readdirSync(`build/${entry}/src`)
-      .filter(
-         filename =>
-            filename !== 'entry.ts' &&
-            filename.startsWith('entry') &&
-            filename.endsWith('.ts')
-      ).forEach(filename => fs.removeSync(`build/${entry}/src/${filename}`))
 
-   const allFuncJS = fs.readFileSync(`build/${entry}/src/all-func.ts`, 'utf8');
-   const newAllFuncJSArr = [];
-   let enableNextLine = false;
-   for (let line of allFuncJS.split('\n')) {
-      if (enableNextLine) {
-         line = line.replace('// ', '');
-         enableNextLine = false;
-      }
-      if (line.startsWith('/////')) {
-         const targetEntries =
-            line
-               .split('=')[1]
-               .replace(/\s/g, '')
-               .split(',');
-         if (~targetEntries.indexOf(entry)) {
-            enableNextLine = true;
-         }
-      }
-      newAllFuncJSArr.push(line);
-   }
-   fs.writeFileSync(
-      `build/${entry}/src/all-func.ts`,
-      newAllFuncJSArr.join('\n')
-   );
+   modifyEntry();
 
    await walk(tree);
+
+   function modifyEntry() {
+      fs.renameSync(
+         `build/${entry}/src/entry${
+         entry === 'default' ? '' : '.' + entry
+         }.ts`,
+         `build/${entry}/src/entry.ts`
+      );
+      fs.readdirSync(`build/${entry}/src`)
+         .filter(
+            filename =>
+               filename !== 'entry.ts' &&
+               filename.startsWith('entry') &&
+               filename.endsWith('.ts')
+         ).forEach(filename => fs.removeSync(`build/${entry}/src/${filename}`))
+   }
 
    function walk(node) {
       const promiseArray = [];
@@ -217,13 +202,27 @@ async function buildSingleVersion({ entry, version }) {
    fs.removeSync(`build/${entry}/${version}`);
 
    if (~['cjs', 'esm', 'types'].indexOf(version)) {
+      console.log(yellow(
+         `${entry}(${version}): Compiling TypeScript...`
+      ));
+      await tsBuild();
+   } else if (~['esm-browser', 'umd'].indexOf(version)) {
+      console.log(yellow(
+         `${entry}(${version}): Packing with Rollup...`
+      ));
+      await rollup();
+
+      console.log(yellow(
+         `${entry}(${version}):\tMinifying with Terser...`
+      ));
+      minify();
+   }
+
+   async function tsBuild() {
       fs.copyFileSync(
          `scripts/tsconfigs/tsconfig.${version}.json`,
          `build/${entry}/tsconfig.${version}.json`
       );
-      console.log(yellow(
-         `${entry}(${version}):\tCompiling TypeScript...`
-      ));
 
       try {
          await nodeCmd([
@@ -238,11 +237,8 @@ async function buildSingleVersion({ entry, version }) {
             `${entry}(${version}):\tError: tsc exited with code ${code}`
          ));
       }
-   } else if (~['esm-browser', 'umd'].indexOf(version)) {
-      console.log(yellow(
-         `${entry}(${version}):\tPacking with Rollup...`
-      ));
-
+   }
+   async function rollup() {
       try {
          await nodeCmd([
             './node_modules/rollup/bin/rollup',
@@ -257,12 +253,11 @@ async function buildSingleVersion({ entry, version }) {
             `${entry}(${version}):\tError: rollup exited with code ${code}`
          ));
       }
+   }
 
+   function minify() {
       try {
          const code = fs.readFileSync(`build/${entry}/${version}/eventnet.js`, 'utf8');
-         console.log(yellow(
-            `${entry}(${version}):\tMinifying with Terser...`
-         ));
          const minified = terser.minify(code, {
             ecma: 6,
             toplevel: true,

@@ -1,11 +1,17 @@
 import { Node } from './node';
 
-export interface DefaultPorts<I = any, O = any> {
-   $I: I;
-   $O: O;
+export interface DefaultPorts {
+   $I: any;
+   $O: any;
    $E: NodeErr;
    [name: string]: any;
 }
+
+export interface IOPorts<I = any, O = any> extends DefaultPorts {
+   $I: I;
+   $O: O;
+}
+
 
 export interface NodeErr<err = any> {
    what: err;
