@@ -3,6 +3,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
+            "helpers": ["helpers"],
             "eventnet": ["indexes/eventnet"],
             "eventnet/attrs": ["indexes/attrs"],
             "eventnet/connectors": ["indexes/connectors"],

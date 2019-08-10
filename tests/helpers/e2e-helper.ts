@@ -2,19 +2,39 @@ import { ChildProcess, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as WebSocket from 'ws';
 
-class Client {
+const wsServerPort = 2357;
+
+/**
+ * Note: the unit of `timeout` is second.
+ */
+export async function createEndA(
+   filepath: string,
+   {
+      timeout = 10,
+      silent = false,
+   } = {}
+) {
+   const endA = new EndA(filepath, { timeout, silent });
+   await endA.readyPromise;
+   return endA;
+}
+
+class EndA {
    public process: ChildProcess;
    public wsServer: WebSocket.Server;
    public socket: WebSocket;
-   protected timeout: number;
-   protected timeoutId: NodeJS.Timeout;
-   protected connected = false;
-   protected assertion: string | false = false;
-   protected assertionPromise = {
+   public readyPromise: Promise<void>;
+   private readyPromiseResolve: () => void;
+   private readyPromiseReject: () => void;
+   private timeout: number;
+   private timeoutId: NodeJS.Timeout;
+   private connected = false;
+   private assertion: string | false = false;
+   private assertionPromise = {
       resolve: () => { },
       reject: (r: string) => { },
    };
-   protected handlers: {
+   private handlers: {
       default?: (msg: string) => void;
       [k: string]: undefined | ((msg: string) => void);
    } = {};
@@ -22,9 +42,11 @@ class Client {
    constructor(
       public filepath: string,
       {
-         timeout = 5,
-         silent = false,
-         onConnected = void 0 as any,
+         timeout,
+         silent,
+      }: {
+         timeout: number;
+         silent: boolean;
       }
    ) {
       this.timeout = timeout;
@@ -32,12 +54,22 @@ class Client {
          throw new Error('JS file not exists.');
       }
 
-      this.startWebSocketListen(onConnected);
+      this.startWSServer();
       this.startClient(filepath, silent);
-      this.setTimeout('Failed to create client.');
+      this.setTimeout(() => {
+         this.readyPromiseReject();
+         throw new Error('Failed to create client.');
+      });
+      this.readyPromise = new Promise((res, rej) => {
+         this.readyPromiseResolve = res;
+         this.readyPromiseReject = rej;
+      });
    }
 
    public willReceive(msg: string) {
+      if (this.assertion) {
+         throw new Error('Reset assertion before last one was resolved.');
+      }
       this.assertion = msg;
       this.setTimeout('Message not received in time.');
       return new Promise((resolve, reject) => {
@@ -50,9 +82,9 @@ class Client {
    public send(msg: string) {
       this.socket.send(msg);
    }
-   public onReceive(msg: string, handler: (msg: string) => {}): void;
-   public onReceive(handler: (msg: string) => {}): void;
-   public onReceive(arg1: any, arg2?: any) {
+   public onMessage(msg: string, handler: (msg: string) => {}): void;
+   public onMessage(handler: (msg: string) => {}): void;
+   public onMessage(arg1: any, arg2?: any) {
       if (typeof arg2 === 'undefined') {
          this.handlers.default = arg1;
       } else {
@@ -60,33 +92,39 @@ class Client {
       }
    }
 
-   protected setTimeout(err: string) {
+   private setTimeout(err: string | (() => any)) {
       this.timeoutId = setTimeout(() => {
-         throw new Error(err);
+         if (typeof err === 'function') {
+            err();
+         } else {
+            throw new Error(err);
+         }
       }, this.timeout);
    }
-   protected unsetTimeout() {
+   private unsetTimeout() {
       clearTimeout(this.timeoutId);
    }
 
-   protected startWebSocketListen(onConnected: (client: this) => void) {
-      const wss = this.wsServer = new WebSocket.Server({ port: 2357 });
+   private startWSServer() {
+      const wss = this.wsServer = new WebSocket.Server({ port: wsServerPort });
 
       wss.on('connection', ws => {
          if (this.connected) {
             throw new Error('Multiple clients connected to the server.');
          }
-         this.unsetTimeout();
          this.connected = true;
-         onConnected(this);
-         ws.on('message', msg => {
-            this.receive(msg as string);
-         });
 
          this.socket = ws;
+         this.unsetTimeout();
+         ws.on('message', (msg: string) => {
+            this.receive(msg);
+         });
+
+         this.readyPromiseResolve();
       });
    }
-   protected receive(msg: string) {
+
+   private receive(msg: string) {
       if (this.assertion) {
          this.unsetTimeout();
          if (msg === this.assertion) {
@@ -103,15 +141,15 @@ class Client {
          this.handlers.default(msg);
       }
    }
-   protected startClient(filepath: string, silent: boolean) {
-      const pr = this.process = spawn('node', [
+   private startClient(filepath: string, silent: boolean) {
+      const proc = this.process = spawn('node', [
          filepath,
       ]);
       if (!silent) {
-         pr.stdout.pipe(process.stdout);
-         pr.stderr.pipe(process.stdout);
+         proc.stdout.pipe(process.stdout);
+         proc.stderr.pipe(process.stdout);
       }
-      pr.on('exit', code => {
+      proc.on('exit', code => {
          if (code !== 0) {
             throw new Error('Client exit with code ' + code);
          } else if (this.assertion) {
@@ -121,36 +159,25 @@ class Client {
    }
 }
 
-export function createClient(
-   filepath: string,
-   {
-      timeout = 5,
-      silent = false,
-   } = {}
-) {
-   return new Promise<Client>((resolve, reject) => {
-      const client = new Client(
-         filepath,
-         { timeout, silent, onConnected: resolve }
-      );
-      setTimeout(reject, timeout);
-   });
+export async function createEndB() {
+   const endB = new EndB();
+   await endB.readyPromise;
+   return endB;
 }
 
-export function connectServer() {
-   return new Promise((resolve, reject) => {
-      const srv = new Server(resolve);
-   });
-}
-
-class Server {
+class EndB {
    public socket: WebSocket;
-   constructor(resolve: () => void) {
-      this.socket = new WebSocket('ws://127.0.0.1:2357');
+   public readyPromise: Promise<void>;
+   private readyPromiseResolve: () => void;
+   private readyPromiseReject: () => void;
+
+   constructor() {
+      this.socket = new WebSocket('ws://127.0.0.1:' + wsServerPort);
       this.socket.on('open', () => {
-         resolve();
+         this.readyPromiseResolve();
       });
       this.socket.on('error', () => {
+         this.readyPromiseReject();
          throw new Error('Fail to connect to server.');
       });
       this.socket.on('message', (data: string) => {
@@ -160,23 +187,27 @@ class Server {
             this.handlers.default!(data);
          }
       });
+      this.readyPromise = new Promise((res, rej) => {
+         this.readyPromiseResolve = res;
+         this.readyPromiseReject = rej;
+      });
    }
    public send(msg: string) {
       this.socket.send(msg);
    }
-   protected handlers: {
+   private handlers: {
       default?: (msg: string) => void;
       [k: string]: undefined | ((msg: string) => void);
    };
 
-   public onReceive(
+   public onMessage(
       msg: string,
       handler: (msg: string) => void
    ): void;
-   public onReceive(
+   public onMessage(
       handler: (msg: string) => void
    ): void;
-   public onReceive(arg1: any, arg2?: any) {
+   public onMessage(arg1: any, arg2?: any) {
       if (typeof arg2 === 'undefined') {
          this.handlers.default = arg1;
       } else {
